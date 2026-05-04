@@ -1,0 +1,19 @@
+name: core
+description: Core utilities and shared code
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  
+  # Supabase
+  supabase_flutter: ^2.5.0
+  
+  # Image picker
+  image_picker: ^1.1.2

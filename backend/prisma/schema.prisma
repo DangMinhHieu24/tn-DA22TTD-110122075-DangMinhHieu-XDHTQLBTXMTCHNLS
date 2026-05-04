@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TECHNICIAN
+  CUSTOMER
+}
+
+enum WorkOrderStatus {
+  PENDING       // Chờ xử lý
+  IN_PROGRESS   // Đang thực hiện
+  WAITING_PARTS // Chờ phụ tùng
+  COMPLETED     // Hoàn thành
+  CANCELLED     // Đã hủy
+}
+
+enum WorkPriority {
+  NORMAL
+  URGENT
+}
+
+enum ServiceType {
+  MAINTENANCE      // Bảo dưỡng định kỳ
+  BATTERY_CHECK    // Kiểm tra pin/sạc
+  BRAKES_TIRES     // Phanh & Lốp
+  OTHER_REPAIR     // Sửa chữa khác
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  phoneNumber String?  @unique
+  name        String
+  password    String
+  role        UserRole @default(CUSTOMER)
+  avatarUrl   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ownedVehicles     Vehicle[]    @relation("VehicleOwner")
+  assignedWorkOrders WorkOrder[] @relation("AssignedTechnician")
+  createdWorkOrders  WorkOrder[] @relation("CreatedByAdmin")
+
+  @@map("users")
+}
+
+model Vehicle {
+  id            String   @id @default(uuid())
+  licensePlate  String   @unique // Biển số xe (VD: 29A-123.45)
+  model         String   // Model xe (VD: VinFast Klara S)
+  color         String?  // Màu xe
+  warrantyStatus Boolean @default(false) // Còn bảo hành
+  currentKm     Int?     // Số km hiện tại
+  
+  // Relations
+  ownerId       String
+  owner         User     @relation("VehicleOwner", fields: [ownerId], references: [id])
+  workOrders    WorkOrder[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("vehicles")
+}
+
+model WorkOrder {
+  id                String          @id @default(uuid())
+  orderNumber       String          @unique // Mã phiếu (auto-generated)
+  
+  // Vehicle info
+  vehicleId         String
+  vehicle           Vehicle         @relation(fields: [vehicleId], references: [id])
+  
+  // Status & Priority
+  status            WorkOrderStatus @default(PENDING)
+  priority          WorkPriority    @default(NORMAL)
+  
+  // Services
+  services          WorkOrderService[]
+  notes             String?         // Ghi chú thêm
+  
+  // Assignment
+  technicianId      String?
+  technician        User?           @relation("AssignedTechnician", fields: [technicianId], references: [id])
+  estimatedHours    Float?          // Ước tính thời gian (giờ)
+  scheduledTime     String?         // Thời gian hẹn (VD: "14:00")
+  
+  // Photos
+  photos            WorkOrderPhoto[]
+  
+  // Tracking
+  createdById       String
+  createdBy         User            @relation("CreatedByAdmin", fields: [createdById], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  completedAt       DateTime?
+
+  @@map("work_orders")
+}
+
+model WorkOrderService {
+  id            String      @id @default(uuid())
+  workOrderId   String
+  workOrder     WorkOrder   @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  serviceType   ServiceType
+  description   String?     // Mô tả chi tiết dịch vụ
+  
+  createdAt     DateTime    @default(now())
+
+  @@map("work_order_services")
+}
+
+model WorkOrderPhoto {
+  id            String    @id @default(uuid())
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  photoUrl      String    // URL ảnh (Firebase Storage hoặc local)
+  description   String?   // Mô tả ảnh (VD: "Xước góc trước bên trái")
+  
+  createdAt     DateTime  @default(now())
+
+  @@map("work_order_photos")
+}

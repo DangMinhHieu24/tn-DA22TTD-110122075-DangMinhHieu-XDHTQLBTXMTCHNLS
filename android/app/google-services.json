@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "462296285787",
+    "project_id": "nangluongsach-2183e",
+    "storage_bucket": "nangluongsach-2183e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:462296285787:android:be72cb9a55763cb189757e",
+        "android_client_info": {
+          "package_name": "com.example.nanglungsach"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHj17Dqn1NKvlEjPnwiesxWFvIuQSmzh8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

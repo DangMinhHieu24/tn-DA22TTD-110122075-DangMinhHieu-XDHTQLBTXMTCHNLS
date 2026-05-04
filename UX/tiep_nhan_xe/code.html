@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tiếp nhận xe mới</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#191c1e",
+                        "tertiary-container": "#ff8b7c",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-container": "#76231b",
+                        "primary-fixed-dim": "#4ae176",
+                        "surface-tint": "#006e2f",
+                        "secondary": "#0058be",
+                        "surface-container-low": "#f2f4f6",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#002109",
+                        "inverse-primary": "#4ae176",
+                        "on-surface": "#191c1e",
+                        "surface-container-highest": "#e0e3e5",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-primary-container": "#004b1e",
+                        "tertiary-fixed-dim": "#ffb4a9",
+                        "secondary-fixed": "#d8e2ff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary-fixed": "#410001",
+                        "secondary-container": "#2170e4",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#004395",
+                        "outline-variant": "#bccbb9",
+                        "background": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#ffdad5",
+                        "surface-variant": "#e0e3e5",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#3d4a3d",
+                        "surface-dim": "#d8dadc",
+                        "inverse-surface": "#2d3133",
+                        "tertiary": "#9e4036",
+                        "on-secondary-fixed": "#001a42",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#eceef0",
+                        "primary-container": "#22c55e",
+                        "primary-fixed": "#6bff8f",
+                        "on-tertiary-fixed-variant": "#7f2a21",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#f7f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "surface": "#f7f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#006e2f",
+                        "on-primary-fixed-variant": "#005321",
+                        "on-secondary-container": "#fefcff",
+                        "outline": "#6d7b6c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "display": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-headline, .font-display { font-family: 'Manrope', sans-serif; }
+        .glass-panel { background: rgba(247, 249, 251, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .bg-primary-gradient { background: linear-gradient(135deg, #006E2F, #22C55E); }
+        .shadow-soft { box-shadow: 0 4px 20px rgba(25, 28, 30, 0.03); }
+        .shadow-float { box-shadow: 0 20px 40px rgba(25, 28, 30, 0.06); }
+        .ghost-border:focus-within { outline: 2px solid rgba(0, 110, 47, 0.4); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased min-h-screen flex flex-col pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-[#F7F9FB]/80 dark:bg-[#191C1E]/80 backdrop-blur-xl no-border tonal-shift bg-surface-container-low shadow-[0_4px_20px_rgba(25,28,30,0.03)] md:hidden">
+<div class="flex items-center gap-4">
+<button class="text-[#006E2F] dark:text-[#22C55E] p-2 -ml-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all active:scale-95 duration-200">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-['Manrope'] font-bold tracking-tight text-lg text-on-surface">Tiếp nhận xe mới</h1>
+</div>
+<div class="font-['Manrope'] font-extrabold text-[#006E2F] dark:text-[#22C55E] text-xl tracking-tighter">
+            EK
+        </div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 mt-16 md:mt-0 p-4 md:p-8 max-w-3xl mx-auto w-full flex flex-col gap-6">
+<!-- Step 1: Vehicle Identification -->
+<section class="bg-surface-container-lowest rounded-xl p-6 shadow-soft flex flex-col gap-6 relative overflow-hidden">
+<!-- Decorative gradient orb -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-primary-container rounded-full blur-[60px] opacity-20 pointer-events-none"></div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">1</div>
+<h2 class="font-headline text-xl text-on-surface">Định danh phương tiện</h2>
+</div>
+<div class="flex gap-4">
+<div class="flex-1 ghost-border bg-surface-container-highest rounded-lg transition-all">
+<label class="sr-only" for="license-plate">Biển số xe</label>
+<input class="w-full bg-transparent border-none py-4 px-4 text-on-surface font-body placeholder:text-on-surface-variant/60 focus:ring-0" id="license-plate" placeholder="Nhập biển số xe (VD: 29A-123.45)" type="text"/>
+</div>
+<button aria-label="Quét QR code" class="w-14 h-[56px] rounded-lg bg-surface-container-high text-primary flex items-center justify-center hover:bg-surface-container-highest transition-colors flex-shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">qr_code_scanner</span>
+</button>
+</div>
+<!-- Pre-filled Data State (Simulated as active for design richness) -->
+<div class="bg-surface-container-low rounded-lg p-4 flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label text-sm text-on-surface-variant font-medium">Xe đã lưu trong hệ thống</p>
+<h3 class="font-headline text-lg text-primary font-bold mt-1">VinFast Klara S</h3>
+<p class="text-xs text-on-surface-variant mt-0.5">Khách hàng: Nguyễn Văn A • 0901234567</p>
+</div>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-[10px] font-bold uppercase tracking-wider">
+                        Còn bảo hành
+                    </span>
+</div>
+<div class="flex gap-4 mt-2">
+<div class="flex-1">
+<label class="block text-[10px] uppercase tracking-wider text-on-surface-variant mb-1 font-medium">Số KM hiện tại</label>
+<input class="w-full bg-surface-container-highest border-none rounded-md py-2 px-3 text-sm focus:ring-0 text-on-surface" placeholder="Nhập số KM..." type="number"/>
+</div>
+<div class="flex-1">
+<label class="block text-[10px] uppercase tracking-wider text-on-surface-variant mb-1 font-medium">Màu xe</label>
+<input class="w-full bg-transparent border-none p-0 text-sm text-on-surface focus:ring-0" readonly="" type="text" value="Trắng ngọc trai"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Step 2: Visual Documentation -->
+<section class="bg-surface-container-lowest rounded-xl p-6 shadow-soft flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold text-sm">2</div>
+<h2 class="font-headline text-xl text-on-surface">Tình trạng ngoại quan</h2>
+</div>
+<p class="text-sm text-on-surface-variant mb-2">Chụp ảnh các góc xe, vị trí xước xát (Tối đa 5 ảnh)</p>
+<div class="grid grid-cols-3 gap-3">
+<!-- Add Photo Button -->
+<button class="aspect-square rounded-lg border-2 border-dashed border-outline-variant bg-surface hover:bg-surface-container-low transition-colors flex flex-col items-center justify-center text-on-surface-variant gap-2">
+<span class="material-symbols-outlined text-3xl">add_a_photo</span>
+<span class="text-xs font-medium">Thêm ảnh</span>
+</button>
+<!-- Thumbnail Placeholder 1 -->
+<div class="aspect-square rounded-lg bg-surface-container-high relative overflow-hidden group">
+<img alt="Electric motorcycle front wheel close up" class="w-full h-full object-cover" data-alt="close up of electric motorcycle front wheel and suspension in bright daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuByeHp9Cc1o4F2_evxIaHqPBadMXl6n4MsaFW528fplD-tgo_vn6WrEaDX0mdsqtUWzqyfSDQuM8q3vZE_r7jcAR933o6ehw4ZfGz0rBz9eRluKDcfUBbYRNzSEDf_d2MD_5ujnY195kL1Pu-Bc49T7uWaBiXslfscMj8y93ODdGRISmuzzIxP6fzz7Y09xrJ9r7LzcMJRY4JI7w_xzfHrqJEyqHFKn1ufj-WCKpHorXQBPqm2muNDw_cpM3k3a41yalnZ3HwoPoBg"/>
+<button class="absolute top-1 right-1 bg-surface-container-highest/80 backdrop-blur-sm rounded-full p-1 text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+<!-- Thumbnail Placeholder 2 -->
+<div class="aspect-square rounded-lg bg-surface-container-high relative overflow-hidden group">
+<img alt="Scratched motorcycle fairing" class="w-full h-full object-cover" data-alt="close up of scratched motorcycle side fairing paint damage" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhgZ4HfJM5mpBYkyts7i8FD9L2XDq6c5DdIEDRO3WOCRenRvXBWq1Cq5FRCgj0x9jWxas5gm5S3cf7-HuO3h1nG8ev9ua8pV-DDhUCF_GhuRGdgl1m68aJmdYPPLQoX_EpKfzd2udXOJvyGt4GOk0nBfL94JPnbdwEIPEnuHDnozrYmCB1KbfjTPC2kTe7AJTw8Y9fbXfmUtk6Ja6UtiNKRX5-QpjowNdu6dEAlHZFMMBYpVQN0xoay7e-KGep_b6b_J5N1olvqEU"/>
+<button class="absolute top-1 right-1 bg-surface-container-highest/80 backdrop-blur-sm rounded-full p-1 text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Step 3: Service Selection -->
+<section class="bg-surface-container-lowest rounded-xl p-6 shadow-soft flex flex-col gap-4">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold text-sm">3</div>
+<h2 class="font-headline text-xl text-on-surface">Yêu cầu dịch vụ</h2>
+</div>
+<!-- Bento-style Checkboxes -->
+<div class="grid grid-cols-2 gap-3">
+<label class="relative flex cursor-pointer rounded-lg border border-transparent bg-surface-container-low p-4 shadow-sm focus:outline-none hover:bg-surface-container-high transition-colors">
+<input checked="" class="peer sr-only" name="service" type="checkbox" value="maintenance"/>
+<span class="flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">handyman</span>
+<span class="font-body text-sm font-medium text-on-surface">Bảo dưỡng định kỳ</span>
+</span>
+<span aria-hidden="true" class="pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent peer-checked:border-primary"></span>
+</label>
+<label class="relative flex cursor-pointer rounded-lg border border-transparent bg-surface-container-low p-4 shadow-sm focus:outline-none hover:bg-surface-container-high transition-colors">
+<input class="peer sr-only" name="service" type="checkbox" value="battery"/>
+<span class="flex flex-col gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">battery_charging_full</span>
+<span class="font-body text-sm font-medium text-on-surface">Kiểm tra pin/sạc</span>
+</span>
+<span aria-hidden="true" class="pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent peer-checked:border-primary"></span>
+</label>
+<label class="relative flex cursor-pointer rounded-lg border border-transparent bg-surface-container-low p-4 shadow-sm focus:outline-none hover:bg-surface-container-high transition-colors">
+<input checked="" class="peer sr-only" name="service" type="checkbox" value="brakes"/>
+<span class="flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">tire_repair</span>
+<span class="font-body text-sm font-medium text-on-surface">Phanh &amp; Lốp</span>
+</span>
+<span aria-hidden="true" class="pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent peer-checked:border-primary"></span>
+</label>
+<label class="relative flex cursor-pointer rounded-lg border border-transparent bg-surface-container-low p-4 shadow-sm focus:outline-none hover:bg-surface-container-high transition-colors">
+<input class="peer sr-only" name="service" type="checkbox" value="other"/>
+<span class="flex flex-col gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">build_circle</span>
+<span class="font-body text-sm font-medium text-on-surface">Sửa chữa khác</span>
+</span>
+<span aria-hidden="true" class="pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent peer-checked:border-primary"></span>
+</label>
+</div>
+<div class="mt-4 ghost-border bg-surface-container-highest rounded-lg">
+<textarea class="w-full bg-transparent border-none py-3 px-4 text-sm text-on-surface resize-none focus:ring-0" placeholder="Ghi chú thêm về tình trạng xe hoặc yêu cầu đặc biệt của khách hàng..." rows="3"></textarea>
+</div>
+</section>
+<!-- Step 4: Assignment & Confirmation -->
+<section class="bg-surface-container-lowest rounded-xl p-6 shadow-soft flex flex-col gap-5 mb-8">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold text-sm">4</div>
+<h2 class="font-headline text-xl text-on-surface">Phân công &amp; Thời gian</h2>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Technician Select -->
+<div class="ghost-border bg-surface-container-highest rounded-lg relative">
+<label class="block text-[10px] uppercase tracking-wider text-on-surface-variant ml-4 mt-2 font-medium">KTV Phụ trách</label>
+<select class="w-full bg-transparent border-none pt-1 pb-3 px-4 text-on-surface text-sm font-medium appearance-none focus:ring-0">
+<option value="auto">Tự động điều phối</option>
+<option value="ktv1">Trần Văn Bình (Sẵn sàng)</option>
+<option value="ktv2">Lê Quang Cường (Đang bận)</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+<!-- Estimated Time -->
+<div class="ghost-border bg-surface-container-highest rounded-lg relative">
+<label class="block text-[10px] uppercase tracking-wider text-on-surface-variant ml-4 mt-2 font-medium">Ước tính thời gian (Giờ)</label>
+<input class="w-full bg-transparent border-none pt-1 pb-3 px-4 text-on-surface text-sm font-medium focus:ring-0" step="0.5" type="number" value="2.5"/>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="mt-4 w-full bg-primary-gradient text-on-primary font-headline font-bold text-lg py-4 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                Tạo phiếu tiếp nhận
+            </button>
+</section>
+</main>
+<!-- BottomNavBar (Hidden on Web, visible on Mobile for top level only - Suppressed here due to transactional flow) -->
+<!-- As per instructions: "Automatic Suppression: You MUST exclude the navigation shell if the page intent is: Linear/Transactional..." -->
+<!-- Since this is a "Tiếp nhận xe mới" (New Vehicle Intake) flow, it's a transactional process with steps, so the global nav is suppressed to focus on the canvas. -->
+</body></html>
