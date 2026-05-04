@@ -169,8 +169,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildQuickStatsGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Responsive: 2 cols on mobile, 3 cols on desktop
-        final isDesktop = constraints.maxWidth >= 768;
         return Column(
           children: [
             Row(

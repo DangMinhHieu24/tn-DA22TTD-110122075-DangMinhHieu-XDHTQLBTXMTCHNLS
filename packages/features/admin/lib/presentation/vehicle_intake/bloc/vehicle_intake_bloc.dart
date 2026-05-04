@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:core/core.dart';
+import 'package:admin/data/models/technician_model.dart';
+import 'package:admin/data/models/work_order_model.dart';
 import '../../../data/repositories/vehicle_intake_repository.dart';
 
 part 'vehicle_intake_event.dart';
@@ -10,10 +12,12 @@ part 'vehicle_intake_state.dart';
 class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
   final VehicleIntakeRepository repository;
   final ImageUploadService imageUploadService;
+  final QRScannerService qrScannerService;
 
   VehicleIntakeBloc({
     required this.repository,
     required this.imageUploadService,
+    required this.qrScannerService,
   }) : super(const VehicleIntakeState()) {
     on<VehicleIntakeLicensePlateChanged>(_onLicensePlateChanged);
     on<VehicleIntakeKmChanged>(_onKmChanged);
@@ -27,6 +31,14 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
     on<VehicleIntakePhotoRemoved>(_onPhotoRemoved);
     on<VehicleIntakeSubmitted>(_onSubmitted);
     on<VehicleIntakeLicensePlateSearched>(_onLicensePlateSearched);
+    on<VehicleIntakeQRScanned>(_onQRScanned);
+    on<VehicleIntakeTechniciansRequested>(_onTechniciansRequested);
+    on<VehicleIntakeOwnerNameChanged>(_onOwnerNameChanged);
+    on<VehicleIntakeOwnerPhoneChanged>(_onOwnerPhoneChanged);
+    on<VehicleIntakeVehicleTypeChanged>(_onVehicleTypeChanged);
+    on<VehicleIntakeVehicleYearChanged>(_onVehicleYearChanged);
+    on<VehicleIntakeVehicleColorChanged>(_onVehicleColorChanged);
+    on<VehicleIntakeHistoryRequested>(_onHistoryRequested);
   }
 
   void _onLicensePlateChanged(
@@ -153,12 +165,18 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
           vehicleFound: true,
           vehicleModel: vehicle.model,
           vehicleColor: vehicle.color,
-          warrantyStatus: vehicle.warrantyStatus,
+          warrantyStatus: vehicle.isUnderWarranty,
+          ownerName: vehicle.ownerName ?? '',
+          ownerPhone: vehicle.ownerPhone ?? '',
         ));
+        
+        // Auto-load vehicle history
+        add(VehicleIntakeHistoryRequested(vehicle.id));
       } else {
         emit(state.copyWith(
           isSearching: false,
           vehicleFound: false,
+          vehicleHistory: [], // Clear history
         ));
       }
     } catch (e) {
@@ -166,6 +184,89 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
         isSearching: false,
         vehicleFound: false,
         errorMessage: 'Không thể tìm kiếm xe: ${e.toString()}',
+      ));
+    }
+  }
+
+  Future<void> _onQRScanned(
+    VehicleIntakeQRScanned event,
+    Emitter<VehicleIntakeState> emit,
+  ) async {
+    // QR scanning will be handled in the UI layer
+    // This event is just a placeholder for future enhancements
+  }
+
+  void _onOwnerNameChanged(
+    VehicleIntakeOwnerNameChanged event,
+    Emitter<VehicleIntakeState> emit,
+  ) {
+    emit(state.copyWith(ownerName: event.ownerName));
+  }
+
+  void _onOwnerPhoneChanged(
+    VehicleIntakeOwnerPhoneChanged event,
+    Emitter<VehicleIntakeState> emit,
+  ) {
+    emit(state.copyWith(ownerPhone: event.ownerPhone));
+  }
+
+  void _onVehicleTypeChanged(
+    VehicleIntakeVehicleTypeChanged event,
+    Emitter<VehicleIntakeState> emit,
+  ) {
+    emit(state.copyWith(vehicleType: event.vehicleType));
+  }
+
+  void _onVehicleYearChanged(
+    VehicleIntakeVehicleYearChanged event,
+    Emitter<VehicleIntakeState> emit,
+  ) {
+    emit(state.copyWith(vehicleYear: event.vehicleYear));
+  }
+
+  void _onVehicleColorChanged(
+    VehicleIntakeVehicleColorChanged event,
+    Emitter<VehicleIntakeState> emit,
+  ) {
+    emit(state.copyWith(vehicleColor: event.vehicleColor));
+  }
+
+  Future<void> _onTechniciansRequested(
+    VehicleIntakeTechniciansRequested event,
+    Emitter<VehicleIntakeState> emit,
+  ) async {
+    try {
+      emit(state.copyWith(isLoadingTechnicians: true));
+      final technicians = await repository.getTechnicians();
+      emit(state.copyWith(
+        isLoadingTechnicians: false,
+        availableTechnicians: technicians,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoadingTechnicians: false,
+        errorMessage: 'Không thể tải danh sách kỹ thuật viên: ${e.toString()}',
+      ));
+    }
+  }
+
+  Future<void> _onHistoryRequested(
+    VehicleIntakeHistoryRequested event,
+    Emitter<VehicleIntakeState> emit,
+  ) async {
+    try {
+      emit(state.copyWith(isLoadingHistory: true));
+      
+      final history = await repository.getVehicleHistory(event.vehicleId);
+      
+      emit(state.copyWith(
+        isLoadingHistory: false,
+        vehicleHistory: history,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoadingHistory: false,
+        errorMessage: 'Không thể tải lịch sử: ${e.toString()}',
       ));
     }
   }
@@ -186,18 +287,52 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
         }
 
         final vehicle = await repository.searchVehicle(plate);
-        if (vehicle == null) {
-          throw Exception('Không tìm thấy xe với biển số đã nhập');
-        }
+        if (vehicle != null) {
+          resolvedVehicleId = vehicle.id;
+          emit(state.copyWith(
+            vehicleId: resolvedVehicleId,
+            vehicleFound: true,
+            vehicleModel: vehicle.model,
+            vehicleColor: vehicle.color,
+            warrantyStatus: vehicle.isUnderWarranty,
+            ownerName: vehicle.ownerName ?? '',
+            ownerPhone: vehicle.ownerPhone ?? '',
+          ));
+        } else {
+          // Validate new vehicle form
+          if (state.ownerName.trim().isEmpty) {
+            throw Exception('Vui lòng nhập tên chủ xe');
+          }
+          if (state.ownerPhone.trim().isEmpty) {
+            throw Exception('Vui lòng nhập số điện thoại chủ xe');
+          }
+          if (state.vehicleType.trim().isEmpty) {
+            throw Exception('Vui lòng nhập loại xe');
+          }
 
-        resolvedVehicleId = vehicle.id;
-        emit(state.copyWith(
-          vehicleId: resolvedVehicleId,
-          vehicleFound: true,
-          vehicleModel: vehicle.model,
-          vehicleColor: vehicle.color,
-          warrantyStatus: vehicle.warrantyStatus,
-        ));
+          final ownerId = await repository.createVehicleOwner(
+            name: state.ownerName.trim(),
+            phoneNumber: state.ownerPhone.trim(),
+          );
+
+          final newVehicle = await repository.createVehicle(
+            licensePlate: plate,
+            ownerId: ownerId,
+            model: state.vehicleType.trim(),
+            color: state.vehicleColor?.trim().isNotEmpty == true ? state.vehicleColor!.trim() : null,
+            warrantyExpiry: null,
+            currentKm: int.tryParse(state.km),
+          );
+
+          resolvedVehicleId = newVehicle.id;
+          emit(state.copyWith(
+            vehicleId: resolvedVehicleId,
+            vehicleFound: true,
+            vehicleModel: newVehicle.model,
+            vehicleColor: newVehicle.color,
+            warrantyStatus: newVehicle.isUnderWarranty,
+          ));
+        }
       } else {
         resolvedVehicleId = state.vehicleId!;
       }

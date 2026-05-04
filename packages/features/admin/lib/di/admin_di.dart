@@ -19,6 +19,10 @@ void setupAdminDependencies() {
     () => ImageUploadService(),
   );
 
+  getIt.registerLazySingleton<QRScannerService>(
+    () => QRScannerService(),
+  );
+
   // Data sources
   // Dio should already be registered by auth feature
   getIt.registerLazySingleton<DashboardRemoteDataSource>(
@@ -45,6 +49,7 @@ void setupAdminDependencies() {
       vehicleDataSource: getIt<VehicleRemoteDataSource>(),
       workOrderDataSource: getIt<WorkOrderRemoteDataSource>(),
       imageUploadService: getIt<ImageUploadService>(),
+      dio: getIt<Dio>(),
     ),
   );
 
@@ -65,6 +70,7 @@ void setupAdminDependencies() {
     () => VehicleIntakeBloc(
       repository: getIt<VehicleIntakeRepository>(),
       imageUploadService: getIt<ImageUploadService>(),
+      qrScannerService: getIt<QRScannerService>(),
     ),
   );
 }

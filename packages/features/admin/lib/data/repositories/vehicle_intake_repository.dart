@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:core/core.dart';
 import '../datasources/remote/vehicle_remote_datasource.dart';
 import '../datasources/remote/work_order_remote_datasource.dart';
+import '../models/technician_model.dart';
 import '../models/vehicle_model.dart';
 import '../models/work_order_model.dart';
 
@@ -9,17 +11,102 @@ class VehicleIntakeRepository {
   final VehicleRemoteDataSource vehicleDataSource;
   final WorkOrderRemoteDataSource workOrderDataSource;
   final ImageUploadService imageUploadService;
+  final Dio dio;
 
   VehicleIntakeRepository({
     required this.vehicleDataSource,
     required this.workOrderDataSource,
     required this.imageUploadService,
+    required this.dio,
   });
 
   /// Search vehicle by license plate
   Future<VehicleModel?> searchVehicle(String licensePlate) async {
     try {
       return await vehicleDataSource.getVehicleByLicensePlate(licensePlate);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get vehicle repair history
+  Future<List<WorkOrderModel>> getVehicleHistory(String vehicleId) async {
+    try {
+      return await workOrderDataSource.getWorkOrdersByVehicleId(vehicleId);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Create a new vehicle record
+  Future<VehicleModel> createVehicle({
+    required String licensePlate,
+    required String ownerId,
+    String? brand,
+    required String model,
+    String? color,
+    int? manufactureYear,
+    String? qrCode,
+    DateTime? warrantyExpiry,
+    int? currentKm,
+  }) async {
+    try {
+      return await vehicleDataSource.createVehicle({
+        'licensePlate': licensePlate,
+        if (brand != null) 'brand': brand,
+        'model': model,
+        if (color != null) 'color': color,
+        if (manufactureYear != null) 'manufactureYear': manufactureYear,
+        if (qrCode != null) 'qrCode': qrCode,
+        if (warrantyExpiry != null) 'warrantyExpiry': warrantyExpiry.toIso8601String(),
+        if (currentKm != null) 'currentKm': currentKm,
+        'ownerId': ownerId,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<String> createVehicleOwner({
+    required String name,
+    required String phoneNumber,
+  }) async {
+    try {
+      final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      final email = 'owner.$sanitizedPhone.${DateTime.now().millisecondsSinceEpoch}@auto.local';
+      final password = 'AutoPwd${DateTime.now().millisecondsSinceEpoch % 1000000}';
+
+      final response = await dio.post(
+        '/auth/register',
+        data: {
+          'name': name,
+          'phoneNumber': phoneNumber,
+          'email': email,
+          'password': password,
+        },
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final userData = response.data['user'] as Map<String, dynamic>?;
+        if (userData != null && userData['id'] != null) {
+          return userData['id'] as String;
+        }
+      }
+
+      throw Exception('Failed to create vehicle owner');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<TechnicianModel>> getTechnicians() async {
+    try {
+      final response = await dio.get('/users/technicians');
+      if (response.data['success'] == true) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((json) => TechnicianModel.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      throw Exception('Failed to fetch technicians');
     } catch (e) {
       rethrow;
     }
@@ -65,7 +152,7 @@ class VehicleIntakeRepository {
         'status': 'PENDING',
         'priority': 'NORMAL',
         'notes': notes,
-        'technicianId': technicianId == 'auto' ? null : technicianId,
+        'technicianId': _normalizeTechnicianId(technicianId),
         'estimatedHours': estimatedHours,
         'services': services,
         if (photos != null && photos.isNotEmpty) 'photos': photos,
@@ -75,6 +162,17 @@ class VehicleIntakeRepository {
     } catch (e) {
       rethrow;
     }
+  }
+
+  String? _normalizeTechnicianId(String? technicianId) {
+    if (technicianId == null || technicianId == 'auto') {
+      return null;
+    }
+
+    final uuidRegExp = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    );
+    return uuidRegExp.hasMatch(technicianId) ? technicianId : null;
   }
 
   String _mapServiceType(String type) {

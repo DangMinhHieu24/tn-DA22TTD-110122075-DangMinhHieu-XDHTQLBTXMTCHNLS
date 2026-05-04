@@ -22,6 +22,20 @@ class VehicleIntakeState extends Equatable {
   final String? vehicleModel;
   final String? vehicleColor;
   final bool? warrantyStatus;
+  
+  // New vehicle form fields
+  final String ownerName;
+  final String ownerPhone;
+  final String vehicleType;
+  final String vehicleYear;
+  
+  // Technicians
+  final List<TechnicianModel> availableTechnicians;
+  final bool isLoadingTechnicians;
+
+  // Vehicle history
+  final List<WorkOrderModel> vehicleHistory;
+  final bool isLoadingHistory;
 
   const VehicleIntakeState({
     this.licensePlate = '',
@@ -43,6 +57,14 @@ class VehicleIntakeState extends Equatable {
     this.vehicleModel,
     this.vehicleColor,
     this.warrantyStatus,
+    this.ownerName = '',
+    this.ownerPhone = '',
+    this.vehicleType = '',
+    this.vehicleYear = '',
+    this.availableTechnicians = const <TechnicianModel>[],
+    this.isLoadingTechnicians = false,
+    this.vehicleHistory = const <WorkOrderModel>[],
+    this.isLoadingHistory = false,
   });
 
   VehicleIntakeState copyWith({
@@ -65,6 +87,14 @@ class VehicleIntakeState extends Equatable {
     String? vehicleModel,
     String? vehicleColor,
     bool? warrantyStatus,
+    String? ownerName,
+    String? ownerPhone,
+    String? vehicleType,
+    String? vehicleYear,
+    List<TechnicianModel>? availableTechnicians,
+    bool? isLoadingTechnicians,
+    List<WorkOrderModel>? vehicleHistory,
+    bool? isLoadingHistory,
   }) {
     return VehicleIntakeState(
       licensePlate: licensePlate ?? this.licensePlate,
@@ -86,6 +116,14 @@ class VehicleIntakeState extends Equatable {
       vehicleModel: vehicleModel ?? this.vehicleModel,
       vehicleColor: vehicleColor ?? this.vehicleColor,
       warrantyStatus: warrantyStatus ?? this.warrantyStatus,
+      ownerName: ownerName ?? this.ownerName,
+      ownerPhone: ownerPhone ?? this.ownerPhone,
+      vehicleType: vehicleType ?? this.vehicleType,
+      vehicleYear: vehicleYear ?? this.vehicleYear,
+      availableTechnicians: availableTechnicians ?? this.availableTechnicians,
+      isLoadingTechnicians: isLoadingTechnicians ?? this.isLoadingTechnicians,
+      vehicleHistory: vehicleHistory ?? this.vehicleHistory,
+      isLoadingHistory: isLoadingHistory ?? this.isLoadingHistory,
     );
   }
 
@@ -110,5 +148,13 @@ class VehicleIntakeState extends Equatable {
         vehicleModel,
         vehicleColor,
         warrantyStatus,
+        ownerName,
+        ownerPhone,
+        vehicleType,
+        vehicleYear,
+        availableTechnicians,
+        isLoadingTechnicians,
+        vehicleHistory,
+        isLoadingHistory,
       ];
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:auth/auth.dart';
+import 'package:admin/data/models/work_order_model.dart';
+import 'package:core/core.dart';
 import '../bloc/vehicle_intake_bloc.dart';
 
 /// Vehicle Intake Page - 100% converted from HTML design
@@ -29,6 +32,21 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
   final _kmController = TextEditingController();
   final _notesController = TextEditingController();
   final _estimatedHoursController = TextEditingController(text: '2.5');
+  
+  // New vehicle form controllers
+  final _ownerNameController = TextEditingController();
+  final _ownerPhoneController = TextEditingController();
+  final _vehicleTypeController = TextEditingController();
+  final _vehicleYearController = TextEditingController();
+  final _vehicleColorController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<VehicleIntakeBloc>().add(const VehicleIntakeTechniciansRequested());
+    });
+  }
 
   @override
   void dispose() {
@@ -36,6 +54,11 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
     _kmController.dispose();
     _notesController.dispose();
     _estimatedHoursController.dispose();
+    _ownerNameController.dispose();
+    _ownerPhoneController.dispose();
+    _vehicleTypeController.dispose();
+    _vehicleYearController.dispose();
+    _vehicleColorController.dispose();
     super.dispose();
   }
 
@@ -45,12 +68,44 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
       listener: (context, state) {
         if (state.isSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tạo phiếu tiếp nhận thành công!')),
+            const SnackBar(
+              content: Text('Tạo phiếu tiếp nhận thành công!'),
+              backgroundColor: Color(0xFF22C55E),
+              duration: Duration(seconds: 2),
+            ),
           );
-          Navigator.of(context).pop();
+          // Reset form by clearing all controllers
+          _licensePlateController.clear();
+          _kmController.clear();
+          _notesController.clear();
+          _estimatedHoursController.text = '2.5';
+          _ownerNameController.clear();
+          _ownerPhoneController.clear();
+          _vehicleTypeController.clear();
+          _vehicleYearController.clear();
+          _vehicleColorController.clear();
+          
+          // Reset BLoC state by creating a new instance
+          // This will be handled by switching tabs
+        } else if (state.vehicleFound && state.vehicleId != null) {
+          if (_ownerNameController.text.isEmpty && state.ownerName.isNotEmpty) {
+            _ownerNameController.text = state.ownerName;
+          }
+          if (_ownerPhoneController.text.isEmpty && state.ownerPhone.isNotEmpty) {
+            _ownerPhoneController.text = state.ownerPhone;
+          }
+          if (_vehicleTypeController.text.isEmpty && state.vehicleModel?.isNotEmpty == true) {
+            _vehicleTypeController.text = state.vehicleModel!;
+          }
+          if (_vehicleColorController.text.isEmpty && state.vehicleColor?.isNotEmpty == true) {
+            _vehicleColorController.text = state.vehicleColor!;
+          }
         } else if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi: ${state.errorMessage}')),
+            SnackBar(
+              content: Text('Lỗi: ${state.errorMessage}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       },
@@ -101,12 +156,6 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF006E2F)),
-            onPressed: () => Navigator.of(context).pop(),
-            padding: EdgeInsets.zero,
-          ),
-          const SizedBox(width: 16),
           const Text(
             'Tiếp nhận xe mới',
             style: TextStyle(
@@ -140,11 +189,12 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF), // surface-container-lowest
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF191C1E).withOpacity(0.03),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF191C1E).withOpacity(0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -211,8 +261,16 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE0E3E5), // surface-container-highest
+                        color: const Color(0xFFFFFFFF),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0x12000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: TextField(
                         controller: _licensePlateController,
@@ -249,114 +307,478 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6E8EA), // surface-container-high
+                      color: const Color(0xFFFFFFFF),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0x12000000),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.qr_code_scanner, color: Color(0xFF006E2F)),
-                      onPressed: () {
-                        // TODO: Implement QR scanner
+                      onPressed: () async {
+                        final qrService = GetIt.instance<QRScannerService>();
+                        final scannedCode = await qrService.scanQRCode(context);
+                        
+                        if (scannedCode != null && scannedCode.isNotEmpty) {
+                          _licensePlateController.text = scannedCode;
+                          if (context.mounted) {
+                            context.read<VehicleIntakeBloc>().add(
+                              VehicleIntakeLicensePlateChanged(scannedCode),
+                            );
+                            context.read<VehicleIntakeBloc>().add(
+                              VehicleIntakeLicensePlateSearched(scannedCode),
+                            );
+                          }
+                        }
                       },
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              // Pre-filled vehicle data (simulated)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF2F4F6), // surface-container-low
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
+              // Vehicle info display - conditional based on search state
+              BlocBuilder<VehicleIntakeBloc, VehicleIntakeState>(
+                builder: (context, state) {
+                  // Show loading indicator when searching
+                  if (state.isSearching) {
+                    return Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFFFF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0x12000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  // Show vehicle info if found
+                  if (state.vehicleFound && state.vehicleModel != null) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFFFF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0x12000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Xe đã lưu trong hệ thống',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF3D4A3D),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      state.vehicleModel ?? 'N/A',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF006E2F),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (state.warrantyStatus == true)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6BFF8F),
+                                    borderRadius: BorderRadius.circular(9999),
+                                  ),
+                                  child: const Text(
+                                    'CÒN BẢO HÀNH',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF002109),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Owner info
+                          if (state.ownerName?.isNotEmpty == true || state.ownerPhone?.isNotEmpty == true)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'CHỦ XE',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF3D4A3D),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  state.ownerName ?? 'Chưa có thông tin',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF191C1E),
+                                  ),
+                                ),
+                                if (state.ownerPhone?.isNotEmpty == true) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    state.ownerPhone!,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF191C1E),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 12),
+                              ],
+                            ),
+                          // KM and Color inputs
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'SỐ KM HIỆN TẠI',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF3D4A3D),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFFFFF),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                                      ),
+                                      child: TextField(
+                                        controller: _kmController,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (value) {
+                                          context.read<VehicleIntakeBloc>().add(
+                                            VehicleIntakeKmChanged(value),
+                                          );
+                                        },
+                                        decoration: const InputDecoration(
+                                          hintText: 'Nhập số KM...',
+                                          hintStyle: TextStyle(fontSize: 13),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF191C1E),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'MÀU XE',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF3D4A3D),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      state.vehicleColor ?? 'Chưa có thông tin',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF191C1E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  // Show message if vehicle not found
+                  if (state.licensePlate.isNotEmpty && !state.vehicleFound && !state.isSearching) {
+                    return Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF4E6),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFFFF9800),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
                             children: const [
-                              Text(
-                                'Xe đã lưu trong hệ thống',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF3D4A3D),
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'VinFast Klara S',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF006E2F),
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Khách hàng: Nguyễn Văn A • 0901234567',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF3D4A3D),
+                              Icon(Icons.info_outline, color: Color(0xFFFF9800)),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Xe chưa có trong hệ thống. Vui lòng nhập thông tin xe mới bên dưới.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF191C1E),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        // New vehicle form
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF6BFF8F), // primary-fixed
-                            borderRadius: BorderRadius.circular(9999),
+                            color: const Color(0xFFFFFFFF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0x12000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: const Text(
-                            'CÒN BẢO HÀNH',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF002109), // on-primary-fixed
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // KM and Color inputs
-                    Row(
-                      children: [
-                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'SỐ KM HIỆN TẠI',
+                                'THÔNG TIN CHỦ XE',
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
                                   color: Color(0xFF3D4A3D),
                                   letterSpacing: 0.5,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 12),
+                              // Owner name
                               Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE0E3E5),
+                                  color: const Color(0xFFFFFFFF),
                                   borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                                ),
+                                child: TextField(
+                                  controller: _ownerNameController,
+                                  onChanged: (value) {
+                                    context.read<VehicleIntakeBloc>().add(
+                                      VehicleIntakeOwnerNameChanged(value),
+                                    );
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: 'Tên chủ xe *',
+                                    hintStyle: TextStyle(fontSize: 13),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF191C1E),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // Owner phone
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFFFF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                                ),
+                                child: TextField(
+                                  controller: _ownerPhoneController,
+                                  keyboardType: TextInputType.phone,
+                                  onChanged: (value) {
+                                    context.read<VehicleIntakeBloc>().add(
+                                      VehicleIntakeOwnerPhoneChanged(value),
+                                    );
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: 'Số điện thoại *',
+                                    hintStyle: TextStyle(fontSize: 13),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF191C1E),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'THÔNG TIN XE',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF3D4A3D),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Vehicle type
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFFFF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                                ),
+                                child: TextField(
+                                  controller: _vehicleTypeController,
+                                  onChanged: (value) {
+                                    context.read<VehicleIntakeBloc>().add(
+                                      VehicleIntakeVehicleTypeChanged(value),
+                                    );
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: 'Loại xe (VD: VinFast Klara S) *',
+                                    hintStyle: TextStyle(fontSize: 13),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF191C1E),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // Year and Color row
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFFFFF),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                                      ),
+                                      child: TextField(
+                                        controller: _vehicleYearController,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (value) {
+                                          context.read<VehicleIntakeBloc>().add(
+                                            VehicleIntakeVehicleYearChanged(value),
+                                          );
+                                        },
+                                        decoration: const InputDecoration(
+                                          hintText: 'Năm SX',
+                                          hintStyle: TextStyle(fontSize: 13),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF191C1E),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFFFFF),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                                      ),
+                                      child: TextField(
+                                        controller: _vehicleColorController,
+                                        onChanged: (value) {
+                                          context.read<VehicleIntakeBloc>().add(
+                                            VehicleIntakeVehicleColorChanged(value),
+                                          );
+                                        },
+                                        decoration: const InputDecoration(
+                                          hintText: 'Màu xe',
+                                          hintStyle: TextStyle(fontSize: 13),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF191C1E),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              // KM input
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFFFF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
                                 ),
                                 child: TextField(
                                   controller: _kmController,
                                   keyboardType: TextInputType.number,
+                                  onChanged: (value) {
+                                    context.read<VehicleIntakeBloc>().add(
+                                      VehicleIntakeKmChanged(value),
+                                    );
+                                  },
                                   decoration: const InputDecoration(
-                                    hintText: 'Nhập số KM...',
+                                    hintText: 'Số KM hiện tại',
                                     hintStyle: TextStyle(fontSize: 13),
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                   ),
                                   style: const TextStyle(
                                     fontSize: 13,
@@ -367,35 +789,143 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'MÀU XE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF3D4A3D),
-                                  letterSpacing: 0.5,
+                      ],
+                    );
+                  }
+
+                  return const SizedBox.shrink();
+                },
+              ),
+              // Vehicle history section (when vehicle is found)
+              BlocBuilder<VehicleIntakeBloc, VehicleIntakeState>(
+                builder: (context, state) {
+                  if (!state.vehicleFound || state.vehicleId == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFFFF),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0x14000000),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'LỊCH SỬ SỬA CHỮA',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF3D4A3D),
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Trắng ngọc trai',
+                                if (state.isLoadingHistory)
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            if (state.vehicleHistory.isEmpty && !state.isLoadingHistory)
+                              const Text(
+                                'Chưa có lịch sử sửa chữa',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF191C1E),
+                                  color: Color(0xFF3D4A3D),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              )
+                            else
+                              ...state.vehicleHistory.take(3).map((WorkOrderModel workOrder) {
+                                final wo = workOrder;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFFFFF),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            wo.orderNumber,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF006E2F),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: _getStatusColor(wo.status),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              _getStatusText(wo.status),
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFFFFFFFF),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        wo.notes ?? 'Không có ghi chú',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF3D4A3D),
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            if (state.vehicleHistory.length > 3)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  '+ ${state.vehicleHistory.length - 3} lần sửa chữa khác',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF006E2F),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -412,11 +942,12 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF191C1E).withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -606,11 +1137,12 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF191C1E).withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -701,8 +1233,16 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
           // Notes textarea
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFE0E3E5),
+              color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x12000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: TextField(
               controller: _notesController,
@@ -739,12 +1279,19 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F4F6), // surface-container-low
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isChecked ? const Color(0xFF006E2F) : Colors.transparent,
-            width: 2,
+            color: isChecked ? const Color(0xFF006E2F) : const Color(0xFFDBDEE0),
+            width: isChecked ? 2 : 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x12000000),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -827,8 +1374,16 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE0E3E5),
+                  color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0x12000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -855,10 +1410,14 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                           color: Color(0xFF191C1E),
                         ),
                         icon: const Icon(Icons.expand_more, color: Color(0xFF3D4A3D), size: 20),
-                        items: const [
-                          DropdownMenuItem(value: 'auto', child: Text('Tự động điều phối')),
-                          DropdownMenuItem(value: 'ktv1', child: Text('Trần Văn Bình (Sẵn sàng)')),
-                          DropdownMenuItem(value: 'ktv2', child: Text('Lê Quang Cường (Đang bận)')),
+                        items: [
+                          const DropdownMenuItem(value: 'auto', child: Text('Tự động điều phối')),
+                          ...state.availableTechnicians.map((tech) {
+                            return DropdownMenuItem(
+                              value: tech.id,
+                              child: Text(tech.name),
+                            );
+                          }).toList(),
                         ],
                         onChanged: (value) {
                           if (value != null) {
@@ -879,8 +1438,16 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFE0E3E5),
+              color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x12000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,5 +1543,37 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
         ],
       ),
     );
+  }
+
+  /// Helper method to get status color
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'PENDING':
+        return const Color(0xFFFF9800); // Orange
+      case 'IN_PROGRESS':
+        return const Color(0xFF2196F3); // Blue
+      case 'COMPLETED':
+        return const Color(0xFF4CAF50); // Green
+      case 'CANCELLED':
+        return const Color(0xFFF44336); // Red
+      default:
+        return const Color(0xFF9E9E9E); // Grey
+    }
+  }
+
+  /// Helper method to get status text
+  String _getStatusText(String? status) {
+    switch (status) {
+      case 'PENDING':
+        return 'CHỜ XỬ LÝ';
+      case 'IN_PROGRESS':
+        return 'ĐANG SỬA';
+      case 'COMPLETED':
+        return 'HOÀN THÀNH';
+      case 'CANCELLED':
+        return 'ĐÃ HỦY';
+      default:
+        return 'KHÔNG RÕ';
+    }
   }
 }

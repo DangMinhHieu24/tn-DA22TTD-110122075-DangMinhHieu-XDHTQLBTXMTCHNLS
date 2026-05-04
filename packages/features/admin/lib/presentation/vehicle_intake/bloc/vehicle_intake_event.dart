@@ -25,6 +25,68 @@ class VehicleIntakeLicensePlateSearched extends VehicleIntakeEvent {
   List<Object?> get props => [licensePlate];
 }
 
+class VehicleIntakeQRScanned extends VehicleIntakeEvent {
+  const VehicleIntakeQRScanned();
+}
+
+class VehicleIntakeOwnerNameChanged extends VehicleIntakeEvent {
+  final String ownerName;
+
+  const VehicleIntakeOwnerNameChanged(this.ownerName);
+
+  @override
+  List<Object?> get props => [ownerName];
+}
+
+class VehicleIntakeOwnerPhoneChanged extends VehicleIntakeEvent {
+  final String ownerPhone;
+
+  const VehicleIntakeOwnerPhoneChanged(this.ownerPhone);
+
+  @override
+  List<Object?> get props => [ownerPhone];
+}
+
+class VehicleIntakeVehicleTypeChanged extends VehicleIntakeEvent {
+  final String vehicleType;
+
+  const VehicleIntakeVehicleTypeChanged(this.vehicleType);
+
+  @override
+  List<Object?> get props => [vehicleType];
+}
+
+class VehicleIntakeVehicleYearChanged extends VehicleIntakeEvent {
+  final String vehicleYear;
+
+  const VehicleIntakeVehicleYearChanged(this.vehicleYear);
+
+  @override
+  List<Object?> get props => [vehicleYear];
+}
+
+class VehicleIntakeVehicleColorChanged extends VehicleIntakeEvent {
+  final String vehicleColor;
+
+  const VehicleIntakeVehicleColorChanged(this.vehicleColor);
+
+  @override
+  List<Object?> get props => [vehicleColor];
+}
+
+class VehicleIntakeHistoryRequested extends VehicleIntakeEvent {
+  final String vehicleId;
+
+  const VehicleIntakeHistoryRequested(this.vehicleId);
+
+  @override
+  List<Object?> get props => [vehicleId];
+}
+
+class VehicleIntakeTechniciansRequested extends VehicleIntakeEvent {
+  const VehicleIntakeTechniciansRequested();
+}
+
 class VehicleIntakeKmChanged extends VehicleIntakeEvent {
   final String km;
 
@@ -99,4 +161,7 @@ class VehicleIntakePhotoRemoved extends VehicleIntakeEvent {
 
 class VehicleIntakeSubmitted extends VehicleIntakeEvent {
   const VehicleIntakeSubmitted();
+
+  @override
+  List<Object?> get props => [];
 }

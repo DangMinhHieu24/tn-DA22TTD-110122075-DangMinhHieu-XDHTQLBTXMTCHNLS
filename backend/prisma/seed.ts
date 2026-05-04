@@ -6,6 +6,10 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
+  // Clear old work orders and vehicles so seed is deterministic
+  await prisma.workOrder.deleteMany();
+  await prisma.vehicle.deleteMany();
+
   // Create admin user
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
@@ -96,7 +100,7 @@ async function main() {
       licensePlate: '29A-123.45',
       model: 'VinFast Klara S',
       color: 'Trắng ngọc trai',
-      warrantyStatus: true,
+      warrantyExpiry: new Date('2025-12-31T23:59:59.000Z'),
       currentKm: 5000,
       ownerId: customer1.id
     }
@@ -108,7 +112,7 @@ async function main() {
       licensePlate: '30G-789.01',
       model: 'VinFast Feliz S',
       color: 'Đỏ',
-      warrantyStatus: true,
+      warrantyExpiry: new Date('2025-12-31T23:59:59.000Z'),
       currentKm: 10000,
       ownerId: customer2.id
     }
@@ -120,7 +124,7 @@ async function main() {
       licensePlate: '51H-456.78',
       model: 'Dat Bike Weaver 200',
       color: 'Xanh dương',
-      warrantyStatus: false,
+      warrantyExpiry: null,
       currentKm: 15000,
       ownerId: customer3.id
     }

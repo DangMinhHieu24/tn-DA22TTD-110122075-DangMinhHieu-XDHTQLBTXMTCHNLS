@@ -17,7 +17,6 @@ class DraggableFab extends StatefulWidget {
 
 class _DraggableFabState extends State<DraggableFab> {
   late Offset _position;
-  bool _isDragging = false;
 
   @override
   void initState() {
@@ -49,14 +48,9 @@ class _DraggableFabState extends State<DraggableFab> {
             final newY = details.offset.dy.clamp(80.0, screenSize.height - 140);
             
             _position = Offset(newX, newY);
-            _isDragging = false;
           });
         },
-        onDragStarted: () {
-          setState(() {
-            _isDragging = true;
-          });
-        },
+        onDragStarted: () {},
         child: _buildFABButton(isDragging: false),
       ),
     );

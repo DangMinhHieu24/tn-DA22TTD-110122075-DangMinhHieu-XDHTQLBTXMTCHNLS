@@ -151,7 +151,17 @@ export const getVehicleByLicensePlate = async (req: Request, res: Response) => {
  */
 export const createVehicle = async (req: Request, res: Response) => {
   try {
-    const { licensePlate, model, color, warrantyStatus, currentKm, ownerId } = req.body;
+    const { 
+      licensePlate, 
+      brand,
+      model, 
+      color, 
+      manufactureYear,
+      qrCode,
+      warrantyExpiry,
+      currentKm, 
+      ownerId 
+    } = req.body;
 
     // Check if vehicle already exists
     const existingVehicle = await prisma.vehicle.findUnique({
@@ -168,9 +178,12 @@ export const createVehicle = async (req: Request, res: Response) => {
     const vehicle = await prisma.vehicle.create({
       data: {
         licensePlate,
+        brand,
         model,
         color,
-        warrantyStatus: warrantyStatus || false,
+        manufactureYear: manufactureYear ? parseInt(manufactureYear) : null,
+        qrCode,
+        warrantyExpiry: warrantyExpiry ? new Date(warrantyExpiry) : null,
         currentKm,
         ownerId,
       },
@@ -207,14 +220,25 @@ export const createVehicle = async (req: Request, res: Response) => {
 export const updateVehicle = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { model, color, warrantyStatus, currentKm } = req.body;
+    const { 
+      brand,
+      model, 
+      color, 
+      manufactureYear,
+      qrCode,
+      warrantyExpiry,
+      currentKm 
+    } = req.body;
 
     const vehicle = await prisma.vehicle.update({
       where: { id },
       data: {
+        brand,
         model,
         color,
-        warrantyStatus,
+        manufactureYear: manufactureYear ? parseInt(manufactureYear) : undefined,
+        qrCode,
+        warrantyExpiry: warrantyExpiry ? new Date(warrantyExpiry) : undefined,
         currentKm,
       },
       include: {

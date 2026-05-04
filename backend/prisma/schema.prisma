@@ -56,10 +56,13 @@ model User {
 model Vehicle {
   id            String   @id @default(uuid())
   licensePlate  String   @unique // Biển số xe (VD: 29A-123.45)
+  brand         String?  // Hãng xe (VD: VinFast, Yadea, Pega)
   model         String   // Model xe (VD: VinFast Klara S)
   color         String?  // Màu xe
-  warrantyStatus Boolean @default(false) // Còn bảo hành
-  currentKm     Int?     // Số km hiện tại
+  manufactureYear Int?   // Năm sản xuất
+  qrCode        String?  @unique // Mã QR của xe
+  warrantyExpiry DateTime? // Ngày hết hạn bảo hành
+  currentKm     Int?     // Số km hiện tại (cập nhật sau mỗi lần sửa)
   
   // Relations
   ownerId       String

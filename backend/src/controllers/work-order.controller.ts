@@ -10,12 +10,13 @@ const prisma = new PrismaClient();
  */
 export const getWorkOrders = async (req: Request, res: Response) => {
   try {
-    const { status, technicianId, priority } = req.query;
+    const { status, technicianId, priority, vehicleId } = req.query;
 
     const where: any = {};
     if (status) where.status = status;
     if (technicianId) where.technicianId = technicianId;
     if (priority) where.priority = priority;
+    if (vehicleId) where.vehicleId = vehicleId;
 
     const workOrders = await prisma.workOrder.findMany({
       where,

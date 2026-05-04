@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
 import vehicleRoutes from './routes/vehicle.routes';
 import workOrderRoutes from './routes/work-order.routes';
 import { errorHandler } from './middleware/error.middleware';
@@ -43,6 +44,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/work-orders', workOrderRoutes);
 

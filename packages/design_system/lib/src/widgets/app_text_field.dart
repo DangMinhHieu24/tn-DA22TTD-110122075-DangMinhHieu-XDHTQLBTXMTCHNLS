@@ -29,7 +29,6 @@ class AppTextField extends StatefulWidget {
 }
 
 class _AppTextFieldState extends State<AppTextField> {
-  String? _errorText;
   late bool _isObscured;
 
   @override
@@ -76,13 +75,7 @@ class _AppTextFieldState extends State<AppTextField> {
         TextFormField(
           controller: widget.controller,
           obscureText: _isObscured,
-          validator: (value) {
-            final error = widget.validator?.call(value);
-            setState(() {
-              _errorText = error;
-            });
-            return error;
-          },
+          validator: widget.validator,
           keyboardType: widget.keyboardType,
           style: AppTextStyles.bodyMedium.copyWith(
             fontSize: 15,
