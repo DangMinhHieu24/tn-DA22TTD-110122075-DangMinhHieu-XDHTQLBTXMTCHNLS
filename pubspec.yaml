@@ -23,6 +23,8 @@ dependencies:
     path: packages/features/technician
   admin:
     path: packages/features/admin
+  customer:
+    path: packages/features/customer
   
   # State management
   flutter_bloc: ^8.1.3

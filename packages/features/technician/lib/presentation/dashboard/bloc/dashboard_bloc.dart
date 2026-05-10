@@ -83,7 +83,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       );
 
       result.fold(
-        (failure) => emit(DashboardError(_mapFailureToMessage(failure))),
+        (failure) {
+          emit(currentState);
+        },
         (updatedItem) {
           final updatedItems = currentState.workItems.map((item) {
             if (item.id == event.workItemId) {

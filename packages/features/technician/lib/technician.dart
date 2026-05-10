@@ -32,6 +32,9 @@ export 'presentation/dashboard/bloc/dashboard_state.dart';
 // Presentation - Dashboard Pages
 export 'presentation/dashboard/pages/technician_dashboard_page.dart';
 
+// Presentation - Work Detail Pages
+export 'presentation/work_detail/pages/work_detail_page.dart';
+
 // Presentation - Settings Pages
 export 'presentation/settings/pages/settings_page.dart';
 

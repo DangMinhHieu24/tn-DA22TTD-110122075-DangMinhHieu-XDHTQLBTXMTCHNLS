@@ -34,22 +34,22 @@ class DashboardBottomNav extends StatelessWidget {
             children: [
               _buildNavItem(
                 icon: Icons.dashboard,
-                label: 'Dashboard',
+                label: 'Trang chủ',
                 index: 0,
               ),
               _buildNavItem(
                 icon: Icons.assignment_outlined,
-                label: 'Tickets',
+                label: 'Phiếu sửa',
                 index: 1,
               ),
               _buildNavItem(
                 icon: Icons.precision_manufacturing_outlined,
-                label: 'Parts',
+                label: 'Kho PT',
                 index: 2,
               ),
               _buildNavItem(
                 icon: Icons.settings_outlined,
-                label: 'Settings',
+                label: 'Cài đặt',
                 index: 3,
               ),
             ],

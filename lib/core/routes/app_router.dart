@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth/auth.dart';
 import 'package:technician/technician.dart';
 import 'package:admin/admin.dart';
+import 'package:customer/customer.dart';
 import 'package:get_it/get_it.dart';
 
 class AppRouter {
@@ -52,11 +53,8 @@ class AppRouter {
         );
 
       case customerDashboard:
-        // TODO: Create customer dashboard
         return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(child: Text('Customer Dashboard - Coming Soon')),
-          ),
+          builder: (_) => const CustomerDashboardPage(),
         );
 
       default:

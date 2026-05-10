@@ -15,6 +15,7 @@ import '../widgets/draggable_fab.dart';
 import '../widgets/dashboard_bottom_nav.dart';
 import '../../../domain/entities/work_item.dart';
 import '../../settings/pages/settings_page.dart';
+import '../../work_detail/pages/work_detail_page.dart';
 
 class TechnicianDashboardPage extends StatelessWidget {
   const TechnicianDashboardPage({super.key});
@@ -280,13 +281,7 @@ class _DashboardViewState extends State<_DashboardView> {
             customerName: item.customerName,
             description: item.description,
             onStartRepair: () {
-              // TODO: Handle start repair
-              context.read<DashboardBloc>().add(
-                UpdateWorkStatus(
-                  workItemId: item.id,
-                  newStatus: 'in_progress',
-                ),
-              );
+              _openWorkDetail(context, item);
             },
           ),
         )),
@@ -304,11 +299,20 @@ class _DashboardViewState extends State<_DashboardView> {
             statusColor: _getStatusColor(item.status),
             isInProgress: item.status == WorkStatus.inProgress,
             onDetailTap: () {
-              // TODO: Navigate to work detail
+              _openWorkDetail(context, item);
             },
           ),
         )),
       ],
+    );
+  }
+
+  void _openWorkDetail(BuildContext context, WorkItem item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WorkDetailPage(workItem: item),
+      ),
     );
   }
 
