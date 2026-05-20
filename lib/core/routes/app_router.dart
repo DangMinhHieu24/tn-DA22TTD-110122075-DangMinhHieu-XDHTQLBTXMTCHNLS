@@ -54,7 +54,7 @@ class AppRouter {
 
       case customerDashboard:
         return MaterialPageRoute(
-          builder: (_) => const CustomerDashboardPage(),
+          builder: (_) => const MyVehiclesPage(),
         );
 
       default:

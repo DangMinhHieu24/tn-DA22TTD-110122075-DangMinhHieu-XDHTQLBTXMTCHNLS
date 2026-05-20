@@ -23,8 +23,7 @@ class TechnicianDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => GetIt.instance<DashboardBloc>()
-        ..add(const LoadDashboardData()),
+      create: (context) => GetIt.instance<DashboardBloc>(),
       child: const _DashboardView(),
     );
   }
@@ -40,11 +39,25 @@ class _DashboardView extends StatefulWidget {
 class _DashboardViewState extends State<_DashboardView> {
   int _selectedIndex = 0;
   final _searchController = TextEditingController();
+  String? _technicianId;
+  bool _hasLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authState = context.read<AuthBloc>().state;
+      if (authState is AuthAuthenticated) {
+        _technicianId = authState.user.id;
+        if (!_hasLoaded) {
+          _hasLoaded = true;
+          context.read<DashboardBloc>().add(
+            LoadDashboardData(technicianId: _technicianId),
+          );
+        }
+      }
+    });
   }
 
   @override
@@ -55,82 +68,112 @@ class _DashboardViewState extends State<_DashboardView> {
   }
 
   void _onSearchChanged() {
-    context.read<DashboardBloc>().add(SearchWorkItems(_searchController.text));
+    context.read<DashboardBloc>().add(
+      SearchWorkItems(
+        _searchController.text,
+        technicianId: _technicianId,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, authState) {
-          // Get user name from auth state
-          final userName = authState is AuthAuthenticated 
-              ? authState.user.name 
-              : 'Người dùng';
+      body: BlocListener<AuthBloc, AuthState>(
+        listenWhen: (previous, current) =>
+            previous.runtimeType != current.runtimeType,
+        listener: (context, authState) {
+          if (authState is AuthAuthenticated) {
+            _technicianId = authState.user.id;
+            if (!_hasLoaded) {
+              _hasLoaded = true;
+              context.read<DashboardBloc>().add(
+                LoadDashboardData(technicianId: _technicianId),
+              );
+            }
+          } else if (authState is AuthUnauthenticated) {
+            _technicianId = null;
+            _hasLoaded = false;
+            context.read<DashboardBloc>().add(const ResetDashboardData());
+          }
+        },
+        child: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            // Get user name from auth state
+            final userName = authState is AuthAuthenticated
+                ? authState.user.name
+                : 'Người dùng';
 
-          return BlocBuilder<DashboardBloc, DashboardState>(
-            builder: (context, state) {
-              return Stack(
-                children: [
-                  // Main content
-                  Column(
-                    children: [
-                      // Fixed Header
-                      DashboardHeader(
-                        onNotificationTap: () {
-                          // TODO: Handle notification tap
-                        },
-                      ),
+            return BlocBuilder<DashboardBloc, DashboardState>(
+              builder: (context, state) {
+                return Stack(
+                  children: [
+                    // Main content
+                    Column(
+                      children: [
+                        // Fixed Header
+                        DashboardHeader(
+                          onNotificationTap: () {
+                            // TODO: Handle notification tap
+                          },
+                        ),
 
-                      // Scrollable content
-                      Expanded(
-                        child: _buildContent(state, userName),
-                      ),
-                    ],
-                  ),
+                        // Scrollable content
+                        Expanded(
+                          child: _buildContent(state, userName),
+                        ),
+                      ],
+                    ),
 
-                  // Floating Action Button
-                  DraggableFab(
-                    onTap: () {
-                      // TODO: Handle accept vehicle tap
-                    },
-                  ),
-
-                  // Bottom Navigation
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: DashboardBottomNav(
-                      selectedIndex: _selectedIndex,
-                      onItemSelected: (index) {
-                        if (index == 3) {
-                          // Navigate to Settings page
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SettingsPage(),
-                            ),
-                          );
-                        } else {
-                          setState(() {
-                            _selectedIndex = index;
-                          });
-                        }
+                    // Floating Action Button
+                    DraggableFab(
+                      onTap: () {
+                        // TODO: Handle accept vehicle tap
                       },
                     ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+
+                    // Bottom Navigation
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: DashboardBottomNav(
+                        selectedIndex: _selectedIndex,
+                        onItemSelected: (index) {
+                          if (index == 3) {
+                            // Navigate to Settings page
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SettingsPage(),
+                              ),
+                            );
+                          } else {
+                            setState(() {
+                              _selectedIndex = index;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildContent(DashboardState state, String userName) {
+    if (state is DashboardInitial) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
     if (state is DashboardLoading) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -165,7 +208,9 @@ class _DashboardViewState extends State<_DashboardView> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
-                context.read<DashboardBloc>().add(const LoadDashboardData());
+                context.read<DashboardBloc>().add(
+                  LoadDashboardData(technicianId: _technicianId),
+                );
               },
               child: const Text('Thử lại'),
             ),
@@ -177,7 +222,9 @@ class _DashboardViewState extends State<_DashboardView> {
     if (state is DashboardLoaded) {
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<DashboardBloc>().add(const RefreshDashboardData());
+          context.read<DashboardBloc>().add(
+            RefreshDashboardData(technicianId: _technicianId),
+          );
           // Wait for refresh to complete
           await Future.delayed(const Duration(milliseconds: 500));
         },

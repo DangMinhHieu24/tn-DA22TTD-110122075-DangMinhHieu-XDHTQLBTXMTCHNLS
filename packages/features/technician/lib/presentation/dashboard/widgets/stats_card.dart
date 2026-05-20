@@ -26,18 +26,26 @@ class StatsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: isHighlighted
-            ? Border.all(color: AppColors.primary.withOpacity(0.1))
-            : null,
-        boxShadow: isHighlighted
-            ? [
-                BoxShadow(
-                  color: AppColors.onSurface.withOpacity(0.04),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ]
-            : null,
+        border: Border.all(
+          color: isHighlighted
+              ? AppColors.primary.withOpacity(0.18)
+              : AppColors.outlineVariant.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: isHighlighted
+                ? AppColors.primary.withOpacity(0.18)
+                : AppColors.onSurface.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

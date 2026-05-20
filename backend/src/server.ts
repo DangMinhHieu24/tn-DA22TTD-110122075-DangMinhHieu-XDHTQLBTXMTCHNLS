@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import vehicleRoutes from './routes/vehicle.routes';
 import workOrderRoutes from './routes/work-order.routes';
+import inventoryRoutes from './routes/inventory.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 dotenv.config();
@@ -47,6 +48,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/work-orders', workOrderRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Error handling
 app.use(errorHandler);

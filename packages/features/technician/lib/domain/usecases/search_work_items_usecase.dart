@@ -11,15 +11,19 @@ class SearchWorkItemsUseCase implements UseCase<List<WorkItem>, SearchWorkItemsP
 
   @override
   Future<Either<Failure, List<WorkItem>>> call(SearchWorkItemsParams params) async {
-    return await repository.searchWorkItems(params.query);
+    return await repository.searchWorkItems(
+      params.query,
+      technicianId: params.technicianId,
+    );
   }
 }
 
 class SearchWorkItemsParams extends Equatable {
   final String query;
+  final String? technicianId;
 
-  const SearchWorkItemsParams(this.query);
+  const SearchWorkItemsParams(this.query, {this.technicianId});
 
   @override
-  List<Object?> get props => [query];
+  List<Object?> get props => [query, technicianId];
 }

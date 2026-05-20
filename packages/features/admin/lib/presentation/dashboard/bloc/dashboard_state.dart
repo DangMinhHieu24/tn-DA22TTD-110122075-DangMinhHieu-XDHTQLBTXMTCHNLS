@@ -1,4 +1,5 @@
-part of 'dashboard_bloc.dart';
+import 'package:equatable/equatable.dart';
+import '../../../domain/entities/dashboard_stats.dart';
 
 abstract class DashboardState extends Equatable {
   const DashboardState();

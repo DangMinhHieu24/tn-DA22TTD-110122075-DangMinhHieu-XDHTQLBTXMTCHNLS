@@ -9,7 +9,20 @@ const prisma = new PrismaClient();
  */
 export const getVehicles = async (req: Request, res: Response) => {
   try {
+    const { ownerId } = req.query;
+    const authUser = (req as any).user;
+    const where: any = {};
+
+    if (ownerId) {
+      where.ownerId = ownerId;
+    }
+
+    if (authUser?.role === 'CUSTOMER') {
+      where.ownerId = authUser.userId;
+    }
+
     const vehicles = await prisma.vehicle.findMany({
+      where,
       include: {
         owner: {
           select: {
@@ -45,6 +58,7 @@ export const getVehicles = async (req: Request, res: Response) => {
 export const getVehicleById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const authUser = (req as any).user;
 
     const vehicle = await prisma.vehicle.findUnique({
       where: { id },
@@ -81,6 +95,13 @@ export const getVehicleById = async (req: Request, res: Response) => {
       });
     }
 
+    if (authUser?.role === 'CUSTOMER' && vehicle.ownerId !== authUser.userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
+      });
+    }
+
     res.json({
       success: true,
       data: vehicle,
@@ -101,6 +122,7 @@ export const getVehicleById = async (req: Request, res: Response) => {
 export const getVehicleByLicensePlate = async (req: Request, res: Response) => {
   try {
     const { licensePlate } = req.params;
+    const authUser = (req as any).user;
 
     const vehicle = await prisma.vehicle.findUnique({
       where: { licensePlate },
@@ -132,6 +154,13 @@ export const getVehicleByLicensePlate = async (req: Request, res: Response) => {
       });
     }
 
+    if (authUser?.role === 'CUSTOMER' && vehicle.ownerId !== authUser.userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
+      });
+    }
+
     res.json({
       success: true,
       data: vehicle,
@@ -156,11 +185,12 @@ export const createVehicle = async (req: Request, res: Response) => {
       brand,
       model, 
       color, 
+      imageUrl,
       manufactureYear,
       qrCode,
       warrantyExpiry,
       currentKm, 
-      ownerId 
+      ownerId,
     } = req.body;
 
     // Check if vehicle already exists
@@ -181,6 +211,7 @@ export const createVehicle = async (req: Request, res: Response) => {
         brand,
         model,
         color,
+        imageUrl,
         manufactureYear: manufactureYear ? parseInt(manufactureYear) : null,
         qrCode,
         warrantyExpiry: warrantyExpiry ? new Date(warrantyExpiry) : null,
@@ -224,6 +255,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
       brand,
       model, 
       color, 
+      imageUrl,
       manufactureYear,
       qrCode,
       warrantyExpiry,
@@ -236,6 +268,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
         brand,
         model,
         color,
+        imageUrl,
         manufactureYear: manufactureYear ? parseInt(manufactureYear) : undefined,
         qrCode,
         warrantyExpiry: warrantyExpiry ? new Date(warrantyExpiry) : undefined,

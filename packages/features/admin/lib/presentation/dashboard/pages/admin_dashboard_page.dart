@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:auth/presentation/bloc/auth_bloc.dart';
+import '../../dashboard/bloc/dashboard_bloc.dart';
+import '../../dashboard/bloc/dashboard_event.dart';
+import '../../dashboard/bloc/dashboard_state.dart';
+import '../../../domain/entities/dashboard_stats.dart';
 import '../../vehicle_intake/pages/vehicle_intake_page.dart';
 
 /// Admin Dashboard - 100% converted from HTML design
@@ -14,61 +19,82 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _selectedNavIndex = 0;
+  late final DashboardBloc _dashboardBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardBloc = GetIt.instance<DashboardBloc>();
+    _dashboardBloc.add(LoadDashboardStats());
+  }
+
+  @override
+  void dispose() {
+    _dashboardBloc.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/login',
-            (route) => false,
-          );
-        }
-      },
-      child: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, authState) {
-          // Get user info from auth state
-          final userName = authState is AuthAuthenticated ? authState.user.name : 'Admin';
-          final userEmail = authState is AuthAuthenticated ? authState.user.email : '';
-          final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'A';
+    return BlocProvider.value(
+      value: _dashboardBloc,
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthUnauthenticated) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
+            );
+          }
+        },
+        child: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            // Get user info from auth state
+            final userName = authState is AuthAuthenticated ? authState.user.name : 'Admin';
+            final userEmail = authState is AuthAuthenticated ? authState.user.email : '';
+            final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'A';
 
-          return Scaffold(
-            backgroundColor: const Color(0xFFF7F9FB), // surface
-            body: SafeArea(
-              child: Column(
-                children: [
-                  // Only show dashboard header on HOME and PROFILE tabs
-                  if (_selectedNavIndex == 0 || _selectedNavIndex == 3)
-                    _buildTopAppBar(userInitial, userName),
-                  Expanded(
-                    child: _selectedNavIndex == 2
-                      ? _buildVehicleIntakePage()
-                      : _selectedNavIndex == 3 
-                      ? _buildProfilePage(userName, userEmail, context)
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.only(bottom: 96), // pb-24 (24*4=96)
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 32), // pt-6 px-4 pb-8 (reduced from pt-20)
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildPageHeader(),
-                                const SizedBox(height: 32), // mb-8
-                                _buildQuickStatsGrid(),
-                                const SizedBox(height: 24), // space-y-6
-                                _buildMainContent(),
-                              ],
+            return Scaffold(
+              backgroundColor: const Color(0xFFF7F9FB), // surface
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    // Only show dashboard header on HOME and PROFILE tabs
+                    if (_selectedNavIndex == 0 || _selectedNavIndex == 3)
+                      _buildTopAppBar(userInitial, userName),
+                    Expanded(
+                      child: _selectedNavIndex == 2
+                        ? _buildVehicleIntakePage()
+                        : _selectedNavIndex == 3 
+                        ? _buildProfilePage(userName, userEmail, context)
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.only(bottom: 96), // pb-24 (24*4=96)
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 24, 16, 32), // pt-6 px-4 pb-8 (reduced from pt-20)
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildPageHeader(),
+                                  const SizedBox(height: 32), // mb-8
+                                  BlocBuilder<DashboardBloc, DashboardState>(
+                                    builder: (context, dashboardState) {
+                                      return _buildQuickStatsGrid(dashboardState);
+                                    },
+                                  ),
+                                  const SizedBox(height: 24), // space-y-6
+                                  _buildMainContent(),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            bottomNavigationBar: _buildBottomNavBar(),
-          );
-        },
+              bottomNavigationBar: _buildBottomNavBar(),
+            );
+          },
+        ),
       ),
     );
   }
@@ -166,7 +192,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   /// Quick Stats Grid - 2 cols mobile, 3 cols desktop
   /// grid-cols-2 md:grid-cols-3 gap-4
-  Widget _buildQuickStatsGrid() {
+  Widget _buildQuickStatsGrid(DashboardState state) {
+    final vehiclesInService = _statValue(
+      state,
+      (value) => value.vehiclesInService,
+    );
+    final completedToday = _statValue(
+      state,
+      (value) => value.completedToday,
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Column(
@@ -176,7 +211,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 Expanded(
                   child: _buildStatCard(
                     label: 'Xe đang sửa',
-                    value: '18',
+                    value: vehiclesInService,
                     icon: Icons.build_outlined,
                     iconColor: const Color(0xFF0058BE), // text-secondary
                     iconBgColor: const Color(0xFF2170E4).withOpacity(0.2), // bg-secondary-container/20
@@ -187,7 +222,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 Expanded(
                   child: _buildStatCard(
                     label: 'Hoàn thành hôm nay',
-                    value: '24',
+                    value: completedToday,
                     icon: Icons.check_circle_outline,
                     iconColor: const Color(0xFF006E2F), // text-primary
                     iconBgColor: const Color(0xFF22C55E).withOpacity(0.2), // bg-primary-container/20
@@ -205,6 +240,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
+  String _statValue(DashboardState state, int Function(DashboardStats) selector) {
+    if (state is DashboardLoaded) {
+      return selector(state.stats).toString();
+    }
+    if (state is DashboardLoading) {
+      return '...';
+    }
+    return '--';
+  }
+
   /// Individual Stat Card
   /// bg-surface-container-lowest p-5 rounded-2xl shadow-[0_20px_40px_rgba(25,28,30,0.06)]
   /// h-32 relative overflow-hidden
@@ -217,17 +262,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     required Color glowColor,
   }) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16), // rounded-2xl - clip first
+      borderRadius: BorderRadius.circular(18), // slightly larger radius
       child: Material(
-        elevation: 8, // Material elevation for strong shadow
-        borderRadius: BorderRadius.circular(16),
+        elevation: 10, // stronger lift
+        borderRadius: BorderRadius.circular(18),
         color: const Color(0xFFFFFFFF),
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withOpacity(0.25),
         child: Container(
-          height: 128, // h-32
+          height: 132,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFFFF), // bg-surface-container-lowest
-            borderRadius: BorderRadius.circular(16), // rounded-2xl
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFFF3F7F4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFFDAE4DC),
+              width: 0.8,
+            ),
           ),
           child: Stack(
           children: [
@@ -272,13 +328,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        width: 32, // w-8
-                        height: 32, // h-8
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: iconBgColor,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: iconColor.withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: Icon(icon, color: iconColor, size: 13), // text-sm
+                        child: Icon(icon, color: iconColor, size: 18),
                       ),
                     ],
                   ),
@@ -287,10 +350,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   Text(
                     value,
                     style: TextStyle(
-                      fontSize: 36, // text-3xl
-                      fontWeight: FontWeight.w800, // font-extrabold
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
                       color: iconColor,
                       height: 1,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ],
@@ -306,17 +370,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   /// Revenue Card - col-span-2 md:col-span-1
   Widget _buildRevenueCard() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16), // rounded-2xl - clip first
+      borderRadius: BorderRadius.circular(18),
       child: Material(
-        elevation: 8, // Material elevation for strong shadow
-        borderRadius: BorderRadius.circular(16),
+        elevation: 10,
+        borderRadius: BorderRadius.circular(18),
         color: const Color(0xFFFFFFFF),
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withOpacity(0.25),
         child: Container(
-          height: 128, // h-32
+          height: 132,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFFFF), // bg-surface-container-lowest
-            borderRadius: BorderRadius.circular(16), // rounded-2xl
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFFFFF2F0),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFFF0D7D1),
+              width: 0.8,
+            ),
           ),
         child: Stack(
           children: [
@@ -363,16 +438,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF8B7C).withOpacity(0.2),
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF9E4036).withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: const Icon(
                           Icons.payments_outlined,
-                          color: Color(0xFF9E4036), // text-tertiary
-                          size: 13,
+                          color: Color(0xFF9E4036),
+                          size: 18,
                         ),
                       ),
                     ],
@@ -384,10 +466,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       Text(
                         '8.5M',
                         style: TextStyle(
-                          fontSize: 28, // text-2xl md:text-3xl
+                          fontSize: 30,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF191C1E), // text-on-background
+                          color: Color(0xFF191C1E),
                           height: 1,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       SizedBox(width: 4),
@@ -439,19 +522,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Container(
       padding: const EdgeInsets.all(24), // p-6
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFFFF),
+            Color(0xFFF2F7F3),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFDAE4DC),
+          width: 0.8,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.08),
-            blurRadius: 50,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF191C1E).withOpacity(0.1),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF191C1E).withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
             spreadRadius: 0,
           ),
         ],
@@ -628,8 +722,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       child: Container(
         padding: const EdgeInsets.all(16), // p-4
         decoration: BoxDecoration(
-          color: const Color(0xFFECEEF0), // bg-surface-container (darker gray)
-          borderRadius: BorderRadius.circular(16), // rounded-2xl
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFFFFF),
+              Color(0xFFF2F4F6),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFE0E5EA),
+            width: 0.8,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF191C1E).withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -638,13 +750,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               width: 48, // w-12
               height: 48, // h-12
               decoration: const BoxDecoration(
-                color: Color(0xFFFFFFFF), // bg-surface-container-lowest
+                color: const Color(0xFFFFFFFF),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x14000000), // shadow-sm (stronger)
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
+                    color: Color(0x1A000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
@@ -655,8 +767,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 11, // text-xs
-                fontWeight: FontWeight.w500, // font-medium
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
                 color: Color(0xFF191C1E),
                 height: 1.2,
               ),
@@ -672,26 +784,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   /// relative overflow-hidden
   Widget _buildAlertsSection() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFFFFF),
+              Color(0xFFFFF5F4),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: const Color(0xFFBCCBB9).withOpacity(0.15),
-            width: 1,
+            color: const Color(0xFFF0D7D1),
+            width: 0.8,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF191C1E).withOpacity(0.08),
-              blurRadius: 50,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF191C1E).withOpacity(0.1),
+              blurRadius: 30,
+              offset: const Offset(0, 12),
               spreadRadius: 0,
             ),
             BoxShadow(
-              color: const Color(0xFF191C1E).withOpacity(0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 2),
+              color: const Color(0xFF191C1E).withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
               spreadRadius: 0,
             ),
           ],

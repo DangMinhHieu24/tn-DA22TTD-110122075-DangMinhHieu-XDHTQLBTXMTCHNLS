@@ -15,10 +15,14 @@ class WorkRepositoryImpl implements WorkRepository {
   });
 
   @override
-  Future<Either<Failure, List<WorkItem>>> getWorkItems() async {
+  Future<Either<Failure, List<WorkItem>>> getWorkItems({
+    String? technicianId,
+  }) async {
     try {
       // Try to get from remote
-      final remoteItems = await remoteDataSource.getWorkItems();
+      final remoteItems = await remoteDataSource.getWorkItems(
+        technicianId: technicianId,
+      );
       
       // Cache the items
       await localDataSource.cacheWorkItems(remoteItems);
@@ -84,9 +88,15 @@ class WorkRepositoryImpl implements WorkRepository {
   }
 
   @override
-  Future<Either<Failure, List<WorkItem>>> searchWorkItems(String query) async {
+  Future<Either<Failure, List<WorkItem>>> searchWorkItems(
+    String query, {
+    String? technicianId,
+  }) async {
     try {
-      final items = await remoteDataSource.searchWorkItems(query);
+      final items = await remoteDataSource.searchWorkItems(
+        query,
+        technicianId: technicianId,
+      );
       final entities = items.map((model) => model.toEntity()).toList();
       return Right(entities);
     } catch (e) {

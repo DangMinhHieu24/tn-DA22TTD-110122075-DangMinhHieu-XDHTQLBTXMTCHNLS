@@ -11,12 +11,44 @@ const prisma = new PrismaClient();
 export const getWorkOrders = async (req: Request, res: Response) => {
   try {
     const { status, technicianId, priority, vehicleId } = req.query;
+    const authUser = (req as any).user;
 
     const where: any = {};
     if (status) where.status = status;
     if (technicianId) where.technicianId = technicianId;
     if (priority) where.priority = priority;
     if (vehicleId) where.vehicleId = vehicleId;
+
+    if (authUser?.role === 'CUSTOMER') {
+      if (vehicleId) {
+        const vehicle = await prisma.vehicle.findUnique({
+          where: { id: vehicleId as string },
+          select: { ownerId: true },
+        });
+
+        if (!vehicle || vehicle.ownerId !== authUser.userId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied',
+          });
+        }
+      } else {
+        const vehicles = await prisma.vehicle.findMany({
+          where: { ownerId: authUser.userId },
+          select: { id: true },
+        });
+        const vehicleIds = vehicles.map((v) => v.id);
+
+        if (vehicleIds.length === 0) {
+          return res.json({
+            success: true,
+            data: [],
+          });
+        }
+
+        where.vehicleId = { in: vehicleIds };
+      }
+    }
 
     const workOrders = await prisma.workOrder.findMany({
       where,
@@ -40,6 +72,11 @@ export const getWorkOrders = async (req: Request, res: Response) => {
         },
         services: true,
         photos: true,
+        partsUsed: {
+          include: {
+            part: true,
+          },
+        },
         createdBy: {
           select: {
             id: true,
@@ -72,6 +109,7 @@ export const getWorkOrders = async (req: Request, res: Response) => {
 export const getWorkOrderById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const authUser = (req as any).user;
 
     const workOrder = await prisma.workOrder.findUnique({
       where: { id },
@@ -97,6 +135,11 @@ export const getWorkOrderById = async (req: Request, res: Response) => {
         },
         services: true,
         photos: true,
+        partsUsed: {
+          include: {
+            part: true,
+          },
+        },
         createdBy: {
           select: {
             id: true,
@@ -110,6 +153,16 @@ export const getWorkOrderById = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Work order not found',
+      });
+    }
+
+    if (
+      authUser?.role === 'CUSTOMER' &&
+      workOrder.vehicle?.owner?.id !== authUser.userId
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
       });
     }
 
@@ -142,6 +195,7 @@ export const createWorkOrder = async (req: Request, res: Response) => {
       scheduledTime,
       services, // Array of { serviceType, description }
       photos, // Array of { photoUrl, description }
+      partsUsed, // Array of { partId, quantity, unitPrice }
     } = req.body;
 
     // Get user from auth middleware
@@ -151,45 +205,84 @@ export const createWorkOrder = async (req: Request, res: Response) => {
     const count = await prisma.workOrder.count();
     const orderNumber = `WO-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
 
-    const workOrder = await prisma.workOrder.create({
-      data: {
-        orderNumber,
-        vehicleId,
-        status: status || 'PENDING',
-        priority: priority || 'NORMAL',
-        notes,
-        technicianId,
-        estimatedHours,
-        scheduledTime,
-        createdById,
-        services: {
-          create: services || [],
+    const workOrder = await prisma.$transaction(async (tx) => {
+      const normalizedParts = Array.isArray(partsUsed) ? partsUsed : [];
+
+      for (const part of normalizedParts) {
+        const partRecord = await tx.inventory.findUnique({
+          where: { id: part.partId },
+        });
+
+        if (!partRecord) {
+          throw new Error(`Part not found: ${part.partId}`);
+        }
+
+        if (partRecord.quantity < part.quantity) {
+          throw new Error(`Insufficient stock for ${partRecord.partName}`);
+        }
+
+        await tx.inventory.update({
+          where: { id: part.partId },
+          data: {
+            quantity: {
+              decrement: part.quantity,
+            },
+          },
+        });
+      }
+
+      return tx.workOrder.create({
+        data: {
+          orderNumber,
+          vehicleId,
+          status: status || 'PENDING',
+          priority: priority || 'NORMAL',
+          notes,
+          technicianId,
+          estimatedHours,
+          scheduledTime,
+          createdById,
+          services: {
+            create: services || [],
+          },
+          photos: {
+            create: photos || [],
+          },
+          partsUsed: {
+            create: normalizedParts.map((part: any) => ({
+              partId: part.partId,
+              quantity: part.quantity,
+              unitPrice: part.unitPrice,
+            })),
+          },
         },
-        photos: {
-          create: photos || [],
-        },
-      },
-      include: {
-        vehicle: {
-          include: {
-            owner: {
-              select: {
-                id: true,
-                name: true,
-                phoneNumber: true,
+        include: {
+          vehicle: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  phoneNumber: true,
+                },
               },
             },
           },
-        },
-        technician: {
-          select: {
-            id: true,
-            name: true,
+          technician: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          services: true,
+          photos: true,
+          partsUsed: {
+            include: {
+              part: true,
+            },
           },
         },
-        services: true,
-        photos: true,
-      },
+      });
     });
 
     res.status(201).json({
@@ -201,6 +294,95 @@ export const createWorkOrder = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create work order',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Add parts to work order
+ * PATCH /api/work-orders/:id/parts
+ */
+export const addPartsToWorkOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { partsUsed } = req.body;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const normalizedParts = Array.isArray(partsUsed) ? partsUsed : [];
+
+      for (const part of normalizedParts) {
+        const partRecord = await tx.inventory.findUnique({
+          where: { id: part.partId },
+        });
+
+        if (!partRecord) {
+          throw new Error(`Part not found: ${part.partId}`);
+        }
+
+        if (partRecord.quantity < part.quantity) {
+          throw new Error(`Insufficient stock for ${partRecord.partName}`);
+        }
+
+        await tx.inventory.update({
+          where: { id: part.partId },
+          data: {
+            quantity: {
+              decrement: part.quantity,
+            },
+          },
+        });
+      }
+
+      return tx.workOrder.update({
+        where: { id },
+        data: {
+          partsUsed: {
+            create: normalizedParts.map((part: any) => ({
+              partId: part.partId,
+              quantity: part.quantity,
+              unitPrice: part.unitPrice,
+            })),
+          },
+        },
+        include: {
+          vehicle: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  phoneNumber: true,
+                },
+              },
+            },
+          },
+          technician: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          services: true,
+          photos: true,
+          partsUsed: {
+            include: {
+              part: true,
+            },
+          },
+        },
+      });
+    });
+
+    res.json({
+      success: true,
+      message: 'Parts added to work order successfully',
+      data: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add parts to work order',
       error: error.message,
     });
   }
@@ -226,7 +408,10 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
       where: { id },
       data: updateData,
       include: {
-        vehicle: true,
+        vehicle: {
+          include: {
+          },
+        },
         technician: {
           select: {
             id: true,
@@ -264,7 +449,10 @@ export const assignTechnician = async (req: Request, res: Response) => {
       where: { id },
       data: { technicianId },
       include: {
-        vehicle: true,
+          vehicle: {
+            include: {
+            },
+          },
         technician: {
           select: {
             id: true,
@@ -307,7 +495,10 @@ export const updateWorkOrder = async (req: Request, res: Response) => {
         priority,
       },
       include: {
-        vehicle: true,
+          vehicle: {
+            include: {
+            },
+          },
         technician: {
           select: {
             id: true,
@@ -364,6 +555,10 @@ export const deleteWorkOrder = async (req: Request, res: Response) => {
  */
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
     const totalWorkOrders = await prisma.workOrder.count();
     const pendingWorkOrders = await prisma.workOrder.count({
       where: { status: 'PENDING' },
@@ -373,6 +568,15 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     });
     const completedWorkOrders = await prisma.workOrder.count({
       where: { status: 'COMPLETED' },
+    });
+    const completedToday = await prisma.workOrder.count({
+      where: {
+        status: 'COMPLETED',
+        completedAt: {
+          gte: startOfToday,
+          lt: startOfTomorrow,
+        },
+      },
     });
     const totalVehicles = await prisma.vehicle.count();
     const totalCustomers = await prisma.user.count({
@@ -389,6 +593,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         pendingWorkOrders,
         inProgressWorkOrders,
         completedWorkOrders,
+        completedToday,
         totalVehicles,
         totalCustomers,
         totalTechnicians,

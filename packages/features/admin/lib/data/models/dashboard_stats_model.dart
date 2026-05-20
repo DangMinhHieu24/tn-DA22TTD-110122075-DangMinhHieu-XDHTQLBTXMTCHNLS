@@ -11,19 +11,30 @@ class DashboardStatsModel extends DashboardStats {
   });
 
   factory DashboardStatsModel.fromJson(Map<String, dynamic> json) {
+    final payload = json['data'] is Map<String, dynamic>
+      ? json['data'] as Map<String, dynamic>
+      : json;
+
     return DashboardStatsModel(
-      vehiclesInService: json['vehiclesInService'] as int,
-      completedToday: json['completedToday'] as int,
-      revenueToday: (json['revenueToday'] as num).toDouble(),
-      weeklyRevenue: (json['weeklyRevenue'] as List)
-          .map((e) => (e as num).toDouble())
-          .toList(),
-      alerts: (json['alerts'] as List)
-          .map((e) => SystemAlertModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      technicians: (json['technicians'] as List)
-          .map((e) => TechnicianStatusModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      vehiclesInService: (payload['inProgressWorkOrders'] as num?)?.toInt() ??
+        (payload['vehiclesInService'] as num?)?.toInt() ??
+        0,
+      completedToday: (payload['completedWorkOrders'] as num?)?.toInt() ??
+        (payload['completedToday'] as num?)?.toInt() ??
+        0,
+      revenueToday: (payload['revenueToday'] as num?)?.toDouble() ?? 0,
+      weeklyRevenue: (payload['weeklyRevenue'] as List?)
+          ?.map((e) => (e as num).toDouble())
+          .toList() ??
+        const [],
+      alerts: (payload['alerts'] as List?)
+          ?.map((e) => SystemAlertModel.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+        const [],
+      technicians: (payload['technicians'] as List?)
+          ?.map((e) => TechnicianStatusModel.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+        const [],
     );
   }
 

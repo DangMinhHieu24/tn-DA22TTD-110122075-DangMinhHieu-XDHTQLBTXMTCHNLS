@@ -5,6 +5,8 @@ class WorkItemModel extends WorkItem {
     required super.id,
     required super.licensePlate,
     required super.vehicleModel,
+    super.imageUrl,
+    super.photoUrls,
     required super.customerName,
     required super.description,
     required super.status,
@@ -18,6 +20,11 @@ class WorkItemModel extends WorkItem {
       id: json['id'] as String,
       licensePlate: json['licensePlate'] as String,
       vehicleModel: json['vehicleModel'] as String,
+      imageUrl: json['imageUrl'] as String?,
+        photoUrls: (json['photoUrls'] as List<dynamic>?)
+            ?.map((item) => item.toString())
+            .toList() ??
+          const [],
       customerName: json['customerName'] as String,
       description: json['description'] as String,
       status: _statusFromString(json['status'] as String),
@@ -33,6 +40,7 @@ class WorkItemModel extends WorkItem {
     final vehicle = json['vehicle'] as Map<String, dynamic>?;
     final owner = vehicle?['owner'] as Map<String, dynamic>?;
     final services = json['services'] as List<dynamic>? ?? [];
+    final photos = json['photos'] as List<dynamic>? ?? [];
     
     // Build description from services
     final description = services.isNotEmpty
@@ -43,6 +51,11 @@ class WorkItemModel extends WorkItem {
       id: json['id'] as String,
       licensePlate: vehicle?['licensePlate'] as String? ?? 'N/A',
       vehicleModel: vehicle?['model'] as String? ?? 'Unknown',
+      imageUrl: vehicle?['imageUrl'] as String?,
+      photoUrls: photos
+          .map((item) => (item as Map<String, dynamic>)['photoUrl'] as String?)
+          .whereType<String>()
+          .toList(),
       customerName: owner?['name'] as String? ?? 'Unknown',
       description: description,
       status: _statusFromString(json['status'] as String),
@@ -57,6 +70,8 @@ class WorkItemModel extends WorkItem {
       'id': id,
       'licensePlate': licensePlate,
       'vehicleModel': vehicleModel,
+      'imageUrl': imageUrl,
+      'photoUrls': photoUrls,
       'customerName': customerName,
       'description': description,
       'status': _statusToString(status),
@@ -71,6 +86,8 @@ class WorkItemModel extends WorkItem {
       id: id,
       licensePlate: licensePlate,
       vehicleModel: vehicleModel,
+      imageUrl: imageUrl,
+      photoUrls: photoUrls,
       customerName: customerName,
       description: description,
       status: status,
@@ -85,6 +102,8 @@ class WorkItemModel extends WorkItem {
       id: entity.id,
       licensePlate: entity.licensePlate,
       vehicleModel: entity.vehicleModel,
+      imageUrl: entity.imageUrl,
+      photoUrls: entity.photoUrls,
       customerName: entity.customerName,
       description: entity.description,
       status: entity.status,

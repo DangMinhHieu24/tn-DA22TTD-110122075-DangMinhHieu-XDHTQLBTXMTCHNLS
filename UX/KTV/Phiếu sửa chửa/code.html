@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chi tiết phiếu sửa chữa</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#4ae176",
+                        "inverse-on-surface": "#eff1f3",
+                        "outline-variant": "#bccbb9",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-surface-variant": "#3d4a3d",
+                        "tertiary": "#9e4036",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-primary-fixed-variant": "#005321",
+                        "surface-dim": "#d8dadc",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#d8e2ff",
+                        "primary": "#006e2f",
+                        "tertiary-container": "#ff8b7c",
+                        "on-primary-container": "#004b1e",
+                        "inverse-surface": "#2d3133",
+                        "on-background": "#191c1e",
+                        "background": "#f7f9fb",
+                        "inverse-primary": "#4ae176",
+                        "on-secondary-fixed": "#001a42",
+                        "secondary": "#0058be",
+                        "on-tertiary-fixed-variant": "#7f2a21",
+                        "outline": "#6d7b6c",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-low": "#f2f4f6",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#6bff8f",
+                        "on-tertiary-container": "#76231b",
+                        "tertiary-fixed-dim": "#ffb4a9",
+                        "surface": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eceef0",
+                        "on-secondary-container": "#fefcff",
+                        "on-primary-fixed": "#002109",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#006e2f",
+                        "secondary-container": "#2170e4",
+                        "primary-container": "#22c55e",
+                        "on-surface": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "tertiary-fixed": "#ffdad5",
+                        "on-tertiary-fixed": "#410001",
+                        "surface-container-high": "#e6e8ea"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {}
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body antialiased pb-24 md:hidden">
+<!-- 1. Header -->
+<header class="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl px-4 py-4 flex items-center justify-between shadow-[0_1px_3px_rgba(25,28,30,0.05)]">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface" data-icon="arrow_back" data-weight="regular">arrow_back</span>
+</button>
+<h1 class="font-headline font-bold text-lg text-on-surface text-center flex-1">Chi tiết phiếu sửa chữa</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface" data-icon="more_vert" data-weight="regular">more_vert</span>
+</button>
+</header>
+<main class="p-4 space-y-6">
+<!-- 3. Timeline trạng thái -->
+<section class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_4px_12px_rgba(25,28,30,0.03)]">
+<h2 class="font-headline font-semibold text-base mb-4 text-on-surface">Tiến trình sửa chữa</h2>
+<div class="relative flex justify-between items-center w-full">
+<!-- Đường kẻ mờ (outline) -->
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-surface-container-high rounded-full z-0"></div>
+<!-- Đường kẻ fill -->
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-[50%] h-1 bg-gradient-to-r from-primary to-primary-container rounded-full z-0"></div>
+<!-- Step 1: Tiếp nhận -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-sm shadow-primary/20">
+<span class="material-symbols-outlined text-[16px]" data-icon="check" data-weight="bold">check</span>
+</div>
+<span class="font-label text-[10px] font-medium text-primary">Tiếp nhận</span>
+</div>
+<!-- Step 2: Kiểm tra -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-sm shadow-primary/20">
+<span class="material-symbols-outlined text-[16px]" data-icon="check" data-weight="bold">check</span>
+</div>
+<span class="font-label text-[10px] font-medium text-primary">Kiểm tra</span>
+</div>
+<!-- Step 3: Đang sửa (Active) -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shadow-md shadow-primary-container/30 ring-4 ring-surface-container-lowest">
+<span class="material-symbols-outlined text-[16px]" data-icon="build" data-weight="fill" style="font-variation-settings: 'FILL' 1;">build</span>
+</div>
+<span class="font-label text-[10px] font-bold text-on-surface">Đang sửa</span>
+</div>
+<!-- Step 4: Chờ thanh toán -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="payments" data-weight="regular">payments</span>
+</div>
+<span class="font-label text-[10px] font-medium text-on-surface-variant">Thanh toán</span>
+</div>
+<!-- Step 5: Hoàn thành -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="flag" data-weight="regular">flag</span>
+</div>
+<span class="font-label text-[10px] font-medium text-on-surface-variant">Hoàn thành</span>
+</div>
+</div>
+<div class="mt-6 flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="schedule" data-weight="regular">schedule</span>
+<span class="font-label text-sm font-semibold text-primary">Đang sửa — 1 giờ 20 phút</span>
+</div>
+<div class="p-3 bg-surface-container-low rounded-lg flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<p class="font-body text-xs text-on-surface-variant flex-1">Kỹ thuật viên đang thực hiện thay thế linh kiện.</p>
+<span class="font-label text-[10px] font-medium text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">ID: REQ-8821</span>
+</div>
+</div>
+</section>
+<!-- 2. Thông tin xe & Ảnh tiếp nhận -->
+<section class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(25,28,30,0.03)] flex flex-col">
+<div class="relative w-full h-48 bg-surface-container-high">
+<!-- Use Canvas Image 12866504188294562369 -->
+<img alt="Ảnh tiếp nhận xe VinFast Klara S" class="w-full h-full object-cover" data-alt="A realistic photo of a VinFast Klara S electric scooter in a modern service center." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDG90hUsefXAKTp_GXS0y9gKE9-h8YlDau7bqvetn3HWjdatubzT_hMyD674SJZYcc1F6lIbHyafGafhkjL18z7A_lUyu6DJiyQYf-DqAWvDvnH2sv0rkGVTWrGMAzd1WjAeBmlz7-MrPKqNtE5Ccncl2JetuStGhSm--KD9YH9n0GyjVXo4Mx8EUttdqV-rLbMP6UfBjfyA0on4zuG5v6olFTZ4xLK-62q4sRcmga39EdUKKthUfcQZb2WT2XqX0dS_VAdO5q0A_0"/>
+<div class="absolute bottom-3 right-3 bg-surface-container-lowest/80 backdrop-blur-md px-2 py-1 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-on-surface" data-icon="photo_camera" data-weight="regular">photo_camera</span>
+<span class="font-label text-[10px] font-semibold text-on-surface">1/4</span>
+</div>
+<div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent"></div>
+<div class="absolute bottom-3 left-4 text-white">
+<h3 class="font-headline font-bold text-xl drop-shadow-md">29H1 - 567.89</h3>
+<div class="flex items-center gap-2">
+<p class="font-body text-xs font-medium opacity-90">VinFast Klara S</p>
+<span class="inline-flex items-center gap-1 bg-surface-container-lowest/20 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] font-medium border border-white/20">
+<span class="material-symbols-outlined text-[12px]" data-icon="verified_user" data-weight="regular">verified_user</span>
+                                Còn bảo hành: 245 ngày
+                            </span>
+</div>
+</div>
+</div>
+<div class="p-4 flex justify-between items-center bg-surface-container-lowest">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-headline font-bold text-sm">
+                        NC
+                    </div>
+<div>
+<p class="font-body text-sm font-semibold text-on-surface">Nguyễn Văn Cường</p>
+<p class="font-body text-xs text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="call" data-weight="regular">call</span>
+                            0904.xxx.888
+                        </p>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-full bg-primary/10 flex items-center gap-2 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="chat" data-weight="regular">chat</span>
+<span class="font-label text-xs font-semibold text-primary">Nhắn tin khách</span>
+</button>
+</div>
+</section>
+<!-- 5. Danh sách hạng mục công việc -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="font-headline font-semibold text-base text-on-surface">Hạng mục công việc</h2>
+<span class="font-label text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-md">2/3 Hoàn thành</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-2 shadow-[0_4px_12px_rgba(25,28,30,0.03)] flex flex-col gap-1">
+<!-- Checkbox 1: Hoàn thành -->
+<label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors group">
+<div class="relative flex items-center">
+<input checked="" class="peer h-5 w-5 cursor-pointer appearance-none rounded border border-outline-variant checked:border-primary checked:bg-primary transition-all" type="checkbox"/>
+<span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+<span class="material-symbols-outlined text-[14px]" data-icon="check" data-weight="bold">check</span>
+</span>
+</div>
+<div class="flex-1">
+<p class="font-body text-sm font-medium text-on-surface line-through text-on-surface-variant">Thay má phanh trước</p>
+<p class="font-label text-xs text-on-surface-variant">Thực hiện: 10:30 AM</p>
+</div>
+</label>
+<!-- Checkbox 2: Hoàn thành -->
+<label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors group">
+<div class="relative flex items-center">
+<input checked="" class="peer h-5 w-5 cursor-pointer appearance-none rounded border border-outline-variant checked:border-primary checked:bg-primary transition-all" type="checkbox"/>
+<span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+<span class="material-symbols-outlined text-[14px]" data-icon="check" data-weight="bold">check</span>
+</span>
+</div>
+<div class="flex-1">
+<p class="font-body text-sm font-medium text-on-surface line-through text-on-surface-variant">Vệ sinh xích &amp; bôi trơn</p>
+<p class="font-label text-xs text-on-surface-variant">Thực hiện: 11:15 AM</p>
+</div>
+</label>
+<!-- Checkbox 3: Đang chờ -->
+<div class="flex flex-col p-3 rounded-lg bg-surface-container-low/50">
+<label class="flex items-center gap-3 cursor-pointer transition-colors group">
+<div class="relative flex items-center">
+<input class="peer h-5 w-5 cursor-pointer appearance-none rounded border-2 border-outline-variant checked:border-primary checked:bg-primary transition-all" type="checkbox"/>
+<span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+<span class="material-symbols-outlined text-[14px]" data-icon="check" data-weight="bold">check</span>
+</span>
+</div>
+<div class="flex-1">
+<p class="font-body text-sm font-medium text-on-surface">Kiểm tra pin</p>
+<p class="font-label text-xs text-secondary flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[12px]" data-icon="battery_charging_full" data-weight="regular">battery_charging_full</span>
+                            Cần thiết bị đo chuyên dụng
+                        </p>
+</div>
+</label>
+<div class="flex items-center gap-2 mt-3 ml-8">
+<button class="px-2 py-1 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface text-xs font-medium transition-colors border border-outline-variant/30">Đánh dấu chờ</button>
+<button class="px-2 py-1 rounded bg-surface-container-highest hover:bg-surface-variant text-error text-xs font-medium transition-colors border border-error/20">Bỏ qua hạng mục</button>
+</div>
+</div>
+<button class="w-full py-3 mt-1 flex items-center justify-center gap-2 text-primary font-label text-sm font-semibold hover:bg-surface-container-low rounded-lg transition-colors border border-dashed border-primary/30">
+<span class="material-symbols-outlined text-[18px]" data-icon="add" data-weight="regular">add</span>
+            Thêm hạng mục
+        </button>
+</div>
+</section>
+<!-- 6. Xuất kho phụ tùng -->
+<section class="space-y-3">
+<h2 class="font-headline font-semibold text-base text-on-surface">Xuất kho phụ tùng</h2>
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0_4px_12px_rgba(25,28,30,0.03)]">
+<!-- Thanh tìm kiếm -->
+<div class="relative mb-4">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search" data-weight="regular">search</span>
+<input class="w-full bg-surface-container-high border-none rounded-lg py-2.5 pl-10 pr-4 font-body text-sm text-on-surface placeholder-on-surface-variant/70 focus:ring-2 focus:ring-primary/40 focus:bg-surface-container-lowest transition-all" placeholder="Tìm kiếm phụ tùng..." type="text"/>
+</div>
+<!-- Danh sách phụ tùng -->
+<div class="space-y-3">
+<!-- Item 1 -->
+<div class="flex items-center justify-between p-3 bg-surface rounded-lg border border-outline-variant/15">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-surface-container-high rounded-md overflow-hidden flex-shrink-0">
+<!-- Use Canvas Image 15322269838587254687 for a part placeholder -->
+<img alt="Má phanh Brembo" class="w-full h-full object-cover" data-alt="High-quality realistic photo of ceramic brake pads." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrE6r8BimfKawkwE84VxFTC5OCiS84Abb-APkAnNAbFg1VD7mns7bwwyiO-P2IwUXKfytXqEptSdjPKLIOYv3-fIHv-18_iTHTf8Gq-AKlQTeDSbVZXNJ0GeUre33szvo26oExnOCDAnRp9-iWIPxfiVTV86mXSXP1Uz-R_mrqwNtki37GtXLIvQhlKM3JsbvIzyQcZTtw5AZSMEEaxFIh8Y5WaIWVvXAdvs6a9XqEjdkRpMK9uZINML93mLlG2HY2CUPLCtttbDI"/>
+</div>
+<div>
+<h4 class="font-body text-sm font-semibold text-on-surface">Má phanh Brembo</h4>
+<p class="font-label text-xs text-on-surface-variant">Tồn kho: 12 bộ</p>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-low rounded-md p-1">
+<button class="w-6 h-6 flex items-center justify-center rounded bg-surface-container-lowest text-on-surface-variant shadow-sm hover:text-primary"><span class="material-symbols-outlined text-[16px]" data-icon="remove" data-weight="regular">remove</span></button>
+<span class="font-body text-sm font-semibold text-on-surface w-4 text-center">1</span>
+<button class="w-6 h-6 flex items-center justify-center rounded bg-surface-container-lowest text-on-surface-variant shadow-sm hover:text-primary"><span class="material-symbols-outlined text-[16px]" data-icon="add" data-weight="regular">add</span></button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between p-3 bg-surface rounded-lg border border-outline-variant/15">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-surface-container-high rounded-md overflow-hidden flex-shrink-0">
+<!-- Use Canvas Image 15322269838587255965 for a part placeholder -->
+<img alt="Dầu xích Motul" class="w-full h-full object-cover" data-alt="High-quality realistic photo of industrial chain lubricant bottle." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB47zzxN_IJJUAXUFm53wgu4gap6ID6gfDb7Ach7qvgj2sNXb7LFTjryEIkqR-Z-rbpHmSHOXfob5l5VNAbJG4z3johJz4FExAkpHHMn5cGLwX-3rBUhzsFKvohFwM_9KL_G2S8K3n49IqyQL9j2CQ_rPDZ8xK-M07WmnuUHGkfPEelbWEsu0fxZY_mnKSK67wQqvHl0_qmr-yYb21wkOfdVqoLAMx7f2u8UZzjjoWPTo3b-m1p05HZBs4Nb70syj2MmddG6Ncon-w"/>
+</div>
+<div>
+<h4 class="font-body text-sm font-semibold text-on-surface">Dầu xích Motul</h4>
+<p class="font-label text-xs text-on-surface-variant">Tồn kho: 45 chai</p>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-low rounded-md p-1">
+<button class="w-6 h-6 flex items-center justify-center rounded bg-surface-container-lowest text-on-surface-variant shadow-sm hover:text-primary"><span class="material-symbols-outlined text-[16px]" data-icon="remove" data-weight="regular">remove</span></button>
+<span class="font-body text-sm font-semibold text-on-surface w-4 text-center">1</span>
+<button class="w-6 h-6 flex items-center justify-center rounded bg-surface-container-lowest text-on-surface-variant shadow-sm hover:text-primary"><span class="material-symbols-outlined text-[16px]" data-icon="add" data-weight="regular">add</span></button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 7. Ghi chú & Hình ảnh sau sửa -->
+<section class="space-y-3">
+<h2 class="font-headline font-semibold text-base text-on-surface">Báo cáo kỹ thuật</h2>
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0_4px_12px_rgba(25,28,30,0.03)] space-y-4">
+<div>
+<label class="block font-label text-xs font-medium text-on-surface-variant mb-2">Hình ảnh sau sửa (After)</label>
+<div class="flex gap-3 overflow-x-auto pb-2 snap-x">
+<div class="w-24 h-24 rounded-lg bg-surface-container-high flex-shrink-0 flex flex-col items-center justify-center text-primary cursor-pointer hover:bg-surface-container border border-dashed border-primary/30 snap-start">
+<span class="material-symbols-outlined mb-1" data-icon="add_a_photo" data-weight="regular">add_a_photo</span>
+<span class="font-label text-[10px] font-medium">Tải ảnh lên</span>
+</div>
+<!-- Placeholder for uploaded image -->
+<div class="w-24 h-24 rounded-lg bg-surface-container-highest flex-shrink-0 relative overflow-hidden snap-start group">
+<img alt="Hình sau sửa" class="w-full h-full object-cover" data-alt="A close-up, high-quality image of freshly installed motorcycle brake pads in a clean, brightly lit workshop environment, demonstrating a completed maintenance task." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaLxbnV3--YEAlOpJqkWMQPRgRRkLTRfnRTl1cO47jaUFcXfbN8LUCdp89pPIFXVbaIvYznWRzsLHwT9lAWuRjFIbNEOTXIllBTHczp98dcPLMLPcVsw5QBQPJtXPgHV4l-EM-uvXgALPYyizaXvFju8PEyIygmgvJd8IXskFZo3R36Ub0OWApj_nU9rP-rTnJ9sizpg8wNdPauTNSYQ8wIvLtSIGQMcyNHw_beASHgtxB4_qIrH6Xbm4U2avOKcHm0ZOz6ZGogxg"/>
+<button class="absolute top-1 right-1 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[14px]" data-icon="close" data-weight="regular">close</span>
+</button>
+</div>
+</div>
+</div>
+<div>
+<label class="block font-label text-xs font-medium text-on-surface-variant mb-2">Ghi chú cho lần bảo dưỡng sau</label>
+<textarea class="w-full bg-surface-container-high border-none rounded-lg p-3 font-body text-sm text-on-surface placeholder-on-surface-variant/70 focus:ring-2 focus:ring-primary/40 focus:bg-surface-container-lowest transition-all resize-none h-24" placeholder="Nhập ghi chú kỹ thuật, ví dụ: Lốp sau mòn 70%, cần thay thế ở kỳ bảo dưỡng tiếp theo."></textarea>
+</div>
+</div>
+</section>
+<!-- 8. Tổng kết chi phí -->
+<section class="bg-surface-container-lowest rounded-xl p-4 shadow-[0_4px_12px_rgba(25,28,30,0.03)] space-y-3">
+<h2 class="font-headline font-semibold text-base text-on-surface mb-2">Tổng kết chi phí</h2>
+<div class="space-y-2 font-body text-sm">
+<div class="flex justify-between text-on-surface-variant">
+<span>Phí dịch vụ (Công thợ)</span>
+<span class="font-medium text-on-surface">150,000 đ</span>
+</div>
+<div class="flex justify-between text-on-surface-variant">
+<div class="flex flex-col">
+<span>Phụ tùng (2 mục)</span>
+<span class="text-[10px] text-on-surface-variant/70">Tự động tính từ xuất kho</span>
+</div>
+<span class="font-medium text-on-surface">650,000 đ</span>
+</div>
+<div class="flex justify-between text-on-surface-variant">
+<span>Thuế VAT (8%)</span>
+<span class="font-medium text-on-surface">64,000 đ</span>
+</div>
+</div>
+<div class="h-px w-full bg-surface-container-high my-3"></div>
+<div class="flex justify-between items-center">
+<span class="font-headline font-bold text-lg text-on-surface">Tổng tiền</span>
+<span class="font-headline font-extrabold text-xl text-primary">864,000 đ</span>
+</div>
+</section>
+</main>
+<!-- 4. Nút hành động (Sticky Bottom) -->
+<div class="fixed bottom-0 left-0 w-full bg-surface/90 backdrop-blur-xl p-4 shadow-[0_-4px_20px_rgba(25,28,30,0.05)] border-t border-outline-variant/10 z-50">
+<button class="w-full h-14 bg-gradient-to-br from-primary to-primary-container text-white rounded-xl font-headline font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined" data-icon="task_alt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+            Hoàn thành sửa chữa
+        </button>
+</div>
+</body></html>

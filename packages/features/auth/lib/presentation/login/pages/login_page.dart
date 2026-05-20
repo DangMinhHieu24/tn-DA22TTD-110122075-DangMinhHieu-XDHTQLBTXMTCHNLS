@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:design_system/design_system.dart';
+import '../../bloc/auth_bloc.dart';
 import '../../../../domain/entities/user.dart';
 import '../bloc/login_bloc.dart';
 
@@ -240,6 +241,7 @@ class _LoginPageState extends State<LoginPage> {
     return BlocConsumer<LoginBloc, LoginState>(
       listener: (context, state) {
         if (state is LoginSuccess) {
+          context.read<AuthBloc>().add(AuthUserUpdated(user: state.user));
           // Navigate based on user role
           _navigateBasedOnRole(context, state.user);
         } else if (state is LoginFailure) {

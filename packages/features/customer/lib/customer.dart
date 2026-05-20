@@ -3,16 +3,35 @@ library customer;
 // DI
 export 'di/customer_di.dart';
 
-// Presentation - Dashboard Pages
-export 'presentation/dashboard/pages/customer_dashboard_page.dart';
+// Domain
+export 'domain/entities/customer_vehicle.dart';
+export 'domain/entities/customer_work_order.dart';
+export 'domain/repositories/customer_repository.dart';
+export 'domain/usecases/get_customer_vehicles.dart';
+export 'domain/usecases/get_vehicle_work_orders.dart';
+
+// Data
+export 'data/models/customer_vehicle_model.dart';
+export 'data/models/customer_work_order_model.dart';
+export 'data/datasources/remote/customer_vehicle_remote_datasource.dart';
+export 'data/datasources/remote/customer_work_order_remote_datasource.dart';
+export 'data/repositories/customer_repository_impl.dart';
+
+// Presentation - Vehicles Pages
+export 'presentation/vehicles/pages/my_vehicles_page.dart';
+export 'presentation/vehicles/pages/vehicle_detail_page.dart';
+
+export 'presentation/vehicles/pages/customer_work_order_detail_page.dart';
 
 // Presentation - Account Pages
 export 'presentation/account/pages/customer_account_page.dart';
 
-// Presentation - Dashboard Widgets
-export 'presentation/dashboard/widgets/customer_app_bar.dart';
-export 'presentation/dashboard/widgets/reminder_banner.dart';
-export 'presentation/dashboard/widgets/service_progress_card.dart';
-export 'presentation/dashboard/widgets/technical_alert_card.dart';
-export 'presentation/dashboard/widgets/maintenance_history.dart';
-export 'presentation/dashboard/widgets/customer_bottom_nav.dart';
+// Presentation - Customer Vehicles
+export 'presentation/vehicles/bloc/customer_vehicle_bloc.dart';
+export 'presentation/vehicles/widgets/customer_vehicle_card.dart';
+export 'presentation/vehicles/widgets/customer_app_bar.dart';
+export 'presentation/vehicles/widgets/customer_bottom_nav.dart';
+
+// Presentation - Customer Work Orders
+export 'presentation/vehicles/bloc/customer_work_order_bloc.dart';
+export 'presentation/vehicles/widgets/customer_work_order_card.dart';

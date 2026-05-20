@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth/auth.dart';
 import 'package:design_system/design_system.dart';
+import '../../vehicles/widgets/customer_bottom_nav.dart';
+import '../../vehicles/pages/my_vehicles_page.dart';
 
 class CustomerAccountPage extends StatelessWidget {
   const CustomerAccountPage({super.key});
@@ -19,82 +21,95 @@ class CustomerAccountPage extends StatelessWidget {
       },
       child: Scaffold(
         backgroundColor: AppColors.surfaceContainerLow,
-        appBar: AppBar(
-          title: const Text('Tài khoản'),
-          backgroundColor: AppColors.surface,
-          elevation: 0,
-        ),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.primaryContainer,
-                        child: Text(
-                          'NV',
-                          style: AppTextStyles.titleMedium.copyWith(
-                            color: AppColors.onPrimaryContainer,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Text(
-                              'Nguyễn Văn A',
-                              style: AppTextStyles.titleMedium.copyWith(
-                                fontWeight: FontWeight.w700,
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: AppColors.primaryContainer,
+                              child: Text(
+                                'NV',
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  color: AppColors.onPrimaryContainer,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '0904.xxx.888',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.onSurfaceVariant,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Nguyễn Văn A',
+                                    style: AppTextStyles.titleMedium.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '0904.xxx.888',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            context.read<AuthBloc>().add(const AuthLogoutRequested());
+                          },
+                          icon: const Icon(Icons.logout, size: 20),
+                          label: const Text('Đăng xuất'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error,
+                            foregroundColor: AppColors.onError,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      context.read<AuthBloc>().add(const AuthLogoutRequested());
-                    },
-                    icon: const Icon(Icons.logout, size: 20),
-                    label: const Text('Đăng xuất'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: AppColors.onError,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              ),
+              CustomerBottomNav(
+                selectedIndex: 3,
+                onItemSelected: (index) {
+                  if (index == 0) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => const MyVehiclesPage(),
                       ),
-                      elevation: 2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                    );
+                  }
+                },
+              ),
+            ],
           ),
         ),
       ),

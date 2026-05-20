@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:auth/auth.dart';
 import 'package:technician/technician.dart';
 import 'package:admin/admin.dart';
+import 'package:customer/customer.dart';
 
 final getIt = GetIt.instance;
 
@@ -15,6 +16,6 @@ Future<void> configureDependencies() async {
   // Setup admin dependencies
   setupAdminDependencies();
   
-  // TODO: Setup other feature dependencies
-  // setupCustomerDependencies();
+  // Setup customer dependencies
+  setupCustomerDependencies();
 }

@@ -8,11 +8,25 @@ abstract class DashboardEvent extends Equatable {
 }
 
 class LoadDashboardData extends DashboardEvent {
-  const LoadDashboardData();
+  final String? technicianId;
+
+  const LoadDashboardData({this.technicianId});
+
+  @override
+  List<Object?> get props => [technicianId];
 }
 
 class RefreshDashboardData extends DashboardEvent {
-  const RefreshDashboardData();
+  final String? technicianId;
+
+  const RefreshDashboardData({this.technicianId});
+
+  @override
+  List<Object?> get props => [technicianId];
+}
+
+class ResetDashboardData extends DashboardEvent {
+  const ResetDashboardData();
 }
 
 class UpdateWorkStatus extends DashboardEvent {
@@ -30,9 +44,10 @@ class UpdateWorkStatus extends DashboardEvent {
 
 class SearchWorkItems extends DashboardEvent {
   final String query;
+  final String? technicianId;
 
-  const SearchWorkItems(this.query);
+  const SearchWorkItems(this.query, {this.technicianId});
 
   @override
-  List<Object?> get props => [query];
+  List<Object?> get props => [query, technicianId];
 }

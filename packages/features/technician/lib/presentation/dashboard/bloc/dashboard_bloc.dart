@@ -21,6 +21,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<RefreshDashboardData>(_onRefreshDashboardData);
     on<UpdateWorkStatus>(_onUpdateWorkStatus);
     on<SearchWorkItems>(_onSearchWorkItems);
+    on<ResetDashboardData>(_onResetDashboardData);
   }
 
   Future<void> _onLoadDashboardData(
@@ -29,7 +30,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     emit(const DashboardLoading());
 
-    final result = await getWorkItemsUseCase(NoParams());
+    final result = await getWorkItemsUseCase(
+      GetWorkItemsParams(technicianId: event.technicianId),
+    );
 
     result.fold(
       (failure) => emit(DashboardError(_mapFailureToMessage(failure))),
@@ -50,7 +53,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Emitter<DashboardState> emit,
   ) async {
     if (state is DashboardLoaded) {
-      final result = await getWorkItemsUseCase(NoParams());
+      final result = await getWorkItemsUseCase(
+        GetWorkItemsParams(technicianId: event.technicianId),
+      );
 
       result.fold(
         (failure) => emit(DashboardError(_mapFailureToMessage(failure))),
@@ -113,7 +118,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     if (state is DashboardLoaded) {
       final result = await searchWorkItemsUseCase(
-        SearchWorkItemsParams(event.query),
+        SearchWorkItemsParams(
+          event.query,
+          technicianId: event.technicianId,
+        ),
       );
 
       result.fold(
@@ -131,6 +139,13 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         },
       );
     }
+  }
+
+  void _onResetDashboardData(
+    ResetDashboardData event,
+    Emitter<DashboardState> emit,
+  ) {
+    emit(const DashboardInitial());
   }
 
   // Helper methods

@@ -8,6 +8,8 @@ class WorkItem extends Equatable {
   final String id;
   final String licensePlate;
   final String vehicleModel;
+  final String? imageUrl;
+  final List<String> photoUrls;
   final String customerName;
   final String description;
   final WorkStatus status;
@@ -19,6 +21,8 @@ class WorkItem extends Equatable {
     required this.id,
     required this.licensePlate,
     required this.vehicleModel,
+    this.imageUrl,
+    this.photoUrls = const [],
     required this.customerName,
     required this.description,
     required this.status,
@@ -32,6 +36,8 @@ class WorkItem extends Equatable {
         id,
         licensePlate,
         vehicleModel,
+      imageUrl,
+      photoUrls,
         customerName,
         description,
         status,

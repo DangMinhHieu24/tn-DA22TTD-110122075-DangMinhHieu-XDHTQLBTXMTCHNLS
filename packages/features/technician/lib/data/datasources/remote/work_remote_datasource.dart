@@ -2,10 +2,10 @@ import 'package:dio/dio.dart';
 import '../../models/work_item_model.dart';
 
 abstract class WorkRemoteDataSource {
-  Future<List<WorkItemModel>> getWorkItems();
+  Future<List<WorkItemModel>> getWorkItems({String? technicianId});
   Future<WorkItemModel> getWorkItemById(String id);
   Future<WorkItemModel> updateWorkStatus(String id, String newStatus);
-  Future<List<WorkItemModel>> searchWorkItems(String query);
+  Future<List<WorkItemModel>> searchWorkItems(String query, {String? technicianId});
 }
 
 class WorkRemoteDataSourceImpl implements WorkRemoteDataSource {
@@ -14,10 +14,15 @@ class WorkRemoteDataSourceImpl implements WorkRemoteDataSource {
   WorkRemoteDataSourceImpl({required this.dio});
   
   @override
-  Future<List<WorkItemModel>> getWorkItems() async {
+  Future<List<WorkItemModel>> getWorkItems({String? technicianId}) async {
     try {
       // Call real API endpoint
-      final response = await dio.get('/work-orders');
+      final response = await dio.get(
+        '/work-orders',
+        queryParameters: technicianId != null
+            ? {'technicianId': technicianId}
+            : null,
+      );
       
       if (response.data['success'] == true) {
         final List<dynamic> data = response.data['data'];
@@ -64,11 +69,14 @@ class WorkRemoteDataSourceImpl implements WorkRemoteDataSource {
   }
 
   @override
-  Future<List<WorkItemModel>> searchWorkItems(String query) async {
+  Future<List<WorkItemModel>> searchWorkItems(
+    String query, {
+    String? technicianId,
+  }) async {
     try {
       // Search by calling getWorkItems and filter locally for now
       // TODO: Implement server-side search if needed
-      final items = await getWorkItems();
+      final items = await getWorkItems(technicianId: technicianId);
       
       if (query.isEmpty) return items;
       

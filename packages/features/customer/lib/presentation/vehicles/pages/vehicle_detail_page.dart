@@ -1,0 +1,748 @@
+import 'package:design_system/design_system.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import '../../../domain/entities/customer_vehicle.dart';
+import '../../../domain/entities/customer_work_order.dart';
+import '../bloc/customer_work_order_bloc.dart';
+import 'customer_work_order_detail_page.dart';
+import '../widgets/customer_bottom_nav.dart';
+import 'my_vehicles_page.dart';
+import '../../account/pages/customer_account_page.dart';
+
+class VehicleDetailPage extends StatefulWidget {
+  final CustomerVehicle vehicle;
+
+  const VehicleDetailPage({
+    super.key,
+    required this.vehicle,
+  });
+
+  @override
+  State<VehicleDetailPage> createState() => _VehicleDetailPageState();
+}
+
+class _VehicleDetailPageState extends State<VehicleDetailPage> {
+  late final CustomerWorkOrderBloc _workOrderBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _workOrderBloc = GetIt.instance<CustomerWorkOrderBloc>();
+    _workOrderBloc.add(LoadWorkOrdersForVehicle(widget.vehicle.id));
+  }
+
+  @override
+  void dispose() {
+    _workOrderBloc.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider.value(
+      value: _workOrderBloc,
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildTopAppBar(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      _buildHeroSection(),
+                      const SizedBox(height: 24),
+                      _buildRepairHistorySection(),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+              CustomerBottomNav(
+                selectedIndex: 0,
+                onItemSelected: (index) {
+                  if (index == 0) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (_) => const MyVehiclesPage(),
+                      ),
+                      (route) => false,
+                    );
+                  } else if (index == 3) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerAccountPage(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopAppBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: AppColors.surface.withValues(alpha: 0.9),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Back button
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                color: AppColors.primary,
+                size: 24,
+              ),
+            ),
+          ),
+          // Title
+          Text(
+            'Chi tiết xe',
+            style: AppTextStyles.titleMedium.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+            ),
+          ),
+          // Notification button
+          Stack(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.surface, width: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.onSurface.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hero image with warranty badge
+            _buildHeroImage(),
+            // Vehicle identity info
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name + icon
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.vehicle.model,
+                              style: AppTextStyles.titleLarge.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text.rich(
+                              TextSpan(
+                                text: 'Biển số: ',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: widget.vehicle.licensePlate,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: AppColors.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Icon(
+                          Icons.electric_bike,
+                          color: AppColors.primary,
+                          size: 26,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Quick info grid
+                  _buildQuickInfoGrid(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroImage() {
+    final imageUrl = widget.vehicle.imageUrl;
+    final warrantyDays = widget.vehicle.warrantyDaysRemaining;
+    final badgeText = warrantyDays != null
+        ? 'Còn bảo hành: $warrantyDays ngày'
+        : 'Hết bảo hành';
+
+    return Stack(
+      children: [
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: imageUrl == null
+              ? Container(
+                  color: AppColors.surfaceContainerHigh,
+                  child: const Icon(
+                    Icons.electric_bike,
+                    size: 64,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                )
+              : Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: AppColors.surfaceContainerHigh,
+                    child: const Icon(
+                      Icons.electric_bike,
+                      size: 64,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+        ),
+        // Warranty badge overlay
+        Positioned(
+          top: 14,
+          right: 14,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLowest.withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.onSurface.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.security,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  badgeText,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickInfoGrid() {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _buildInfoTile(
+            icon: Icons.speed,
+            iconBgColor: const Color(0xFFECFDF5),
+            iconColor: const Color(0xFF059669),
+            value: widget.vehicle.currentKm != null ? _formatNumber(widget.vehicle.currentKm!) : '---',
+            label: 'KM ODO',
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildInfoTile(
+            icon: Icons.palette,
+            iconBgColor: const Color(0xFFEFF6FF),
+            iconColor: const Color(0xFF2563EB),
+            value: widget.vehicle.color ?? '---',
+            label: 'MÀU SẮC',
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildInfoTile(
+            icon: Icons.calendar_month,
+            iconBgColor: const Color(0xFFFFF7ED),
+            iconColor: const Color(0xFFEA580C),
+            value: widget.vehicle.manufactureYear != null ? '${widget.vehicle.manufactureYear}' : '---',
+            label: 'NĂM SX',
+          ),
+        ),
+      ],
+      ),
+    );
+  }
+
+  String _formatNumber(int number) {
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required Color iconBgColor,
+    required Color iconColor,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.onSurface.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.titleSmall.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.onSurface,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.labelSmall.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurfaceVariant,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRepairHistorySection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Lịch sử sửa chữa',
+                style: AppTextStyles.titleMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.filter_list,
+                    size: 18, color: AppColors.onSurfaceVariant),
+                label: Text(
+                  'Lọc theo trạng thái',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Work orders list
+          BlocBuilder<CustomerWorkOrderBloc, CustomerWorkOrderState>(
+            builder: (context, state) {
+              if (state is CustomerWorkOrderLoading ||
+                  state is CustomerWorkOrderInitial) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state is CustomerWorkOrderError) {
+                return Center(
+                  child: Text(
+                    state.message,
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.error),
+                  ),
+                );
+              }
+
+              final orders =
+                  state is CustomerWorkOrderLoaded ? state.workOrders : [];
+              if (orders.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Text(
+                      'Chưa có phiếu sửa chữa cho xe này',
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: AppColors.onSurfaceVariant),
+                    ),
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: orders.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemBuilder: (context, index) {
+                  final order = orders[index];
+                  return _WorkOrderCard(
+                    workOrder: order,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CustomerWorkOrderDetailPage(
+                          workOrder: order,
+                          vehicle: widget.vehicle,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- Inline Work Order Card Widget ---
+class _WorkOrderCard extends StatelessWidget {
+  final CustomerWorkOrder workOrder;
+  final VoidCallback onTap;
+
+  const _WorkOrderCard({
+    required this.workOrder,
+    required this.onTap,
+  });
+
+  bool get _isCompleted =>
+      workOrder.status.toLowerCase() == 'completed' ||
+      workOrder.status.toLowerCase() == 'hoan_thanh' ||
+      workOrder.status.toLowerCase() == 'done';
+
+  Color get _statusBgColor =>
+      _isCompleted ? AppColors.primary : AppColors.error;
+
+  Color get _cardBorderColor => _isCompleted
+      ? AppColors.outlineVariant.withValues(alpha: 0.3)
+      : AppColors.error.withValues(alpha: 0.2);
+
+  Color get _cardBgColor => _isCompleted
+      ? AppColors.surfaceContainerLowest
+      : AppColors.errorContainer.withValues(alpha: 0.12);
+
+  Color get _tagColor =>
+      _isCompleted ? AppColors.primary : AppColors.error;
+
+  Color get _leftBorderColor =>
+      _isCompleted ? AppColors.primaryContainer : AppColors.error;
+
+  String get _statusLabel {
+    final s = workOrder.status.toLowerCase();
+    if (s == 'completed' || s == 'hoan_thanh' || s == 'done') {
+      return 'Hoàn thành';
+    }
+    if (s == 'pending' || s == 'cho_xu_ly') return 'Chờ xử lý';
+    if (s == 'in_progress' || s == 'dang_xu_ly') return 'Đang xử lý';
+    return workOrder.status;
+  }
+
+  IconData get _statusIcon =>
+      _isCompleted ? Icons.check_circle : Icons.pending;
+
+  String get _servicesSummary {
+    if (workOrder.services.isEmpty) return workOrder.notes ?? '';
+    return workOrder.services
+        .map((s) => s.description ?? s.serviceType)
+        .where((s) => s.isNotEmpty)
+        .join(', ');
+  }
+
+  String get _formattedDate {
+    final d = workOrder.createdAt;
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardBgColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _cardBorderColor),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.onSurface.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row: tag + status chip
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _tagColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '#${workOrder.orderNumber}',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: _tagColor,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _statusBgColor,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _statusBgColor.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_statusIcon,
+                          size: 14, color: AppColors.onPrimary),
+                      const SizedBox(width: 4),
+                      Text(
+                        _statusLabel,
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Order title + date
+            Text(
+              _getPriorityLabel(),
+              style: AppTextStyles.titleSmall.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formattedDate,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Services summary with left border
+            if (_servicesSummary.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.only(left: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: _leftBorderColor.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  _servicesSummary,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            const SizedBox(height: 16),
+            // CTA button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onTap,
+                icon: const SizedBox.shrink(),
+                label: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Xem chi tiết phiếu',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: AppColors.onPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward,
+                        size: 16, color: AppColors.onPrimary),
+                  ],
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _statusBgColor,
+                  foregroundColor: AppColors.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                  shadowColor: _statusBgColor.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getPriorityLabel() {
+    final p = workOrder.priority.toLowerCase();
+    if (p == 'emergency' || p == 'dot_xuat') return 'Sửa chữa đột xuất';
+    if (p == 'scheduled' || p == 'dinh_ky') return 'Bảo dưỡng định kỳ';
+    if (p == 'normal') return 'Sửa chữa thường';
+    return 'Phiếu sửa chữa';
+  }
+}

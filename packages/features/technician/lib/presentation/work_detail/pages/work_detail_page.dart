@@ -2,13 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:design_system/design_system.dart';
 import '../../../domain/entities/work_item.dart';
 
-class WorkDetailPage extends StatelessWidget {
+class WorkDetailPage extends StatefulWidget {
   final WorkItem workItem;
 
   const WorkDetailPage({
     super.key,
     required this.workItem,
   });
+
+  @override
+  State<WorkDetailPage> createState() => _WorkDetailPageState();
+}
+
+class _WorkDetailPageState extends State<WorkDetailPage> {
+  final PageController _photoController = PageController();
+  int _currentPhotoIndex = 0;
+
+  WorkItem get workItem => widget.workItem;
+
+  @override
+  void dispose() {
+    _photoController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +326,13 @@ class WorkDetailPage extends StatelessWidget {
 
   Widget _buildVehicleSection() {
     final customerInitial = _initials(workItem.customerName);
+    final photos = workItem.photoUrls.isNotEmpty
+        ? workItem.photoUrls
+        : (workItem.imageUrl != null && workItem.imageUrl!.isNotEmpty
+            ? [workItem.imageUrl!]
+            : <String>[]);
+    final photoCount = photos.length;
+    final displayIndex = _currentPhotoIndex < photoCount ? _currentPhotoIndex : 0;
 
     return Container(
       decoration: BoxDecoration(
@@ -329,25 +352,44 @@ class WorkDetailPage extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Container(
+                child: SizedBox(
                   height: 200,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.surfaceContainerHigh,
-                        AppColors.surfaceContainerLow,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.electric_moped,
-                      size: 72,
-                      color: AppColors.onSurfaceVariant.withOpacity(0.6),
-                    ),
-                  ),
+                  width: double.infinity,
+                  child: photoCount > 0
+                      ? PageView.builder(
+                          controller: _photoController,
+                          itemCount: photoCount,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentPhotoIndex = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            return Image.network(
+                              photos[index],
+                              fit: BoxFit.cover,
+                            );
+                          },
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.surfaceContainerHigh,
+                                AppColors.surfaceContainerLow,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.electric_moped,
+                              size: 72,
+                              color: AppColors.onSurfaceVariant.withOpacity(0.6),
+                            ),
+                          ),
+                        ),
                 ),
               ),
               Positioned.fill(
@@ -418,34 +460,35 @@ class WorkDetailPage extends StatelessWidget {
                   ],
                 ),
               ),
-              Positioned(
-                right: 12,
-                bottom: 14,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.35),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.photo_camera,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '1/4',
-                        style: AppTextStyles.labelSmall.copyWith(
+              if (photoCount > 0)
+                Positioned(
+                  right: 12,
+                  bottom: 14,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.photo_camera,
+                          size: 14,
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          '${displayIndex + 1}/$photoCount',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           Container(
