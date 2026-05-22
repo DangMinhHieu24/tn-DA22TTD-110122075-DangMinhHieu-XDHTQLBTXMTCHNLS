@@ -25,7 +25,7 @@ class StatCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Material(
         elevation: 8,
-        shadowColor: const Color(0xFF191C1E).withOpacity(0.06),
+        shadowColor: const Color(0xFF191C1E).withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           height: 128,
@@ -47,8 +47,8 @@ class StatCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
-                          decorativeColor!.withOpacity(0.15),
-                          decorativeColor!.withOpacity(0),
+                          decorativeColor!.withValues(alpha: 0.15),
+                          decorativeColor!.withValues(alpha: 0),
                         ],
                       ),
                       shape: BoxShape.circle,

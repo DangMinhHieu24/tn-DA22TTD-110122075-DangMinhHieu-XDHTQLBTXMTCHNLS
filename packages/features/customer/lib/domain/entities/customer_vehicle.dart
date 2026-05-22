@@ -34,6 +34,9 @@ class CustomerVehicle extends Equatable {
     return diff.isNegative ? 0 : diff.inDays;
   }
 
+  /// Data được mã hoá vào QR: dùng vehicleId để admin quét ra là biết ngay xe nào
+  String get qrData => 'VEHICLE:$id';
+
   @override
   List<Object?> get props => [
         id,

@@ -140,43 +140,83 @@ async function main() {
   const inventoryItems = await prisma.inventory.createMany({
     data: [
       {
-        partName: 'Má phanh trước',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Disc_brake_pads.jpg',
+        partName: 'Pin Li-ion 60V 20Ah (pack)',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/18650_cell.jpg',
+        quantity: 10,
+        minThreshold: 2,
+        unitPrice: 4200000,
+        sellPrice: 5200000,
+      },
+      {
+        partName: 'BMS 60V 30A',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/19/PCB_Macro_2.jpg',
+        quantity: 14,
+        minThreshold: 3,
+        unitPrice: 450000,
+        sellPrice: 650000,
+      },
+      {
+        partName: 'Sạc 60V 5A',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6a/Power_adapter.jpg',
+        quantity: 16,
+        minThreshold: 4,
+        unitPrice: 520000,
+        sellPrice: 720000,
+      },
+      {
+        partName: 'Động cơ hub 1500W',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/4d/Hub_motor.jpg',
+        quantity: 6,
+        minThreshold: 1,
+        unitPrice: 2800000,
+        sellPrice: 3500000,
+      },
+      {
+        partName: 'Bộ điều khiển 60V 35A',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/46/Motor_controller.jpg',
+        quantity: 9,
+        minThreshold: 2,
+        unitPrice: 900000,
+        sellPrice: 1200000,
+      },
+      {
+        partName: 'Tay ga điện (Hall)',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Throttle.jpg',
         quantity: 25,
-        minThreshold: 5,
+        minThreshold: 6,
+        unitPrice: 90000,
+        sellPrice: 150000,
+      },
+      {
+        partName: 'Má phanh trước (đĩa)',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Disc_brake_pads.jpg',
+        quantity: 30,
+        minThreshold: 6,
         unitPrice: 120000,
         sellPrice: 180000,
       },
       {
-        partName: 'Lốp sau Michelin City Grip 2',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2d/Tire_2000px.jpg',
+        partName: 'Đĩa phanh trước 220mm',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/67/Brake_disc.jpg',
         quantity: 12,
         minThreshold: 3,
-        unitPrice: 850000,
-        sellPrice: 1150000,
+        unitPrice: 180000,
+        sellPrice: 260000,
       },
       {
-        partName: 'Sên xích tải',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Roller_chain.jpg',
-        quantity: 30,
-        minThreshold: 6,
-        unitPrice: 90000,
-        sellPrice: 140000,
-      },
-      {
-        partName: 'Bộ pin cell (module)',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/18650_cell.jpg',
-        quantity: 8,
-        minThreshold: 2,
+        partName: 'Lốp không săm 90/90-12',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2d/Tire_2000px.jpg',
+        quantity: 18,
+        minThreshold: 4,
         unitPrice: 650000,
         sellPrice: 900000,
       },
       {
-        partName: 'Lọc gió',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Air_filter_closeup.jpg',
-        quantity: 18,
-        minThreshold: 4,
-        unitPrice: 70000,
+        partName: 'Cảm biến phanh (cut-off)',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Brake_lever.jpg',
+        quantity: 20,
+        minThreshold: 5,
+        unitPrice: 60000,
         sellPrice: 120000,
       },
     ],
@@ -187,21 +227,23 @@ async function main() {
     where: {
       partName: {
         in: [
-          'Má phanh trước',
-          'Lốp sau Michelin City Grip 2',
-          'Sên xích tải',
-          'Bộ pin cell (module)',
-          'Lọc gió',
+          'Pin Li-ion 60V 20Ah (pack)',
+          'BMS 60V 30A',
+          'Sạc 60V 5A',
+          'Má phanh trước (đĩa)',
+          'Đĩa phanh trước 220mm',
+          'Lốp không săm 90/90-12',
         ],
       },
     },
   });
   const partByName = new Map(seededParts.map((part) => [part.partName, part]));
-  const brakePad = partByName.get('Má phanh trước')!;
-  const rearTire = partByName.get('Lốp sau Michelin City Grip 2')!;
-  const chainKit = partByName.get('Sên xích tải')!;
-  const batteryModule = partByName.get('Bộ pin cell (module)')!;
-  const airFilter = partByName.get('Lọc gió')!;
+  const brakePad = partByName.get('Má phanh trước (đĩa)')!;
+  const brakeDisc = partByName.get('Đĩa phanh trước 220mm')!;
+  const tire = partByName.get('Lốp không săm 90/90-12')!;
+  const batteryPack = partByName.get('Pin Li-ion 60V 20Ah (pack)')!;
+  const bms = partByName.get('BMS 60V 30A')!;
+  const charger = partByName.get('Sạc 60V 5A')!;
 
   // Create work orders
   const workOrder1 = await prisma.workOrder.create({
@@ -210,14 +252,14 @@ async function main() {
       vehicleId: vehicle1.id,
       status: 'PENDING',
       priority: 'URGENT',
-      notes: 'Khách báo xe sụt pin nhanh khi tăng tốc mạnh. Cần kiểm tra cell pin số 4 và cập nhật phần mềm BMS bản mới nhất.',
+      notes: 'Khách báo xe sụt pin nhanh khi tăng tốc mạnh. Cần kiểm tra pack pin và cập nhật cấu hình BMS.',
       technicianId: technician1.id,
       estimatedHours: 2.5,
       createdById: admin.id,
       services: {
         create: [
-          { serviceType: 'BATTERY_CHECK', description: 'Kiểm tra cell pin số 4' },
-          { serviceType: 'OTHER_REPAIR', description: 'Cập nhật phần mềm BMS' }
+          { serviceType: 'BATTERY_CHECK', description: 'Kiểm tra pack pin và BMS' },
+          { serviceType: 'OTHER_REPAIR', description: 'Cập nhật cấu hình BMS' }
         ]
       },
       photos: {
@@ -239,9 +281,9 @@ async function main() {
       partsUsed: {
         create: [
           {
-            partId: batteryModule.id,
+            partId: bms.id,
             quantity: 1,
-            unitPrice: batteryModule.sellPrice,
+            unitPrice: bms.sellPrice,
           },
         ],
       },
@@ -255,7 +297,7 @@ async function main() {
       vehicleId: vehicle2.id,
       status: 'PENDING',
       priority: 'NORMAL',
-      notes: 'Bảo dưỡng mốc 10.000km. Thay má phanh trước, kiểm tra áp suất lốp và tra dầu xích.',
+      notes: 'Bảo dưỡng mốc 10.000km. Thay má phanh trước, kiểm tra áp suất lốp và kiểm tra sạc.',
       technicianId: technician1.id,
       estimatedHours: 1.5,
       scheduledTime: '14:00',
@@ -286,9 +328,9 @@ async function main() {
             unitPrice: brakePad.sellPrice,
           },
           {
-            partId: airFilter.id,
+            partId: charger.id,
             quantity: 1,
-            unitPrice: airFilter.sellPrice,
+            unitPrice: charger.sellPrice,
           },
         ],
       },
@@ -302,13 +344,13 @@ async function main() {
       vehicleId: vehicle3.id,
       status: 'IN_PROGRESS',
       priority: 'NORMAL',
-      notes: 'Thay lốp sau Michelin City Grip 2, căn chỉnh lại xích tải. Khách đang đợi tại sảnh.',
+      notes: 'Thay lốp không săm, kiểm tra và căn chỉnh đĩa phanh. Khách đang đợi tại sảnh.',
       technicianId: technician2.id,
       estimatedHours: 1.0,
       createdById: admin.id,
       services: {
         create: [
-          { serviceType: 'BRAKES_TIRES', description: 'Thay lốp sau Michelin City Grip 2' }
+          { serviceType: 'BRAKES_TIRES', description: 'Thay lốp không săm 90/90-12' }
         ]
       },
       photos: {
@@ -326,14 +368,14 @@ async function main() {
       partsUsed: {
         create: [
           {
-            partId: rearTire.id,
+            partId: tire.id,
             quantity: 1,
-            unitPrice: rearTire.sellPrice,
+            unitPrice: tire.sellPrice,
           },
           {
-            partId: chainKit.id,
+            partId: brakeDisc.id,
             quantity: 1,
-            unitPrice: chainKit.sellPrice,
+            unitPrice: brakeDisc.sellPrice,
           },
         ],
       },

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:auth/auth.dart';
 import 'package:admin/data/models/work_order_model.dart';
 import 'package:core/core.dart';
 import '../bloc/vehicle_intake_bloc.dart';
@@ -141,38 +140,71 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
 
   /// TopAppBar with back button
   Widget _buildTopAppBar() {
+    final canPop = Navigator.of(context).canPop();
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F6).withOpacity(0.8), // surface-container-low/80
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+      height: 60,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: Color(0xFFECEEF0),
+            width: 1.0,
           ),
-        ],
+        ),
       ),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
+          // Back button (left)
+          if (canPop)
+            Positioned(
+              left: 0,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF3F4F6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Color(0xFF191C1E),
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+          // Centered title
           const Text(
             'Tiếp nhận xe mới',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
               color: Color(0xFF191C1E),
-              letterSpacing: -0.5,
+              letterSpacing: -0.2,
             ),
           ),
-          const Spacer(),
-          const Text(
-            'EK',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF006E2F),
-              letterSpacing: -1,
+          // Pill indicator (right)
+          Positioned(
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: const Text(
+                'Phiếu mới',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF006E2F),
+                ),
+              ),
             ),
           ),
         ],
@@ -192,7 +224,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
           border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF191C1E).withOpacity(0.08),
+              color: const Color(0xFF191C1E).withValues(alpha: 0.08),
               blurRadius: 24,
               offset: const Offset(0, 6),
             ),
@@ -211,8 +243,8 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFF22C55E).withOpacity(0.2),
-                      const Color(0xFF22C55E).withOpacity(0),
+                      const Color(0xFF22C55E).withValues(alpha: 0.2),
+                      const Color(0xFF22C55E).withValues(alpha: 0),
                     ],
                   ),
                   shape: BoxShape.circle,
@@ -264,9 +296,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                         color: const Color(0xFFFFFFFF),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
-                            color: const Color(0x12000000),
+                            color: Color(0x12000000),
                             blurRadius: 10,
                             offset: Offset(0, 2),
                           ),
@@ -276,10 +308,14 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                         controller: _licensePlateController,
                         textInputAction: TextInputAction.done,
                         onChanged: (value) {
-                          context.read<VehicleIntakeBloc>().add(
-                            VehicleIntakeLicensePlateChanged(value),
-                          );
-                        },
+                           // Chỉ reset state xe khi giá trị thực sự thay đổi so với state hiện tại
+                           final currentState = context.read<VehicleIntakeBloc>().state;
+                           if (value != currentState.licensePlate) {
+                             context.read<VehicleIntakeBloc>().add(
+                               VehicleIntakeLicensePlateChanged(value),
+                             );
+                           }
+                         },
                         onSubmitted: (value) {
                           context.read<VehicleIntakeBloc>().add(
                             VehicleIntakeLicensePlateSearched(value),
@@ -310,11 +346,11 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                       color: const Color(0xFFFFFFFF),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
-                          color: const Color(0x12000000),
+                          color: Color(0x12000000),
                           blurRadius: 10,
-                          offset: const Offset(0, 2),
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
@@ -326,7 +362,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                         
                         if (scannedCode != null && scannedCode.isNotEmpty) {
                           _licensePlateController.text = scannedCode;
-                          if (context.mounted) {
+                          if (mounted) {
                             context.read<VehicleIntakeBloc>().add(
                               VehicleIntakeLicensePlateChanged(scannedCode),
                             );
@@ -352,9 +388,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                         color: const Color(0xFFFFFFFF),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
-                            color: const Color(0x12000000),
+                            color: Color(0x12000000),
                             blurRadius: 10,
                             offset: Offset(0, 2),
                           ),
@@ -374,9 +410,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                         color: const Color(0xFFFFFFFF),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
-                            color: const Color(0x12000000),
+                            color: Color(0x12000000),
                             blurRadius: 10,
                             offset: Offset(0, 2),
                           ),
@@ -434,7 +470,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                           ),
                           const SizedBox(height: 16),
                           // Owner info
-                          if (state.ownerName?.isNotEmpty == true || state.ownerPhone?.isNotEmpty == true)
+                          if (state.ownerName.isNotEmpty || state.ownerPhone.isNotEmpty)
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -449,16 +485,16 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  state.ownerName ?? 'Chưa có thông tin',
+                                  state.ownerName.isNotEmpty ? state.ownerName : 'Chưa có thông tin',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF191C1E),
                                   ),
                                 ),
-                                if (state.ownerPhone?.isNotEmpty == true) ...[
+                                if (state.ownerPhone.isNotEmpty) ...[
                                   const SizedBox(height: 2),
                                   Text(
-                                    state.ownerPhone!,
+                                    state.ownerPhone,
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Color(0xFF191C1E),
@@ -560,8 +596,8 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                               width: 1,
                             ),
                           ),
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Icon(Icons.info_outline, color: Color(0xFFFF9800)),
                               SizedBox(width: 12),
                               Expanded(
@@ -584,9 +620,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                             color: const Color(0xFFFFFFFF),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
-                                color: const Color(0x12000000),
+                                color: Color(0x12000000),
                                 blurRadius: 10,
                                 offset: Offset(0, 2),
                               ),
@@ -812,11 +848,11 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                           color: const Color(0xFFFFFFFF),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
-                              color: const Color(0x14000000),
+                              color: Color(0x14000000),
                               blurRadius: 10,
-                              offset: const Offset(0, 2),
+                              offset: Offset(0, 2),
                             ),
                           ],
                         ),
@@ -907,7 +943,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             if (state.vehicleHistory.length > 3)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
@@ -945,7 +981,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
         border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.08),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -1056,9 +1092,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                             style: BorderStyle.solid,
                           ),
                         ),
-                        child: Column(
+                        child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.add_a_photo,
                               size: 32,
@@ -1103,7 +1139,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                           right: 4,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE0E3E5).withOpacity(0.8),
+                              color: const Color(0xFFE0E3E5).withValues(alpha: 0.8),
                               shape: BoxShape.circle,
                             ),
                             child: IconButton(
@@ -1140,7 +1176,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
         border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.08),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -1236,9 +1272,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
               color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                  color: const Color(0x12000000),
+                  color: Color(0x12000000),
                   blurRadius: 10,
                   offset: Offset(0, 2),
                 ),
@@ -1247,6 +1283,11 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
             child: TextField(
               controller: _notesController,
               maxLines: 3,
+              onChanged: (value) {
+                context.read<VehicleIntakeBloc>().add(
+                  VehicleIntakeNotesChanged(value),
+                );
+              },
               decoration: const InputDecoration(
                 hintText: 'Ghi chú thêm về tình trạng xe hoặc yêu cầu đặc biệt của khách hàng...',
                 hintStyle: TextStyle(
@@ -1285,9 +1326,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
             color: isChecked ? const Color(0xFF006E2F) : const Color(0xFFDBDEE0),
             width: isChecked ? 2 : 1,
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: const Color(0x12000000),
+              color: Color(0x12000000),
               blurRadius: 10,
               offset: Offset(0, 2),
             ),
@@ -1326,7 +1367,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.03),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.03),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -1377,9 +1418,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                   color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: const Color(0x12000000),
+                      color: Color(0x12000000),
                       blurRadius: 10,
                       offset: Offset(0, 2),
                     ),
@@ -1417,7 +1458,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                               value: tech.id,
                               child: Text(tech.name),
                             );
-                          }).toList(),
+                          }),
                         ],
                         onChanged: (value) {
                           if (value != null) {
@@ -1441,9 +1482,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
               color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                  color: const Color(0x12000000),
+                  color: Color(0x12000000),
                   blurRadius: 10,
                   offset: Offset(0, 2),
                 ),
@@ -1465,6 +1506,11 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                 TextField(
                   controller: _estimatedHoursController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (value) {
+                    context.read<VehicleIntakeBloc>().add(
+                      VehicleIntakeEstimatedHoursChanged(value),
+                    );
+                  },
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
@@ -1496,7 +1542,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
-                    shadowColor: const Color(0xFF22C55E).withOpacity(0.2),
+                    shadowColor: const Color(0xFF22C55E).withValues(alpha: 0.2),
                     elevation: 8,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1519,9 +1565,9 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                       alignment: Alignment.center,
                       child: state.isSubmitting
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : Row(
+                          : const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Icon(Icons.check_circle, color: Colors.white),
                                 SizedBox(width: 8),
                                 Text(

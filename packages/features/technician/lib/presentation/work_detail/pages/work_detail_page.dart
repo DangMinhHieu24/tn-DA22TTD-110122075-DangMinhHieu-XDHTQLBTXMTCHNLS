@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:auth/auth.dart';
 import 'package:design_system/design_system.dart';
 import '../../../domain/entities/work_item.dart';
 
@@ -158,96 +160,55 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 48,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
+          Column(
+            children: [
+              Container(
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: activeStep / (steps.length - 1),
                     child: Container(
-                      height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(999),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primaryContainer,
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(steps.length, (index) {
-                    final isDone = index < activeStep;
-                    final isActive = index == activeStep;
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(steps.length, (index) {
+                  final isDone = index < activeStep;
+                  final isActive = index == activeStep;
+                  final labelColor = isActive
+                      ? AppColors.primary
+                      : isDone
+                          ? AppColors.onSurface
+                          : AppColors.onSurfaceVariant;
 
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: isDone
-                                ? AppColors.primary
-                                : isActive
-                                    ? AppColors.primaryContainer
-                                    : AppColors.surfaceContainerHigh,
-                            shape: BoxShape.circle,
-                            border: isActive
-                                ? Border.all(
-                                    color: AppColors.surfaceContainerLowest,
-                                    width: 3,
-                                  )
-                                : null,
-                          ),
-                          child: Icon(
-                            isDone
-                                ? Icons.check
-                                : isActive
-                                    ? Icons.build
-                                    : Icons.circle,
-                            color: isDone
-                                ? AppColors.onPrimary
-                                : isActive
-                                    ? AppColors.onPrimaryContainer
-                                    : AppColors.onSurfaceVariant.withOpacity(0.6),
-                            size: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          steps[index],
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: isDone
-                                ? AppColors.primary
-                                : isActive
-                                    ? AppColors.onSurface
-                                    : AppColors.onSurfaceVariant,
-                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-                ),
-              ],
-            ),
+                  return Text(
+                    steps[index],
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: labelColor,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  );
+                }),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Row(
@@ -308,11 +269,21 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                       color: AppColors.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(
-                      'ID: ${workItem.id}',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                      ),
+                    child: BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, authState) {
+                        final name = authState is AuthAuthenticated
+                            ? authState.user.name
+                            : 'Kỹ thuật viên';
+                        final shortId = authState is AuthAuthenticated
+                            ? _shortId(authState.user.id)
+                            : _shortId(workItem.id);
+                        return Text(
+                          'KTV: $name - $shortId',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -571,6 +542,14 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     );
   }
 
+  String _shortId(String id) {
+    final normalized = id.trim();
+    if (normalized.isEmpty) return '----';
+    return normalized.length <= 8
+        ? normalized.toUpperCase()
+        : normalized.substring(0, 8).toUpperCase();
+  }
+
   Widget _buildWorkItemsSection(List<_WorkTask> tasks) {
     final completedCount = tasks.where((task) => task.isDone).length;
     final totalCount = tasks.length;
@@ -605,15 +584,18 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         ),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.08),
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.onSurface.withOpacity(0.04),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
+                color: AppColors.onSurface.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
@@ -759,12 +741,15 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.08),
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.onSurface.withOpacity(0.04),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
+                color: AppColors.onSurface.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -809,22 +794,41 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.surfaceContainerHigh,
+          color: AppColors.primary.withOpacity(0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.onSurface.withOpacity(0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 4,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withOpacity(0.12),
+              ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
@@ -842,6 +846,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   stock,
                   style: AppTextStyles.labelSmall.copyWith(
@@ -856,6 +861,9 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.primary.withOpacity(0.12),
+              ),
             ),
             child: Row(
               children: [
@@ -867,7 +875,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                 Text(
                   '1',
                   style: AppTextStyles.labelSmall.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -997,12 +1005,15 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.08),
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withOpacity(0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: AppColors.onSurface.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
           ),
         ],
       ),

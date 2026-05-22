@@ -4,6 +4,7 @@ class VehicleModel {
   final String? brand;
   final String model;
   final String? color;
+  final String? imageUrl;
   final int? manufactureYear;
   final String? qrCode;
   final DateTime? warrantyExpiry;
@@ -19,6 +20,7 @@ class VehicleModel {
     this.brand,
     required this.model,
     this.color,
+    this.imageUrl,
     this.manufactureYear,
     this.qrCode,
     this.warrantyExpiry,
@@ -36,6 +38,7 @@ class VehicleModel {
       brand: json['brand'] as String?,
       model: json['model'] as String,
       color: json['color'] as String?,
+      imageUrl: json['imageUrl'] as String?,
       manufactureYear: json['manufactureYear'] as int?,
       qrCode: json['qrCode'] as String?,
       warrantyExpiry: json['warrantyExpiry'] != null 
@@ -56,6 +59,7 @@ class VehicleModel {
       'brand': brand,
       'model': model,
       'color': color,
+      'imageUrl': imageUrl,
       'manufactureYear': manufactureYear,
       'qrCode': qrCode,
       'warrantyExpiry': warrantyExpiry?.toIso8601String(),

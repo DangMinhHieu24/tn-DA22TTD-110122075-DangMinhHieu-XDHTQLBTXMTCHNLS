@@ -6,7 +6,8 @@ import '../../dashboard/bloc/dashboard_bloc.dart';
 import '../../dashboard/bloc/dashboard_event.dart';
 import '../../dashboard/bloc/dashboard_state.dart';
 import '../../../domain/entities/dashboard_stats.dart';
-import '../../vehicle_intake/pages/vehicle_intake_page.dart';
+import '../../vehicle_intake/pages/reception_hub_page.dart';
+import 'inventory_page.dart';
 
 /// Admin Dashboard - 100% converted from HTML design
 /// Follows Material Design 3 color system and Tailwind spacing
@@ -105,10 +106,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       height: 64, // h-16
       padding: const EdgeInsets.symmetric(horizontal: 24), // px-6
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FB).withOpacity(0.8), // bg-[#F7F9FB]/80
+        color: const Color(0xFFF7F9FB).withValues(alpha: 0.8), // bg-[#F7F9FB]/80
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.06),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.06),
             blurRadius: 40,
             offset: const Offset(0, 20),
           ),
@@ -149,7 +150,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           // Notification button
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFE6E8EA).withOpacity(0.5),
+              color: const Color(0xFFE6E8EA).withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(20),
             ),
             child: IconButton(
@@ -165,9 +166,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   /// Page Header - Title and subtitle
   Widget _buildPageHeader() {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
           'Trang chủ Quản lý',
           style: TextStyle(
@@ -214,8 +215,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     value: vehiclesInService,
                     icon: Icons.build_outlined,
                     iconColor: const Color(0xFF0058BE), // text-secondary
-                    iconBgColor: const Color(0xFF2170E4).withOpacity(0.2), // bg-secondary-container/20
-                    glowColor: const Color(0xFF2170E4).withOpacity(0.1), // bg-secondary-container/10
+                    iconBgColor: const Color(0xFF2170E4).withValues(alpha: 0.2), // bg-secondary-container/20
+                    glowColor: const Color(0xFF2170E4).withValues(alpha: 0.1), // bg-secondary-container/10
                   ),
                 ),
                 const SizedBox(width: 16), // gap-4
@@ -225,8 +226,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     value: completedToday,
                     icon: Icons.check_circle_outline,
                     iconColor: const Color(0xFF006E2F), // text-primary
-                    iconBgColor: const Color(0xFF22C55E).withOpacity(0.2), // bg-primary-container/20
-                    glowColor: const Color(0xFF22C55E).withOpacity(0.1), // bg-primary-container/10
+                    iconBgColor: const Color(0xFF22C55E).withValues(alpha: 0.2), // bg-primary-container/20
+                    glowColor: const Color(0xFF22C55E).withValues(alpha: 0.1), // bg-primary-container/10
                   ),
                 ),
               ],
@@ -267,7 +268,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         elevation: 10, // stronger lift
         borderRadius: BorderRadius.circular(18),
         color: const Color(0xFFFFFFFF),
-        shadowColor: Colors.black.withOpacity(0.25),
+        shadowColor: Colors.black.withValues(alpha: 0.25),
         child: Container(
           height: 132,
           decoration: BoxDecoration(
@@ -296,7 +297,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 height: 96, // h-24
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
-                    colors: [glowColor, glowColor.withOpacity(0)],
+                    colors: [glowColor, glowColor.withValues(alpha: 0)],
                   ),
                   shape: BoxShape.circle,
                 ),
@@ -335,7 +336,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: iconColor.withOpacity(0.15),
+                              color: iconColor.withValues(alpha: 0.15),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -375,7 +376,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         elevation: 10,
         borderRadius: BorderRadius.circular(18),
         color: const Color(0xFFFFFFFF),
-        shadowColor: Colors.black.withOpacity(0.25),
+        shadowColor: Colors.black.withValues(alpha: 0.25),
         child: Container(
           height: 132,
           decoration: BoxDecoration(
@@ -405,8 +406,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFFFF8B7C).withOpacity(0.1),
-                      const Color(0xFFFF8B7C).withOpacity(0),
+                      const Color(0xFFFF8B7C).withValues(alpha: 0.1),
+                      const Color(0xFFFF8B7C).withValues(alpha: 0),
                     ],
                   ),
                   shape: BoxShape.circle,
@@ -441,11 +442,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF8B7C).withOpacity(0.2),
+                          color: const Color(0xFFFF8B7C).withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF9E4036).withOpacity(0.15),
+                              color: const Color(0xFF9E4036).withValues(alpha: 0.15),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -460,9 +461,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ],
                   ),
                   const Spacer(),
-                  Row(
+                  const Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: const [
+                    children: [
                       Text(
                         '8.5M',
                         style: TextStyle(
@@ -537,13 +538,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.1),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.1),
             blurRadius: 30,
             offset: const Offset(0, 12),
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.06),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
             spreadRadius: 0,
@@ -609,10 +610,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Container(
             width: 32, // pr-2 + space for text
             padding: const EdgeInsets.only(right: 8),
-            child: Column(
+            child: const Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: const [
+              children: [
                 Text('15M', style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D))),
                 Text('10M', style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D))),
                 Text('5M', style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D))),
@@ -632,7 +633,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: List.generate(4, (index) => Container(
                     height: 1,
-                    color: const Color(0xFFE6E8EA).withOpacity(0.5),
+                    color: const Color(0xFFE6E8EA).withValues(alpha: 0.5),
                   )),
                 ),
               ),
@@ -702,13 +703,52 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         const SizedBox(height: 16), // mb-4
         Row(
           children: [
-            _buildShortcutButton(Icons.bar_chart, 'Xem\nbáo cáo', const Color(0xFF006E2F)),
+            _buildShortcutButton(
+              icon: Icons.bar_chart,
+              label: 'Xem\nbáo cáo',
+              color: const Color(0xFF006E2F),
+              onTap: () {},
+            ),
             const SizedBox(width: 16), // gap-4
-            _buildShortcutButton(Icons.inventory_2, 'Quản lý\nkho', const Color(0xFF0058BE)),
+            _buildShortcutButton(
+              icon: Icons.inventory_2,
+              label: 'Quản lý\nkho',
+              color: const Color(0xFF0058BE),
+              onTap: () {
+                Navigator.of(context).push(
+                  PageRouteBuilder(
+                    pageBuilder: (_, animation, __) => const InventoryPage(),
+                    transitionsBuilder: (_, animation, __, child) {
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(1.0, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: child,
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 350),
+                  ),
+                );
+              },
+            ),
             const SizedBox(width: 16), // gap-4
-            _buildShortcutButton(Icons.verified, 'Bảo\nhành', const Color(0xFF4AE176)),
+            _buildShortcutButton(
+              icon: Icons.verified,
+              label: 'Bảo\nhành',
+              color: const Color(0xFF4AE176),
+              onTap: () {},
+            ),
             const SizedBox(width: 16), // gap-4
-            _buildShortcutButton(Icons.settings, 'Cài\nđặt', const Color(0xFF3D4A3D)),
+            _buildShortcutButton(
+              icon: Icons.settings,
+              label: 'Cài\nđặt',
+              color: const Color(0xFF3D4A3D),
+              onTap: () {},
+            ),
           ],
         ),
       ],
@@ -717,63 +757,71 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   /// Shortcut Button
   /// flex flex-col items-center gap-2 p-4 rounded-2xl bg-surface-container-low
-  Widget _buildShortcutButton(IconData icon, String label, Color color) {
+  Widget _buildShortcutButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16), // p-4
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFFFFFF),
-              Color(0xFFF2F4F6),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16), // p-4
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFFF2F4F6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFE0E5EA),
+              width: 0.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF191C1E).withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
             ],
           ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFE0E5EA),
-            width: 0.8,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48, // w-12
+                height: 48, // h-12
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFFFFF),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x1A000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 8), // gap-2
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF191C1E),
+                  height: 1.2,
+                ),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF191C1E).withOpacity(0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48, // w-12
-              height: 48, // h-12
-              decoration: const BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x1A000000),
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 8), // gap-2
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF191C1E),
-                height: 1.2,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -802,13 +850,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF191C1E).withOpacity(0.1),
+              color: const Color(0xFF191C1E).withValues(alpha: 0.1),
               blurRadius: 30,
               offset: const Offset(0, 12),
               spreadRadius: 0,
             ),
             BoxShadow(
-              color: const Color(0xFF191C1E).withOpacity(0.06),
+              color: const Color(0xFF191C1E).withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 4),
               spreadRadius: 0,
@@ -830,8 +878,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(Icons.warning, color: Color(0xFFBA1A1A), size: 20),
                         SizedBox(width: 8), // gap-2
                         Text(
@@ -851,7 +899,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       'Phụ tùng sắp hết',
                       'Má phanh trước (Còn 2 bộ)',
                       const Color(0xFFBA1A1A),
-                      const Color(0xFFFFDAD6).withOpacity(0.4), // error-container/20 - lighter red
+                      const Color(0xFFFFDAD6).withValues(alpha: 0.4), // error-container/20 - lighter red
                     ),
                     const SizedBox(height: 12),
                     _buildAlertItem(
@@ -859,7 +907,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       'Xe trễ hẹn',
                       'Biển số: 30G-789.01 (Trễ 2 giờ)',
                       const Color(0xFF9E4036),
-                      const Color(0xFFFF8B7C).withOpacity(0.2), // tertiary-container/20 - darker pink/red
+                      const Color(0xFFFF8B7C).withValues(alpha: 0.2), // tertiary-container/20 - darker pink/red
                     ),
                     const SizedBox(height: 12),
                     _buildAlertItem(
@@ -890,7 +938,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: iconColor.withOpacity(0.7), size: 20), // slightly transparent, larger
+          Icon(icon, color: iconColor.withValues(alpha: 0.7), size: 20), // slightly transparent, larger
           const SizedBox(width: 12), // gap-3
           Expanded(
             child: Column(
@@ -928,13 +976,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.08),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.08),
             blurRadius: 50,
             offset: const Offset(0, 4),
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.04),
+            color: const Color(0xFF191C1E).withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 2),
             spreadRadius: 0,
@@ -979,7 +1027,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 8), // py-2
                 side: BorderSide(
-                  color: const Color(0xFFBCCBB9).withOpacity(0.3),
+                  color: const Color(0xFFBCCBB9).withValues(alpha: 0.3),
                   width: 1,
                 ),
                 shape: RoundedRectangleBorder(
@@ -1103,11 +1151,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       height: 80, // h-20
       padding: const EdgeInsets.symmetric(horizontal: 16), // px-4
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF).withOpacity(0.9), // bg-[#FFFFFF]/90
+        color: const Color(0xFFFFFFFF).withValues(alpha: 0.9), // bg-[#FFFFFF]/90
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)), // rounded-t-2xl
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 30,
             offset: const Offset(0, -10),
           ),
@@ -1136,7 +1184,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // px-4 py-1
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF22C55E).withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? const Color(0xFF22C55E).withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12), // rounded-xl
         ),
         child: Column(
@@ -1165,9 +1213,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  /// Vehicle Intake Page wrapper
+  /// Reception Hub - gateway trước khi tiếp nhận xe mới
   Widget _buildVehicleIntakePage() {
-    return VehicleIntakePage();
+    return const ReceptionHubPage();
   }
 
   /// Profile Page - Simple profile with logout button
@@ -1220,7 +1268,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF22C55E).withOpacity(0.2),
+              color: const Color(0xFF22C55E).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Text(

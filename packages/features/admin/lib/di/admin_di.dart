@@ -5,11 +5,13 @@ import '../domain/repositories/dashboard_repository.dart';
 import '../domain/usecases/get_dashboard_stats.dart';
 import '../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../presentation/vehicle_intake/bloc/vehicle_intake_bloc.dart';
+import '../presentation/dashboard/bloc/inventory_bloc.dart';
 import '../data/repositories/dashboard_repository_impl.dart';
 import '../data/repositories/vehicle_intake_repository.dart';
 import '../data/datasources/remote/dashboard_remote_datasource.dart';
 import '../data/datasources/remote/vehicle_remote_datasource.dart';
 import '../data/datasources/remote/work_order_remote_datasource.dart';
+import '../data/datasources/remote/inventory_remote_datasource.dart';
 
 final getIt = GetIt.instance;
 
@@ -35,6 +37,10 @@ void setupAdminDependencies() {
 
   getIt.registerLazySingleton<WorkOrderRemoteDataSource>(
     () => WorkOrderRemoteDataSourceImpl(dio: getIt<Dio>()),
+  );
+
+  getIt.registerLazySingleton<InventoryRemoteDataSource>(
+    () => InventoryRemoteDataSourceImpl(dio: getIt<Dio>()),
   );
 
   // Repository
@@ -71,6 +77,13 @@ void setupAdminDependencies() {
       repository: getIt<VehicleIntakeRepository>(),
       imageUploadService: getIt<ImageUploadService>(),
       qrScannerService: getIt<QRScannerService>(),
+    ),
+  );
+
+  // Presentation - Inventory Bloc
+  getIt.registerFactory<InventoryBloc>(
+    () => InventoryBloc(
+      dataSource: getIt<InventoryRemoteDataSource>(),
     ),
   );
 }

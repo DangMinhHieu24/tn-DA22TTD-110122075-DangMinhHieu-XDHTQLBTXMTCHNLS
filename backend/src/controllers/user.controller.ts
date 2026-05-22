@@ -28,3 +28,64 @@ export const getTechnicians = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * Get customer by phone number (with their vehicles)
+ * GET /api/users/by-phone?phone=...
+ */
+export const getCustomerByPhone = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.query;
+
+    if (!phone || typeof phone !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required',
+      });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        phoneNumber: phone,
+        role: 'CUSTOMER',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        ownedVehicles: {
+          include: {
+            workOrders: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: {
+                createdAt: true,
+                status: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customer',
+      error: error.message,
+    });
+  }
+};

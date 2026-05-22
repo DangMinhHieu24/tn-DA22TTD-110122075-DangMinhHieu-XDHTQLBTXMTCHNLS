@@ -23,7 +23,7 @@ class BottomNavItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF006E2F).withOpacity(0.1)
+              ? const Color(0xFF006E2F).withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),

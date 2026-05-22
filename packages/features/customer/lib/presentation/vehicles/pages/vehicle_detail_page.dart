@@ -1,7 +1,9 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
 import '../bloc/customer_work_order_bloc.dart';
@@ -36,6 +38,468 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
   void dispose() {
     _workOrderBloc.close();
     super.dispose();
+  }
+
+  void _showQRDialog(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Mã định danh xe',
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
+        final curvedValue = Curves.easeOutBack.transform(animation.value);
+        return Transform.scale(
+          scale: curvedValue,
+          child: FadeTransition(
+            opacity: animation,
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildBeautifulQRCard(dialogContext),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBeautifulQRCard(BuildContext dialogContext) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 40,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Close button at top right
+          Positioned(
+            right: -8,
+            top: -8,
+            child: GestureDetector(
+              onTap: () => Navigator.of(dialogContext).pop(),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: const Icon(
+                  Icons.close_rounded,
+                  color: Color(0xFF64748B),
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              // Header Badge
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFECFDF5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.qr_code_scanner_rounded,
+                  color: Color(0xFF006E2F),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Mã định danh xe',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1E293B),
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Đưa mã này cho kỹ thuật viên quét khi nhận xe',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w400,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // QR Code with HUD Brackets
+              SizedBox(
+                width: 216,
+                height: 216,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // QR Container with shadow
+                    Container(
+                      width: 204,
+                      height: 204,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF006E2F).withValues(alpha: 0.08),
+                            blurRadius: 24,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: QrImageView(
+                        data: widget.vehicle.qrData,
+                        version: QrVersions.auto,
+                        size: 180,
+                        eyeStyle: const QrEyeStyle(
+                          eyeShape: QrEyeShape.circle,
+                          color: Color(0xFF006E2F),
+                        ),
+                        dataModuleStyle: const QrDataModuleStyle(
+                          dataModuleShape: QrDataModuleShape.circle,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                    // Corner HUD Guides
+                    _buildQRScannerGuides(),
+                    // Premium center vehicle brand icon
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                        border: Border.all(
+                          color: const Color(0xFFECFDF5),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF006E2F),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.electric_bike_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Vehicle Info
+              Text(
+                widget.vehicle.model,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Vietnam-style license plate pill
+              _buildLicensePlatePill(context),
+              const SizedBox(height: 28),
+              // Close button with premium design
+              SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF006E2F),
+                        Color(0xFF009844),
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF006E2F).withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Đóng',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQRScannerGuides() {
+    const double cornerSize = 20.0;
+    const double borderWidth = 3.0;
+    const Color cornerColor = Color(0xFF006E2F);
+    
+    return Stack(
+      children: [
+        // Top Left
+        Positioned(
+          top: 0,
+          left: 0,
+          child: Container(
+            width: cornerSize,
+            height: cornerSize,
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: cornerColor, width: borderWidth),
+                left: BorderSide(color: cornerColor, width: borderWidth),
+              ),
+            ),
+          ),
+        ),
+        // Top Right
+        Positioned(
+          top: 0,
+          right: 0,
+          child: Container(
+            width: cornerSize,
+            height: cornerSize,
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: cornerColor, width: borderWidth),
+                right: BorderSide(color: cornerColor, width: borderWidth),
+              ),
+            ),
+          ),
+        ),
+        // Bottom Left
+        Positioned(
+          bottom: 0,
+          left: 0,
+          child: Container(
+            width: cornerSize,
+            height: cornerSize,
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: cornerColor, width: borderWidth),
+                left: BorderSide(color: cornerColor, width: borderWidth),
+              ),
+            ),
+          ),
+        ),
+        // Bottom Right
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: Container(
+            width: cornerSize,
+            height: cornerSize,
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: cornerColor, width: borderWidth),
+                right: BorderSide(color: cornerColor, width: borderWidth),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLicensePlatePill(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Clipboard.setData(
+          ClipboardData(text: widget.vehicle.licensePlate),
+        );
+        _showBeautifulToast(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF1E293B),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Color(0xFFBA1A1A),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              widget.vehicle.licensePlate.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1E293B),
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.copy_all_rounded,
+              size: 14,
+              color: Color(0xFF94A3B8),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBeautifulToast(BuildContext context) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, (1.0 - value) * -20),
+                child: Opacity(
+                  opacity: value,
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF006E2F),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Đã sao chép biển số',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Đã copy ${widget.vehicle.licensePlate} vào bộ nhớ tạm',
+                          style: const TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
   }
 
   @override
@@ -221,17 +685,20 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
                           ],
                         ),
                       ),
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: const Icon(
-                          Icons.electric_bike,
-                          color: AppColors.primary,
-                          size: 26,
+                      GestureDetector(
+                        onTap: () => _showQRDialog(context),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_2,
+                            color: AppColors.primary,
+                            size: 26,
+                          ),
                         ),
                       ),
                     ],
