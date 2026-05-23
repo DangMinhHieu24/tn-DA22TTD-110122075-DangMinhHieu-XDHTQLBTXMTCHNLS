@@ -1,6 +1,7 @@
 import 'package:core/core.dart';
 import 'package:dartz/dartz.dart';
 import '../../domain/entities/work_item.dart';
+import '../../domain/entities/work_item_service.dart';
 import '../../domain/repositories/work_repository.dart';
 import '../datasources/remote/work_remote_datasource.dart';
 import '../datasources/local/work_local_datasource.dart';
@@ -117,14 +118,34 @@ class WorkRepositoryImpl implements WorkRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, WorkItemService>> updateWorkServiceStatus(
+    String workOrderId,
+    String serviceId,
+    bool isDone,
+  ) async {
+    try {
+      final updatedService = await remoteDataSource.updateWorkServiceStatus(
+        workOrderId,
+        serviceId,
+        isDone,
+      );
+
+      // Note: local cache update for service item is omitted (cache model doesn't store services yet)
+      return Right(updatedService.toEntity());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   String _statusToString(WorkStatus status) {
     switch (status) {
       case WorkStatus.pending:
         return 'pending';
       case WorkStatus.inProgress:
         return 'in_progress';
-      case WorkStatus.waitingParts:
-        return 'waiting_parts';
+      case WorkStatus.inspection:
+        return 'inspection';
       case WorkStatus.completed:
         return 'completed';
     }

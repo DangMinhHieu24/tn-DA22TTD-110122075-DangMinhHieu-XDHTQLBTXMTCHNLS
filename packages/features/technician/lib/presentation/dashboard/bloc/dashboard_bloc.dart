@@ -42,7 +42,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           workItems: workItems,
           pendingCount: stats['pending']!,
           inProgressCount: stats['inProgress']!,
-          waitingPartsCount: stats['waitingParts']!,
+          inspectionCount: stats['inspection']!,
         ));
       },
     );
@@ -65,7 +65,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
             workItems: workItems,
             pendingCount: stats['pending']!,
             inProgressCount: stats['inProgress']!,
-            waitingPartsCount: stats['waitingParts']!,
+            inspectionCount: stats['inspection']!,
           ));
         },
       );
@@ -105,7 +105,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
             workItems: updatedItems,
             pendingCount: stats['pending'],
             inProgressCount: stats['inProgress'],
-            waitingPartsCount: stats['waitingParts'],
+            inspectionCount: stats['inspection'],
           ));
         },
       );
@@ -134,7 +134,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
             workItems: workItems,
             pendingCount: stats['pending'],
             inProgressCount: stats['inProgress'],
-            waitingPartsCount: stats['waitingParts'],
+            inspectionCount: stats['inspection'],
           ));
         },
       );
@@ -153,7 +153,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     return {
       'pending': items.where((i) => i.status == WorkStatus.pending).length,
       'inProgress': items.where((i) => i.status == WorkStatus.inProgress).length,
-      'waitingParts': items.where((i) => i.status == WorkStatus.waitingParts).length,
+      'inspection': items.where((i) => i.status == WorkStatus.inspection).length,
     };
   }
 
@@ -176,7 +176,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         return WorkStatus.inProgress;
       case 'waiting_parts':
       case 'waitingparts':
-        return WorkStatus.waitingParts;
+      case 'inspection':
+      case 'inspecting':
+        return WorkStatus.inspection;
       case 'completed':
         return WorkStatus.completed;
       default:

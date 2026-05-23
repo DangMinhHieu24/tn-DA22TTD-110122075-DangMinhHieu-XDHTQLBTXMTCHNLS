@@ -1,12 +1,15 @@
+import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
+import 'package:get_it/get_it.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
+import '../../../domain/repositories/customer_repository.dart';
 import '../widgets/customer_bottom_nav.dart';
 import 'my_vehicles_page.dart';
 import '../../account/pages/customer_account_page.dart';
 
-class CustomerWorkOrderDetailPage extends StatelessWidget {
+class CustomerWorkOrderDetailPage extends StatefulWidget {
   final CustomerWorkOrder workOrder;
   final CustomerVehicle vehicle;
 
@@ -15,6 +18,58 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
     required this.workOrder,
     required this.vehicle,
   });
+
+  @override
+  State<CustomerWorkOrderDetailPage> createState() => _CustomerWorkOrderDetailPageState();
+}
+
+class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPage> {
+  late CustomerWorkOrder _currentWorkOrder;
+  late final CustomerRepository _customerRepository;
+  late final WorkOrderRealtimeService _realtimeService;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentWorkOrder = widget.workOrder;
+    _customerRepository = GetIt.instance<CustomerRepository>();
+    _realtimeService = WorkOrderRealtimeService();
+    _startRealtime();
+  }
+
+  @override
+  void dispose() {
+    _realtimeService.unsubscribe();
+    super.dispose();
+  }
+
+  void _startRealtime() {
+    _realtimeService.subscribeToWorkOrder(
+      workOrderId: widget.workOrder.id,
+      onChanged: _refreshWorkOrder,
+    );
+    _refreshWorkOrder();
+  }
+
+  Future<void> _refreshWorkOrder() async {
+    final result = await _customerRepository.getWorkOrdersByVehicle(widget.vehicle.id);
+    result.fold(
+      (_) {},
+      (workOrders) {
+        if (!mounted) return;
+        final updated = workOrders.firstWhere(
+          (order) => order.id == _currentWorkOrder.id,
+          orElse: () => _currentWorkOrder,
+        );
+
+        if (updated != _currentWorkOrder) {
+          setState(() {
+            _currentWorkOrder = updated;
+          });
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +192,103 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
     );
   }
 
+  // ─── Header Section ───────────────────────────────────────────────────────
+  Widget _buildHeaderSection() {
+    final vehicle = widget.vehicle;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.electric_bike,
+                color: AppColors.onSurfaceVariant, size: 28),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  vehicle.model,
+                  style: AppTextStyles.titleSmall.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  'Biển số: ${vehicle.licensePlate}',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.security,
+                          size: 11, color: AppColors.primary),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Còn bảo hành: ${vehicle.warrantyDaysRemaining ?? 0} ngày',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_currentWorkOrder.scheduledTime != null)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'HẸN TRẢ:',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: const Color(0xFFD97706),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  _currentWorkOrder.scheduledTime!,
+                  style: AppTextStyles.titleSmall.copyWith(
+                    color: const Color(0xFFD97706),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
   // ─── AI Reminder Banner ────────────────────────────────────────────────────
   Widget _buildAIReminderBanner() {
     return Container(
@@ -239,235 +391,22 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
 
   // ─── Service Progress Stepper ──────────────────────────────────────────────
   Widget _buildServiceProgress() {
-    final steps = [
-      _StepInfo('Tiếp nhận', Icons.check, true, false),
-      _StepInfo('Kiểm tra', Icons.check, true, false),
-      _StepInfo('Đang sửa', Icons.build, false, true),
-      _StepInfo('Thanh toán', Icons.payments, false, false),
-      _StepInfo('Hoàn thành', Icons.flag, false, false),
-    ];
-
-    final activeIndex = _getActiveStepIndex(workOrder.status);
+    final activeIndex = _getActiveStepIndex(_currentWorkOrder.status);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Tiến độ dịch vụ',
-          style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.onSurface.withValues(alpha: 0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Stepper row
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Background line
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    top: 16,
-                    child: Container(
-                      height: 2,
-                      color: AppColors.surfaceContainerHigh,
-                    ),
-                  ),
-                  // Active progress line
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    top: 16,
-                    child: FractionallySizedBox(
-                      widthFactor: activeIndex / (steps.length - 1),
-                      alignment: Alignment.centerLeft,
-                      child: Container(height: 2, color: AppColors.primary),
-                    ),
-                  ),
-                  // Steps
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: steps.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final step = entry.value;
-                      final isDone = i < activeIndex;
-                      final isActive = i == activeIndex;
-                      return _buildStepItem(step, isDone, isActive);
-                    }).toList(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Vehicle mini card
-              _buildVehicleMiniCard(),
-            ],
-          ),
+        WorkStatusTimelineCard(
+          title: 'Tiến độ dịch vụ',
+          activeStep: activeIndex,
         ),
       ],
     );
   }
 
-  Widget _buildStepItem(_StepInfo step, bool isDone, bool isActive) {
-    Color bgColor;
-    Color iconColor;
-    if (isDone) {
-      bgColor = AppColors.primary;
-      iconColor = Colors.white;
-    } else if (isActive) {
-      bgColor = AppColors.primaryContainer;
-      iconColor = AppColors.onPrimaryContainer;
-    } else {
-      bgColor = AppColors.surfaceContainerHigh;
-      iconColor = AppColors.outline;
-    }
-
-    return SizedBox(
-      width: 56,
-      child: Column(
-        children: [
-          Container(
-            width: isActive ? 40 : 32,
-            height: isActive ? 40 : 32,
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(999),
-              border: isActive
-                  ? Border.all(color: Colors.white, width: 2)
-                  : null,
-            ),
-            child: Icon(step.icon, size: isActive ? 20 : 16, color: iconColor),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            step.label,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: isActive
-                  ? AppColors.primary
-                  : isDone
-                      ? AppColors.onSurfaceVariant
-                      : AppColors.outline,
-              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-              fontSize: 10,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVehicleMiniCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.electric_bike,
-                color: AppColors.onSurfaceVariant, size: 28),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  vehicle.model,
-                  style: AppTextStyles.titleSmall.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  'Biển số: ${vehicle.licensePlate}',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: AppColors.primaryContainer.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.security,
-                          size: 11, color: AppColors.primary),
-                      const SizedBox(width: 3),
-                      Text(
-                        'Còn bảo hành: ${vehicle.warrantyDaysRemaining ?? 0} ngày',
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (workOrder.scheduledTime != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'HẸN TRẢ:',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: const Color(0xFFD97706),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 10,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  workOrder.scheduledTime!,
-                  style: AppTextStyles.titleSmall.copyWith(
-                    color: const Color(0xFFD97706),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
   // ─── Technical Alert ───────────────────────────────────────────────────────
   Widget _buildTechnicalAlert() {
-    if ((workOrder.notes ?? '').isEmpty) return const SizedBox.shrink();
+    if ((_currentWorkOrder.notes ?? '').isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,7 +458,7 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      workOrder.notes ?? '',
+                      _currentWorkOrder.notes ?? '',
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.onSurface,
                         height: 1.5,
@@ -598,7 +537,7 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
 
   // ─── Maintenance History Timeline ──────────────────────────────────────────
   Widget _buildMaintenanceHistory() {
-    final services = workOrder.services;
+    final services = _currentWorkOrder.services;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,7 +562,7 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
             return _buildTimelineItem(
               title: service.serviceType,
               description: service.description ?? '',
-              date: _formatDate(workOrder.createdAt),
+              date: _formatDate(_currentWorkOrder.createdAt),
               isFirst: isFirst,
               isLast: isLast,
             );
@@ -768,14 +707,14 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
       case 'PENDING':
       case 'CHO_XU_LY':
         return 0;
+      case 'INSPECTION':
+        return 1;
       case 'IN_PROGRESS':
       case 'DANG_XU_LY':
         return 2;
-      case 'WAITING_PARTS':
-        return 1;
       case 'COMPLETED':
       case 'PAID':
-        return 4;
+        return 3;
       default:
         return 0;
     }
@@ -784,12 +723,4 @@ class CustomerWorkOrderDetailPage extends StatelessWidget {
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
-}
-
-class _StepInfo {
-  final String label;
-  final IconData icon;
-  final bool isDone;
-  final bool isActive;
-  const _StepInfo(this.label, this.icon, this.isDone, this.isActive);
 }

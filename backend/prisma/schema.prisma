@@ -16,7 +16,7 @@ enum UserRole {
 enum WorkOrderStatus {
   PENDING       // Chờ xử lý
   IN_PROGRESS   // Đang thực hiện
-  WAITING_PARTS // Chờ phụ tùng
+  INSPECTION    // Kiểm tra
   COMPLETED     // Hoàn thành
   PAID          // Đã thanh toán
   CANCELLED     // Đã hủy
@@ -32,6 +32,11 @@ enum ServiceType {
   BATTERY_CHECK    // Kiểm tra pin/sạc
   BRAKES_TIRES     // Phanh & Lốp
   OTHER_REPAIR     // Sửa chữa khác
+}
+
+enum PhotoType {
+  INTAKE
+  AFTER_REPAIR
 }
 
 model User {
@@ -142,6 +147,7 @@ model WorkOrderPhoto {
   workOrderId   String
   workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   photoUrl      String    // URL ảnh (Firebase Storage hoặc local)
+  photoType     PhotoType @default(INTAKE)
   description   String?   // Mô tả ảnh (VD: "Xước góc trước bên trái")
   
   createdAt     DateTime  @default(now())

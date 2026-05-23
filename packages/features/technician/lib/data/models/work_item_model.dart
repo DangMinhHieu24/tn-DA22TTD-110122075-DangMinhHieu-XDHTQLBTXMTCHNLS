@@ -1,4 +1,6 @@
 import '../../domain/entities/work_item.dart';
+import '../../domain/entities/work_item_service.dart';
+import 'work_item_service_model.dart';
 
 class WorkItemModel extends WorkItem {
   const WorkItemModel({
@@ -7,6 +9,7 @@ class WorkItemModel extends WorkItem {
     required super.vehicleModel,
     super.imageUrl,
     super.photoUrls,
+    super.services,
     required super.customerName,
     required super.description,
     required super.status,
@@ -21,9 +24,13 @@ class WorkItemModel extends WorkItem {
       licensePlate: json['licensePlate'] as String,
       vehicleModel: json['vehicleModel'] as String,
       imageUrl: json['imageUrl'] as String?,
-        photoUrls: (json['photoUrls'] as List<dynamic>?)
-            ?.map((item) => item.toString())
-            .toList() ??
+      photoUrls: (json['photoUrls'] as List<dynamic>?)
+          ?.map((item) => item.toString())
+          .toList() ??
+          const [],
+      services: (json['services'] as List<dynamic>?)
+          ?.map((item) => WorkItemServiceModel.fromApiJson(item as Map<String, dynamic>).toEntity())
+          .toList() ??
           const [],
       customerName: json['customerName'] as String,
       description: json['description'] as String,
@@ -56,6 +63,9 @@ class WorkItemModel extends WorkItem {
           .map((item) => (item as Map<String, dynamic>)['photoUrl'] as String?)
           .whereType<String>()
           .toList(),
+      services: services
+          .map((item) => WorkItemServiceModel.fromApiJson(item as Map<String, dynamic>).toEntity())
+          .toList(),
       customerName: owner?['name'] as String? ?? 'Unknown',
       description: description,
       status: _statusFromString(json['status'] as String),
@@ -72,6 +82,16 @@ class WorkItemModel extends WorkItem {
       'vehicleModel': vehicleModel,
       'imageUrl': imageUrl,
       'photoUrls': photoUrls,
+      'services': services.map((service) => {
+        'id': service.id,
+        'serviceType': service.serviceType,
+        'serviceName': service.serviceName,
+        'description': service.description,
+        'price': service.price,
+        'isDone': service.isDone,
+        'note': service.note,
+        'createdAt': service.createdAt.toIso8601String(),
+      }).toList(),
       'customerName': customerName,
       'description': description,
       'status': _statusToString(status),
@@ -88,6 +108,7 @@ class WorkItemModel extends WorkItem {
       vehicleModel: vehicleModel,
       imageUrl: imageUrl,
       photoUrls: photoUrls,
+      services: services,
       customerName: customerName,
       description: description,
       status: status,
@@ -104,6 +125,7 @@ class WorkItemModel extends WorkItem {
       vehicleModel: entity.vehicleModel,
       imageUrl: entity.imageUrl,
       photoUrls: entity.photoUrls,
+      services: entity.services,
       customerName: entity.customerName,
       description: entity.description,
       status: entity.status,
@@ -121,7 +143,8 @@ class WorkItemModel extends WorkItem {
       case 'IN_PROGRESS':
         return WorkStatus.inProgress;
       case 'WAITING_PARTS':
-        return WorkStatus.waitingParts;
+      case 'INSPECTION':
+        return WorkStatus.inspection;
       case 'COMPLETED':
         return WorkStatus.completed;
       default:
@@ -135,8 +158,8 @@ class WorkItemModel extends WorkItem {
         return 'PENDING';
       case WorkStatus.inProgress:
         return 'IN_PROGRESS';
-      case WorkStatus.waitingParts:
-        return 'WAITING_PARTS';
+      case WorkStatus.inspection:
+        return 'INSPECTION';
       case WorkStatus.completed:
         return 'COMPLETED';
     }

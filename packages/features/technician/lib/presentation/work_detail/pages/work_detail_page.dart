@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:auth/auth.dart';
+import 'package:get_it/get_it.dart';
+import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
+import '../../../domain/repositories/work_repository.dart';
 import '../../../domain/entities/work_item.dart';
+import '../../../domain/entities/work_item_service.dart';
 
+/// Chi tiết phiếu sửa chữa - 100% converted from UX design
+/// Follows "Kinetic Sanctuary" design philosophy
 class WorkDetailPage extends StatefulWidget {
   final WorkItem workItem;
 
@@ -19,522 +24,489 @@ class WorkDetailPage extends StatefulWidget {
 class _WorkDetailPageState extends State<WorkDetailPage> {
   final PageController _photoController = PageController();
   int _currentPhotoIndex = 0;
-
-  WorkItem get workItem => widget.workItem;
+  late WorkItem _currentItem;
+  late final WorkRepository _workRepository;
+  late final WorkOrderRealtimeService _realtimeService;
+  // Local photo URLs to allow cache-busting retries
+  late List<String> _photoUrls;
+  String? _thumbnailUrl;
+  List<WorkItemService> _serviceItems = const [];
+  
+  // Parts inventory
+  final List<Map<String, dynamic>> _parts = [
+    {
+      'name': 'Má phanh đĩa trước Klara',
+      'code': 'PT-0921',
+      'stock': 14,
+      'quantity': 1,
+    },
+    {
+      'name': 'Chai xịt dưỡng xích 150ml',
+      'code': 'CH-0112',
+      'stock': 45,
+      'quantity': 1,
+    },
+  ];
 
   @override
   void dispose() {
+    _realtimeService.unsubscribe();
     _photoController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final tasks = _buildTasks(workItem.description);
-    final statusLabel = _statusLabel(workItem.status);
-    final activeStep = _activeStepIndex(workItem.status);
-
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLow,
-      appBar: AppBar(
-        title: const Text('Chi tiết phiếu sửa chữa'),
-        backgroundColor: AppColors.surfaceContainerLow,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert),
+      backgroundColor: const Color(0xFFF7F9FB), // background
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopAppBar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildHeaderSection(),
+                    const SizedBox(height: 24),
+                    _buildStatusTimeline(),
+                    const SizedBox(height: 24),
+                    _buildChecklistSection(),
+                    const SizedBox(height: 24),
+                    _buildPartsInventorySection(),
+                    const SizedBox(height: 24),
+                    _buildTechnicalNotesSection(),
+                    const SizedBox(height: 24),
+                    _buildCostSummarySection(),
+                    const SizedBox(height: 96), // Extra padding for bottom button
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: _buildCompleteButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  /// TopAppBar - No border, tonal shift
+  Widget _buildTopAppBar() {
+    return Container(
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F4F6).withOpacity(0.8), // surface-container-low/80
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF191C1E).withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTimelineSection(statusLabel, activeStep),
-            const SizedBox(height: 16),
-            _buildVehicleSection(),
-            const SizedBox(height: 16),
-            _buildWorkItemsSection(tasks),
-            const SizedBox(height: 16),
-            _buildPartsSection(),
-            const SizedBox(height: 16),
-            _buildReportSection(),
-            const SizedBox(height: 16),
-            _buildCostSection(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.onSurface.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SizedBox(
-          height: 56,
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: AppColors.primaryContainer.withOpacity(0.25),
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: EdgeInsets.zero,
-            ),
-            child: Ink(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary,
-                    AppColors.primaryContainer,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Container(
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.task_alt, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Hoàn thành sửa chữa',
-                      style: AppTextStyles.labelLarge.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF006E2F)),
+            onPressed: () => Navigator.of(context).pop(),
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Chi tiết phiếu sửa chữa',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF006E2F),
+              letterSpacing: -0.5,
             ),
           ),
-        ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Color(0xFF006E2F)),
+            onPressed: () {},
+            padding: EdgeInsets.zero,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTimelineSection(String statusLabel, int activeStep) {
-    const steps = [
-      'Tiếp nhận',
-      'Kiểm tra',
-      'Đang sửa',
-      'Thanh toán',
-      'Hoàn thành',
-    ];
+  /// Header Information with vehicle images carousel
+  Widget _buildHeaderSection() {
+    final photoCount = _photoUrls.length;
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFDDF2E8),
+            Color(0xFFCFECDF),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withOpacity(0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF0F9D58).withOpacity(0.12),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Tiến trình sửa chữa',
-            style: AppTextStyles.titleMedium.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Column(
-            children: [
-              Container(
-                height: 10,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: activeStep / (steps.length - 1),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary,
-                            AppColors.primaryContainer,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(steps.length, (index) {
-                  final isDone = index < activeStep;
-                  final isActive = index == activeStep;
-                  final labelColor = isActive
-                      ? AppColors.primary
-                      : isDone
-                          ? AppColors.onSurface
-                          : AppColors.onSurfaceVariant;
-
-                  return Text(
-                    steps[index],
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: labelColor,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                      fontSize: 10,
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                Icons.schedule,
-                size: 18,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$statusLabel — 1 giờ 20 phút',
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(8),
-            ),
+      child: Container(
+        margin: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        'Kỹ thuật viên đang thực hiện thay thế linh kiện.',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: BlocBuilder<AuthBloc, AuthState>(
-                      builder: (context, authState) {
-                        final name = authState is AuthAuthenticated
-                            ? authState.user.name
-                            : 'Kỹ thuật viên';
-                        final shortId = authState is AuthAuthenticated
-                            ? _shortId(authState.user.id)
-                            : _shortId(workItem.id);
-                        return Text(
-                          'KTV: $name - $shortId',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVehicleSection() {
-    final customerInitial = _initials(workItem.customerName);
-    final photos = workItem.photoUrls.isNotEmpty
-        ? workItem.photoUrls
-        : (workItem.imageUrl != null && workItem.imageUrl!.isNotEmpty
-            ? [workItem.imageUrl!]
-            : <String>[]);
-    final photoCount = photos.length;
-    final displayIndex = _currentPhotoIndex < photoCount ? _currentPhotoIndex : 0;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.onSurface.withOpacity(0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: SizedBox(
-                  height: 200,
-                  width: double.infinity,
-                  child: photoCount > 0
-                      ? PageView.builder(
-                          controller: _photoController,
-                          itemCount: photoCount,
-                          onPageChanged: (index) {
-                            setState(() {
-                              _currentPhotoIndex = index;
-                            });
-                          },
-                          itemBuilder: (context, index) {
-                            return Image.network(
-                              photos[index],
-                              fit: BoxFit.cover,
-                            );
-                          },
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.surfaceContainerHigh,
-                                AppColors.surfaceContainerLow,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.electric_moped,
-                              size: 72,
-                              color: AppColors.onSurfaceVariant.withOpacity(0.6),
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withOpacity(0.5),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 16,
-                bottom: 18,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      workItem.licensePlate,
-                      style: AppTextStyles.headlineMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Text(
-                          workItem.vehicleModel,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.35),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.verified_user,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Còn bảo hành: 245 ngày',
-                                style: AppTextStyles.labelSmall.copyWith(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (photoCount > 0)
-                Positioned(
-                  right: 12,
-                  bottom: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.photo_camera,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${displayIndex + 1}/$photoCount',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.secondaryContainer,
-                  radius: 20,
-                  child: Text(
-                    customerInitial,
-                    style: AppTextStyles.labelLarge.copyWith(
-                      color: AppColors.onSecondaryContainer,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        workItem.customerName,
-                        style: AppTextStyles.titleMedium.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.call,
-                            size: 12,
-                            color: AppColors.onSurfaceVariant,
+                          Text(
+                            'Ticket #${widget.workItem.id.substring(0, 8).toUpperCase()}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF191C1E),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${widget.workItem.vehicleModel} - Biển số: ${widget.workItem.licensePlate}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF3D4A3D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF0F9D58),
+                            Color(0xFF22C55E),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0F9D58).withOpacity(0.25),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.build,
+                            size: 14,
+                            color: Colors.white,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '0904.xxx.888',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.onSurfaceVariant,
+                            _getStatusLabel(_currentItem.status),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () {},
-                  icon: Icon(
-                    Icons.chat,
-                    size: 18,
-                    color: AppColors.primary,
-                  ),
-                  label: Text(
-                    'Nhắn tin khách',
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
                     ),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColors.primary.withOpacity(0.12),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
+                  ],
                 ),
               ],
+            ),
+          ),
+          // Vehicle Images Carousel
+          if (photoCount > 0)
+            SizedBox(
+              height: 192,
+              child: PageView.builder(
+                controller: _photoController,
+                itemCount: photoCount,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPhotoIndex = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final url = _photoUrls[index];
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          url,
+                          width: double.infinity,
+                          height: 192,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              width: double.infinity,
+                              height: 192,
+                              color: const Color(0xFFECEEF0),
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: double.infinity,
+                              height: 192,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3E9E9),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFBA1A1A).withOpacity(0.2)),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.broken_image, size: 36, color: Color(0xFFBA1A1A)),
+                                    const SizedBox(height: 8),
+                                    const Text('Không thể tải ảnh', style: TextStyle(color: Color(0xFFBA1A1A))),
+                                    const SizedBox(height: 8),
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _photoUrls[index] = '$url?r=${DateTime.now().millisecondsSinceEpoch}';
+                                        });
+                                      },
+                                      child: const Text('Thử lại', style: TextStyle(color: Color(0xFF006E2F))),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF191C1E).withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Ảnh tiếp nhận ${index + 1}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            )
+          else
+            Container(
+              height: 192,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFECEEF0),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_a_photo,
+                      size: 48,
+                      color: Color(0xFF3D4A3D),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Thêm ảnh',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF3D4A3D),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
+          // Customer Info
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              children: [
+                Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFBCCBB9).withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.person,
+                          size: 18,
+                          color: Color(0xFF3D4A3D),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${widget.workItem.customerName} (Khách hàng)',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF3D4A3D),
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.call,
+                        size: 18,
+                        color: Color(0xFF006E2F),
+                      ),
+                      label: const Text(
+                        'Gọi',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF006E2F),
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Status Timeline Stepper
+  Widget _buildStatusTimeline() {
+    final activeStep = _getActiveStep(_currentItem.status);
+    final nextStatus = _getNextStatus(_currentItem.status);
+    final isActionDisabled = nextStatus == null;
+    final buttonLabel = isActionDisabled
+      ? 'Đã hoàn thành'
+      : _getNextStatusButtonLabel(nextStatus!);
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F4F6), // surface-container-low
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          WorkStatusTimelineCard(
+            title: 'Tiến trình sửa chữa',
+            activeStep: activeStep,
+          ),
+          const SizedBox(height: 24),
+          // Update Status Button
+          Center(
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isActionDisabled
+                  ? null
+                  : () => _showStatusChangeDialog(nextStatus!),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isActionDisabled
+                          ? const [Color(0xFFBFC7C2), Color(0xFFBFC7C2)]
+                          : const [Color(0xFF006E2F), Color(0xFF22C55E)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isActionDisabled
+                                ? const Color(0xFFBFC7C2)
+                                : const Color(0xFF006E2F))
+                            .withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          buttonLabel,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward,
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -542,17 +514,142 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     );
   }
 
-  String _shortId(String id) {
-    final normalized = id.trim();
-    if (normalized.isEmpty) return '----';
-    return normalized.length <= 8
-        ? normalized.toUpperCase()
-        : normalized.substring(0, 8).toUpperCase();
+  @override
+  void initState() {
+    super.initState();
+    _currentItem = widget.workItem;
+    _workRepository = GetIt.instance<WorkRepository>();
+    _realtimeService = WorkOrderRealtimeService();
+    _serviceItems = List<WorkItemService>.from(widget.workItem.services);
+    // Initialize editable local photo list for retry UX
+    _photoUrls = widget.workItem.photoUrls.isNotEmpty
+        ? List<String>.from(widget.workItem.photoUrls)
+        : (widget.workItem.imageUrl != null && widget.workItem.imageUrl!.isNotEmpty
+            ? [widget.workItem.imageUrl!]
+            : <String>[]);
+    _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
+    _startRealtime();
   }
 
-  Widget _buildWorkItemsSection(List<_WorkTask> tasks) {
-    final completedCount = tasks.where((task) => task.isDone).length;
-    final totalCount = tasks.length;
+  void _startRealtime() {
+    _realtimeService.subscribeToWorkOrder(
+      workOrderId: widget.workItem.id,
+      onChanged: _refreshWorkItem,
+    );
+    _refreshWorkItem();
+  }
+
+  Future<void> _refreshWorkItem() async {
+    final result = await _workRepository.getWorkItemById(widget.workItem.id);
+    result.fold(
+      (_) {},
+      (item) {
+        if (!mounted) return;
+        setState(() {
+          _currentItem = item;
+          _serviceItems = List<WorkItemService>.from(item.services);
+        });
+      },
+    );
+  }
+
+  Widget _buildTimelineStep(String label, int step, int activeStep) {
+    final isDone = step < activeStep;
+    final isActive = step == activeStep;
+
+    final circleColor = isActive
+      ? const Color(0xFF22C55E)
+      : isDone
+        ? const Color(0xFF006E2F)
+        : const Color(0xFFF2F4F6);
+    final iconColor = isActive
+      ? const Color(0xFF0B3B20)
+      : (isDone ? Colors.white : const Color(0xFF3D4A3D));
+
+    return Column(
+      children: [
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF2F4F6),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              if (!isActive && !isDone)
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: const Color(0xFFBFC7C2),
+                      width: 2,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              if (isActive)
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC9D2CC),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              if (isActive)
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0E7A3D),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: circleColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isDone
+                      ? Icons.check
+                      : (isActive ? Icons.build : Icons.flag_outlined),
+                  size: 12,
+                  color: iconColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+            color: isActive || isDone
+                ? const Color(0xFF006E2F)
+                : const Color(0xFF3D4A3D),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  /// Checklist Items Section
+  Widget _buildChecklistSection() {
+    final completedCount = _serviceItems.where((item) => item.isDone).length;
+    final totalCount = _serviceItems.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,279 +657,137 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
+            const Text(
               'Hạng mục công việc',
-              style: AppTextStyles.titleMedium.copyWith(
-                fontWeight: FontWeight.w700,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF191C1E),
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '$completedCount/$totalCount Hoàn thành',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+            Text(
+              '$completedCount/$totalCount hoàn thành',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF3D4A3D),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.08),
+        if (_serviceItems.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F9FB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBCCBB9).withOpacity(0.18)),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.onSurface.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 12),
+            child: const Text(
+              'Chưa có hạng mục từ hệ thống.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF3D4A3D),
               ),
-            ],
-          ),
-          child: Column(
-            children: [
-              ...tasks.map((task) => _buildTaskItem(task)),
-              const SizedBox(height: 8),
-              _DashedActionButton(
-                onTap: () {},
-                label: 'Thêm hạng mục',
+            ),
+          )
+        else
+          ..._serviceItems.map((item) => _buildChecklistItem(item)),
+        const SizedBox(height: 12),
+        // Add Item Button
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {},
+            borderRadius: BorderRadius.circular(14),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF2FBF5), Color(0xFFE3F7E9)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFF006E2F).withOpacity(0.16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF006E2F).withOpacity(0.10),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTaskItem(_WorkTask task) {
-    final needsTool = task.subtitle != null &&
-        task.subtitle!.toLowerCase().contains('cần thiết bị');
-
-    if (task.isDone) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Row(
-          children: [
-            _TaskCheckbox(isChecked: true),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Icon(
+                    Icons.add_circle_outline,
+                    size: 20,
+                    color: Color(0xFF006E2F),
+                  ),
+                  SizedBox(width: 8),
                   Text(
-                    task.title,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                      decoration: TextDecoration.lineThrough,
+                    'Thêm hạng mục',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF005622),
+                      letterSpacing: -0.1,
                     ),
                   ),
-                  if (task.subtitle != null)
-                    Text(
-                      task.subtitle!,
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
                 ],
               ),
             ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _TaskCheckbox(isChecked: false),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (task.subtitle != null)
-                      Row(
-                        children: [
-                          if (needsTool)
-                            Icon(
-                              Icons.battery_charging_full,
-                              size: 14,
-                              color: AppColors.secondary,
-                            ),
-                          if (needsTool) const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              task.subtitle!,
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: needsTool
-                                    ? AppColors.secondary
-                                    : AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _TaskActionButton(
-                label: 'Đánh dấu chờ',
-                onTap: () {},
-                textColor: AppColors.onSurface,
-                borderColor: AppColors.outlineVariant.withOpacity(0.6),
-              ),
-              const SizedBox(width: 8),
-              _TaskActionButton(
-                label: 'Bỏ qua hạng mục',
-                onTap: () {},
-                textColor: AppColors.error,
-                borderColor: AppColors.error.withOpacity(0.4),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPartsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Xuất kho phụ tùng',
-          style: AppTextStyles.titleMedium.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.08),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.onSurface.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              TextField(
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: 'Tìm kiếm phụ tùng...',
-                  filled: true,
-                  fillColor: AppColors.surfaceContainerHigh,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildPartItem(
-                'Má phanh Brembo',
-                'Tồn kho: 12 bộ',
-                imageUrl:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCrE6r8BimfKawkwE84VxFTC5OCiS84Abb-APkAnNAbFg1VD7mns7bwwyiO-P2IwUXKfytXqEptSdjPKLIOYv3-fIHv-18_iTHTf8Gq-AKlQTeDSbVZXNJ0GeUre33szvo26oExnOCDAnRp9-iWIPxfiVTV86mXSXP1Uz-R_mrqwNtki37GtXLIvQhlKM3JsbvIzyQcZTtw5AZSMEEaxFIh8Y5WaIWVvXAdvs6a9XqEjdkRpMK9uZINML93mLlG2HY2CUPLCtttbDI',
-              ),
-              const SizedBox(height: 8),
-              _buildPartItem(
-                'Dầu xích Motul',
-                'Tồn kho: 45 chai',
-                imageUrl:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuB47zzxN_IJJUAXUFm53wgu4gap6ID6gfDb7Ach7qvgj2sNXb7LFTjryEIkqR-Z-rbpHmSHOXfob5l5VNAbJG4z3johJz4FExAkpHHMn5cGLwX-3rBUhzsFKvohFwM_9KL_G2S8K3n49IqyQL9j2CQ_rPDZ8xK-M07WmnuUHGkfPEelbWEsu0fxZY_mnKSK67wQqvHl0_qmr-yYb21wkOfdVqoLAMx7f2u8UZzjjoWPTo3b-m1p05HZBs4Nb70syj2MmddG6Ncon-w',
-              ),
-            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPartItem(String name, String stock, {required String imageUrl}) {
+  Widget _buildChecklistItem(WorkItemService item) {
+    final isDone = item.isDone;
+    final title = item.serviceName?.isNotEmpty == true
+        ? item.serviceName!
+        : item.description?.isNotEmpty == true
+            ? item.description!
+            : 'Hạng mục';
+    final priceLabel = item.price != null
+        ? '${_formatMoney(item.price!)}đ'
+        : 'Chưa có giá';
+    
     return Container(
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.1),
-        ),
+        border: !isDone
+            ? const Border(
+                left: BorderSide(
+                  color: Color(0xFF006E2F),
+                  width: 4,
+                ),
+              )
+            : null,
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withOpacity(0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF191C1E).withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 4,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.12),
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-              ),
+          Checkbox(
+            value: isDone,
+            onChanged: (value) => _toggleServiceStatus(item, value ?? false),
+            activeColor: const Color(0xFF006E2F),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
           const SizedBox(width: 12),
@@ -841,49 +796,32 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w800,
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: isDone ? const Color(0xFF3D4A3D).withOpacity(0.7) : const Color(0xFF191C1E),
+                    decoration: isDone ? TextDecoration.lineThrough : null,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  stock,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
+                  item.description ?? 'Không có mô tả chi tiết.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF3D4A3D),
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.12),
-              ),
-            ),
-            child: Row(
-              children: [
-                _QtyButton(
-                  icon: Icons.remove,
-                  onTap: () {},
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '1',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                _QtyButton(
-                  icon: Icons.add,
-                  onTap: () {},
-                ),
-              ],
+          const SizedBox(width: 12),
+          Text(
+            priceLabel,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF191C1E),
             ),
           ),
         ],
@@ -891,128 +829,224 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     );
   }
 
-  Widget _buildReportSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Báo cáo kỹ thuật',
-          style: AppTextStyles.titleMedium.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.onSurface.withOpacity(0.04),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hình ảnh sau sửa (After)',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.primary.withOpacity(0.3),
-                          style: BorderStyle.solid,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add_a_photo,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tải ảnh lên',
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.image,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Ghi chú cho lần bảo dưỡng sau',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Nhập ghi chú kỹ thuật...',
-                  filled: true,
-                  fillColor: AppColors.surfaceContainerHigh,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+  Future<void> _toggleServiceStatus(WorkItemService item, bool isDone) async {
+    final result = await _workRepository.updateWorkServiceStatus(
+      _currentItem.id,
+      item.id,
+      isDone,
+    );
+
+    result.fold(
+      (failure) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failure.message)),
+        );
+      },
+      (updatedService) {
+        if (!mounted) return;
+        setState(() {
+          _serviceItems = _serviceItems.map((service) {
+            if (service.id == updatedService.id) {
+              return updatedService;
+            }
+            return service;
+          }).toList();
+        });
+      },
     );
   }
 
-  Widget _buildCostSection() {
+  String _formatMoney(double value) {
+    final raw = value.toStringAsFixed(0);
+    final reversed = raw.split('').reversed.toList();
+    final chunks = <String>[];
+
+    for (var i = 0; i < reversed.length; i += 3) {
+      chunks.add(reversed.sublist(i, i + 3 > reversed.length ? reversed.length : i + 3).join());
+    }
+
+    return chunks.map((chunk) => chunk.split('').reversed.join()).toList().reversed.join(',');
+  }
+
+  /// Parts Inventory Section
+  Widget _buildPartsInventorySection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF191C1E).withOpacity(0.06),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.inventory_2,
+                size: 20,
+                color: Color(0xFF0058BE),
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Xuất kho phụ tùng',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF191C1E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ..._parts.map((part) => _buildPartItem(part)),
+          const SizedBox(height: 16),
+          // Search Field
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Tìm kiếm mã hoặc tên phụ tùng...',
+              hintStyle: TextStyle(
+                fontSize: 14,
+                color: const Color(0xFF3D4A3D).withOpacity(0.6),
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 20,
+                color: Color(0xFF3D4A3D),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFE0E3E5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPartItem(Map<String, dynamic> part) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9FB),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  part['name'] as String,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF191C1E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Mã: ${part['code']} | Tồn: ${part['stock']}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF3D4A3D),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Quantity Controls
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0E3E5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      if (part['quantity'] > 0) {
+                        part['quantity']--;
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.remove, size: 18),
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+                Container(
+                  width: 32,
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${part['quantity']}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      part['quantity']++;
+                    });
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(
+              Icons.delete,
+              size: 18,
+              color: Color(0xFFBA1A1A),
+            ),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Technical Notes & Evidence Section
+  Widget _buildTechnicalNotesSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFFFFF), Color(0xFFF7F9FB)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.08),
+          color: const Color(0xFFBCCBB9).withOpacity(0.22),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withOpacity(0.1),
-            blurRadius: 20,
+            color: const Color(0xFF191C1E).withOpacity(0.08),
+            blurRadius: 28,
             offset: const Offset(0, 12),
           ),
         ],
@@ -1020,38 +1054,146 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Tổng kết chi phí',
-            style: AppTextStyles.titleMedium.copyWith(
+          const Text(
+            'Ghi chú kỹ thuật & Hình ảnh sau sửa',
+            style: TextStyle(
+              fontSize: 16,
               fontWeight: FontWeight.w700,
+              color: Color(0xFF191C1E),
+              letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: 12),
-          _buildCostRow('Phí dịch vụ (Công thợ)', '150,000 đ'),
-          _buildCostRow('Phụ tùng (2 mục)', '650,000 đ',
-              subtitle: 'Tự động tính từ xuất kho'),
-          _buildCostRow('Thuế VAT (8%)', '64,000 đ'),
-          const SizedBox(height: 12),
-          Container(
-            height: 1,
-            color: AppColors.surfaceContainerHigh,
+          TextField(
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Ghi chú thêm về tình trạng xe, khuyến nghị cho lần bảo dưỡng sau...',
+              hintStyle: TextStyle(
+                fontSize: 14,
+                color: const Color(0xFF3D4A3D).withOpacity(0.5),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF5F7F8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: const Color(0xFFBCCBB9).withOpacity(0.18),
+                ),
+              ),
+              contentPadding: const EdgeInsets.all(12),
+            ),
           ),
           const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Tổng tiền',
-                style: AppTextStyles.titleMedium.copyWith(
-                  fontWeight: FontWeight.w800,
+              // Add Photo Button
+              InkWell(
+                onTap: () {},
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECEEF0),
+                    border: Border.all(
+                      color: const Color(0xFFBCCBB9),
+                      style: BorderStyle.solid,
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_a_photo,
+                        size: 24,
+                        color: Color(0xFF006E2F),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Chụp ảnh',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF006E2F),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              Text(
-                '864,000 đ',
-                style: AppTextStyles.titleLarge.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
+              const SizedBox(width: 12),
+              // Sample Photo
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      _thumbnailUrl ?? 'https://via.placeholder.com/80',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          width: 80,
+                          height: 80,
+                          color: const Color(0xFFECEEF0),
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3E9E9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFBA1A1A).withOpacity(0.15)),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.broken_image, size: 20, color: Color(0xFFBA1A1A)),
+                                const SizedBox(height: 4),
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      final url = _thumbnailUrl ?? 'https://via.placeholder.com/80';
+                                      _thumbnailUrl = '$url?r=${DateTime.now().millisecondsSinceEpoch}';
+                                    });
+                                  },
+                                  child: const Text('Thử lại', style: TextStyle(fontSize: 12, color: Color(0xFF006E2F))),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: InkWell(
+                      onTap: () {},
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF191C1E).withOpacity(0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1060,212 +1202,278 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     );
   }
 
-  Widget _buildCostRow(String title, String value, {String? subtitle}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
+  /// Cost Summary Section
+  Widget _buildCostSummarySection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFBCCBB9).withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF191C1E).withOpacity(0.06),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          ),
+        ],
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const Text(
+            'Tổng chi phí dự kiến',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF191C1E),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildCostRow('Phí dịch vụ (3 hạng mục)', '280,000đ'),
+          const SizedBox(height: 8),
+          _buildCostRow('Phụ tùng xuất kho (2 món)', '320,000đ'),
+          const SizedBox(height: 8),
+          _buildCostRow('Thuế VAT (8%)', '48,000đ'),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.only(top: 12),
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Color(0xFFBCCBB9),
+                  width: 0.2,
+                ),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  title,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
+                  'Tổng thanh toán',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF191C1E),
                   ),
                 ),
-                if (subtitle != null)
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.onSurfaceVariant.withOpacity(0.7),
-                    ),
+                Text(
+                  '648,000đ',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF006E2F),
                   ),
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            value,
-            style: AppTextStyles.bodyMedium.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
         ],
       ),
     );
   }
 
-  List<_WorkTask> _buildTasks(String description) {
-    final rawTasks = description
-        .split(',')
-        .map((task) => task.trim())
-        .where((task) => task.isNotEmpty)
-        .toList();
-
-    if (rawTasks.isEmpty) {
-      return const [
-        _WorkTask(title: 'Kiểm tra pin', isDone: false, subtitle: 'Cần thiết bị đo chuyên dụng'),
-        _WorkTask(title: 'Thay má phanh trước', isDone: true, subtitle: 'Thực hiện: 10:30 AM'),
-        _WorkTask(title: 'Vệ sinh xích & bôi trơn', isDone: true, subtitle: 'Thực hiện: 11:15 AM'),
-      ];
-    }
-
-    return List.generate(rawTasks.length, (index) {
-      return _WorkTask(
-        title: rawTasks[index],
-        isDone: index < 2,
-        subtitle: index < 2 ? 'Thực hiện: 10:${30 + (index * 15)} AM' : null,
-      );
-    });
-  }
-
-  String _statusLabel(WorkStatus status) {
-    switch (status) {
-      case WorkStatus.pending:
-        return 'Chờ xử lý';
-      case WorkStatus.inProgress:
-        return 'Đang sửa';
-      case WorkStatus.waitingParts:
-        return 'Chờ phụ tùng';
-      case WorkStatus.completed:
-        return 'Hoàn thành';
-    }
-  }
-
-  int _activeStepIndex(WorkStatus status) {
-    switch (status) {
-      case WorkStatus.pending:
-        return 0;
-      case WorkStatus.inProgress:
-        return 2;
-      case WorkStatus.waitingParts:
-        return 2;
-      case WorkStatus.completed:
-        return 4;
-    }
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ').where((part) => part.isNotEmpty).toList();
-    if (parts.isEmpty) return 'KH';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-  }
-}
-
-class _WorkTask {
-  final String title;
-  final bool isDone;
-  final String? subtitle;
-
-  const _WorkTask({
-    required this.title,
-    required this.isDone,
-    this.subtitle,
-  });
-}
-
-class _TaskCheckbox extends StatelessWidget {
-  final bool isChecked;
-
-  const _TaskCheckbox({
-    required this.isChecked,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        color: isChecked ? AppColors.primary : Colors.transparent,
-        border: Border.all(
-          color: isChecked ? AppColors.primary : AppColors.outlineVariant,
-          width: 2,
+  Widget _buildCostRow(String label, String amount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF3D4A3D),
+          ),
         ),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: isChecked
-          ? const Icon(Icons.check, size: 14, color: Colors.white)
-          : null,
+        Text(
+          amount,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF191C1E),
+          ),
+        ),
+      ],
     );
   }
-}
 
-class _TaskActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final Color textColor;
-  final Color borderColor;
+  /// Complete Button (Floating)
+  Widget _buildCompleteButton() {
+    final nextStatus = _getNextStatus(_currentItem.status);
+    if (nextStatus == null) {
+      return const SizedBox.shrink();
+    }
+    final buttonLabel = _getNextStatusButtonLabel(nextStatus);
 
-  const _TaskActionButton({
-    required this.label,
-    required this.onTap,
-    required this.textColor,
-    required this.borderColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor),
+    return Container(
+      width: MediaQuery.of(context).size.width - 32,
+      height: 56,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: ElevatedButton(
+        onPressed: () {
+          _showStatusChangeDialog(nextStatus);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-        child: Text(
-          label,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: textColor,
-            fontWeight: FontWeight.w600,
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF006E2F).withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Container(
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  size: 20,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  buttonLabel,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-class _DashedActionButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final String label;
+  /// Confirmation Dialog
+  void _showStatusChangeDialog(WorkStatus nextStatus) {
+    final statusLabel = _getStatusLabel(nextStatus);
+    final actionLabel = _getNextStatusButtonLabel(nextStatus);
 
-  const _DashedActionButton({
-    required this.onTap,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: AppColors.primary.withOpacity(0.45),
-          radius: 12,
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, color: AppColors.primary, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: AppTextStyles.labelLarge.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF22C55E).withOpacity(0.2),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(
+                  Icons.help,
+                  size: 24,
+                  color: Color(0xFF006E2F),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                actionLabel,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF191C1E),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Bạn có chắc chắn muốn chuyển phiếu sửa chữa này sang trạng thái "$statusLabel"? Hãy đảm bảo bước hiện tại đã hoàn tất trước khi tiếp tục.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF3D4A3D),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(
+                          color: Color(0xFFE6E8EA),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Hủy',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF191C1E),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _updateWorkStatus(nextStatus);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'Xác nhận',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1273,78 +1481,78 @@ class _DashedActionButton extends StatelessWidget {
       ),
     );
   }
-}
 
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double radius;
+  Future<void> _updateWorkStatus(WorkStatus nextStatus) async {
+    final result = await _workRepository.updateWorkStatus(
+      _currentItem.id,
+      nextStatus,
+    );
 
-  _DashedBorderPainter({
-    required this.color,
-    required this.radius,
-  });
+    result.fold(
+      (_) {},
+      (item) {
+        if (!mounted) return;
+        setState(() {
+          _currentItem = item;
+        });
+      },
+    );
+  }
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(radius),
-        ),
-      );
-
-    const dashWidth = 6.0;
-    const dashGap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = distance + dashWidth;
-        final segment = metric.extractPath(distance, next);
-        canvas.drawPath(segment, paint);
-        distance = next + dashGap;
-      }
+  // Helper methods
+  String _getStatusLabel(WorkStatus status) {
+    switch (status) {
+      case WorkStatus.pending:
+        return 'Chờ xử lý';
+      case WorkStatus.inspection:
+        return 'Kiểm tra';
+      case WorkStatus.inProgress:
+        return 'Đang sửa';
+      case WorkStatus.completed:
+        return 'Hoàn thành';
+      default:
+        return 'Đang sửa';
     }
   }
 
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.radius != radius;
+  WorkStatus? _getNextStatus(WorkStatus status) {
+    switch (status) {
+      case WorkStatus.pending:
+        return WorkStatus.inspection;
+      case WorkStatus.inspection:
+        return WorkStatus.inProgress;
+      case WorkStatus.inProgress:
+        return WorkStatus.completed;
+      case WorkStatus.completed:
+        return null;
+    }
   }
-}
 
-class _QtyButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
+  String _getNextStatusButtonLabel(WorkStatus nextStatus) {
+    switch (nextStatus) {
+      case WorkStatus.inspection:
+        return 'Hoàn thành tiếp nhận';
+      case WorkStatus.inProgress:
+        return 'Hoàn thành kiểm tra';
+      case WorkStatus.completed:
+        return 'Hoàn thành sửa chữa';
+      case WorkStatus.pending:
+        return 'Cập nhật trạng thái';
+    }
+  }
 
-  const _QtyButton({
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          size: 16,
-          color: AppColors.onSurface,
-        ),
-      ),
-    );
+  int _getActiveStep(WorkStatus status) {
+    switch (status) {
+      case WorkStatus.pending:
+        return 0;
+      case WorkStatus.inspection:
+        return 1;
+      case WorkStatus.inProgress:
+        return 2;
+      case WorkStatus.completed:
+        return 3;
+      default:
+        return 2;
+    }
   }
 }

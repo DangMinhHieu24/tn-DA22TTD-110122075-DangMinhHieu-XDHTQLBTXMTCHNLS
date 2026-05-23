@@ -266,14 +266,22 @@ async function main() {
         create: [
           {
             photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/ZEV_2700_electric_motor_scooter.jpg',
+            photoType: 'INTAKE',
             description: 'Anh xe khi nhan xe',
           },
           {
             photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/41/EVScooterAtVancouver.jpg',
+            photoType: 'INTAKE',
             description: 'Anh xe mat ben trai',
           },
           {
             photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Horwin_CR6_Black_Edition.jpg',
+            photoType: 'AFTER_REPAIR',
+            description: 'Anh xe sau khi kiem tra xong',
+          },
+          {
+            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Motor_scooter_in_an_auto_shop.jpg',
+            photoType: 'AFTER_REPAIR',
             description: 'Anh xe mat ben phai',
           },
         ],
@@ -295,7 +303,7 @@ async function main() {
     data: {
       orderNumber: 'WO-2026-002',
       vehicleId: vehicle2.id,
-      status: 'PENDING',
+      status: 'INSPECTION',
       priority: 'NORMAL',
       notes: 'Bảo dưỡng mốc 10.000km. Thay má phanh trước, kiểm tra áp suất lốp và kiểm tra sạc.',
       technicianId: technician1.id,
@@ -312,10 +320,12 @@ async function main() {
         create: [
           {
             photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Horwin_CR6_Black_Edition.jpg',
+            photoType: 'INTAKE',
             description: 'Anh xe khi nhan xe',
           },
           {
             photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/41/EVScooterAtVancouver.jpg',
+            photoType: 'AFTER_REPAIR',
             description: 'Anh xe canh sau',
           },
         ],
@@ -357,10 +367,12 @@ async function main() {
         create: [
           {
             photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/41/EVScooterAtVancouver.jpg',
+            photoType: 'INTAKE',
             description: 'Anh xe khi nhan xe',
           },
           {
             photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/ZEV_2700_electric_motor_scooter.jpg',
+            photoType: 'AFTER_REPAIR',
             description: 'Anh xe canh truoc',
           },
         ],

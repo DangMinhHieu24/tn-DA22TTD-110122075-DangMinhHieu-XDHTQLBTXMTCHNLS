@@ -91,8 +91,8 @@ class CustomerWorkOrderCard extends StatelessWidget {
         return 'Chờ xử lý';
       case 'IN_PROGRESS':
         return 'Đang sửa';
-      case 'WAITING_PARTS':
-        return 'Chờ phụ tùng';
+      case 'INSPECTION':
+        return 'Kiểm tra';
       case 'COMPLETED':
         return 'Hoàn thành';
       case 'PAID':
@@ -110,8 +110,8 @@ class CustomerWorkOrderCard extends StatelessWidget {
         return Icons.build;
       case 'COMPLETED':
         return Icons.check_circle;
-      case 'WAITING_PARTS':
-        return Icons.inventory_2;
+      case 'INSPECTION':
+        return Icons.fact_check;
       case 'PAID':
         return Icons.payments;
       case 'CANCELLED':
@@ -127,7 +127,7 @@ class CustomerWorkOrderCard extends StatelessWidget {
         return AppColors.primary;
       case 'COMPLETED':
         return const Color(0xFF16A34A);
-      case 'WAITING_PARTS':
+      case 'INSPECTION':
         return const Color(0xFFF59E0B);
       case 'PAID':
         return const Color(0xFF0EA5E9);

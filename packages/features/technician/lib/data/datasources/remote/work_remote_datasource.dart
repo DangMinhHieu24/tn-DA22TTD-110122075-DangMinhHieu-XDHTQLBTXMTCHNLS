@@ -1,10 +1,16 @@
 import 'package:dio/dio.dart';
 import '../../models/work_item_model.dart';
+import '../../models/work_item_service_model.dart';
 
 abstract class WorkRemoteDataSource {
   Future<List<WorkItemModel>> getWorkItems({String? technicianId});
   Future<WorkItemModel> getWorkItemById(String id);
   Future<WorkItemModel> updateWorkStatus(String id, String newStatus);
+  Future<WorkItemServiceModel> updateWorkServiceStatus(
+    String workOrderId,
+    String serviceId,
+    bool isDone,
+  );
   Future<List<WorkItemModel>> searchWorkItems(String query, {String? technicianId});
 }
 
@@ -63,6 +69,28 @@ class WorkRemoteDataSourceImpl implements WorkRemoteDataSource {
       }
       
       throw Exception('Failed to update work status');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<WorkItemServiceModel> updateWorkServiceStatus(
+    String workOrderId,
+    String serviceId,
+    bool isDone,
+  ) async {
+    try {
+      final response = await dio.patch(
+        '/work-orders/$workOrderId/services/$serviceId',
+        data: {'isDone': isDone},
+      );
+
+      if (response.data['success'] == true) {
+        return WorkItemServiceModel.fromApiJson(response.data['data']);
+      }
+
+      throw Exception('Failed to update service status');
     } catch (e) {
       rethrow;
     }

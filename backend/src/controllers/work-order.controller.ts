@@ -389,6 +389,55 @@ export const addPartsToWorkOrder = async (req: Request, res: Response) => {
 };
 
 /**
+ * Update single work order service status
+ * PATCH /api/work-orders/:id/services/:serviceId
+ */
+export const updateWorkOrderServiceStatus = async (req: Request, res: Response) => {
+  try {
+    const { id, serviceId } = req.params;
+    const { isDone } = req.body;
+
+    const existingService = await prisma.workOrderService.findUnique({
+      where: { id: serviceId },
+      select: { id: true, workOrderId: true },
+    });
+
+    if (!existingService) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found',
+      });
+    }
+
+    if (existingService.workOrderId !== id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service does not belong to this work order',
+      });
+    }
+
+    const service = await prisma.workOrderService.update({
+      where: { id: serviceId },
+      data: {
+        isDone: Boolean(isDone),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Work order service updated successfully',
+      data: service,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update work order service',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Update work order status
  * PATCH /api/work-orders/:id/status
  */
@@ -397,7 +446,18 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const updateData: any = { status };
+    let normalizedStatus = typeof status === 'string'
+      ? status.toUpperCase()
+      : status;
+
+    if (normalizedStatus === 'WAITING_PARTS') {
+      normalizedStatus = 'INSPECTION';
+    }
+    if (normalizedStatus === 'INPROGRESS') {
+      normalizedStatus = 'IN_PROGRESS';
+    }
+
+    const updateData: any = { status: normalizedStatus };
     
     // If status is COMPLETED, set completedAt
     if (status === 'COMPLETED') {

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
+import 'work_item_service.dart';
 
-enum WorkStatus { pending, inProgress, waitingParts, completed }
+enum WorkStatus { pending, inspection, inProgress, completed }
 
 enum WorkPriority { normal, urgent }
 
@@ -10,6 +11,7 @@ class WorkItem extends Equatable {
   final String vehicleModel;
   final String? imageUrl;
   final List<String> photoUrls;
+  final List<WorkItemService> services;
   final String customerName;
   final String description;
   final WorkStatus status;
@@ -23,6 +25,7 @@ class WorkItem extends Equatable {
     required this.vehicleModel,
     this.imageUrl,
     this.photoUrls = const [],
+    this.services = const [],
     required this.customerName,
     required this.description,
     required this.status,
@@ -38,6 +41,7 @@ class WorkItem extends Equatable {
         vehicleModel,
       imageUrl,
       photoUrls,
+      services,
         customerName,
         description,
         status,

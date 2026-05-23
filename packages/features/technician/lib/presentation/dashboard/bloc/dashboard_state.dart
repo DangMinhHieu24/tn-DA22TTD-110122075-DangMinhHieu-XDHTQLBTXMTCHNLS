@@ -20,14 +20,14 @@ class DashboardLoaded extends DashboardState {
   final List<WorkItem> workItems;
   final int pendingCount;
   final int inProgressCount;
-  final int waitingPartsCount;
+  final int inspectionCount;
   final String userName;
 
   const DashboardLoaded({
     required this.workItems,
     required this.pendingCount,
     required this.inProgressCount,
-    required this.waitingPartsCount,
+    this.inspectionCount = 0,
     this.userName = 'Tuấn Anh',
   });
 
@@ -36,7 +36,7 @@ class DashboardLoaded extends DashboardState {
         workItems,
         pendingCount,
         inProgressCount,
-        waitingPartsCount,
+        inspectionCount,
         userName,
       ];
 
@@ -44,14 +44,14 @@ class DashboardLoaded extends DashboardState {
     List<WorkItem>? workItems,
     int? pendingCount,
     int? inProgressCount,
-    int? waitingPartsCount,
+    int? inspectionCount,
     String? userName,
   }) {
     return DashboardLoaded(
       workItems: workItems ?? this.workItems,
       pendingCount: pendingCount ?? this.pendingCount,
       inProgressCount: inProgressCount ?? this.inProgressCount,
-      waitingPartsCount: waitingPartsCount ?? this.waitingPartsCount,
+      inspectionCount: inspectionCount ?? this.inspectionCount,
       userName: userName ?? this.userName,
     );
   }

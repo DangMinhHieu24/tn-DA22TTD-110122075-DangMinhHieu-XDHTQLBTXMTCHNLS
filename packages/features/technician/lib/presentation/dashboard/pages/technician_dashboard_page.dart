@@ -277,8 +277,8 @@ class _DashboardViewState extends State<_DashboardView> {
         Expanded(
           child: StatsCard(
             icon: Icons.inventory_2,
-            count: state.waitingPartsCount.toString().padLeft(2, '0'),
-            label: 'Chờ phụ tùng',
+            count: state.inspectionCount.toString().padLeft(2, '0'),
+            label: 'Kiểm tra',
             color: AppColors.onSurfaceVariant,
             backgroundColor: AppColors.surfaceContainerLow,
           ),
@@ -369,8 +369,8 @@ class _DashboardViewState extends State<_DashboardView> {
         return 'Chờ xử lý';
       case WorkStatus.inProgress:
         return 'Đang thực hiện';
-      case WorkStatus.waitingParts:
-        return 'Chờ phụ tùng';
+      case WorkStatus.inspection:
+        return 'Kiểm tra';
       case WorkStatus.completed:
         return 'Hoàn thành';
     }
@@ -382,7 +382,7 @@ class _DashboardViewState extends State<_DashboardView> {
         return AppColors.outlineVariant;
       case WorkStatus.inProgress:
         return AppColors.primary;
-      case WorkStatus.waitingParts:
+      case WorkStatus.inspection:
         return AppColors.tertiary;
       case WorkStatus.completed:
         return AppColors.secondary;
