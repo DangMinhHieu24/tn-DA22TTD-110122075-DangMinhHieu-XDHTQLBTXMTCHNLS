@@ -6,20 +6,37 @@ const prisma = new PrismaClient();
 export const getTechnicians = async (req: Request, res: Response) => {
   try {
     const technicians = await prisma.user.findMany({
-      where: {
-        role: 'TECHNICIAN',
-      },
+      where: { role: 'TECHNICIAN' },
       select: {
         id: true,
         name: true,
         phoneNumber: true,
+        updatedAt: true,
       },
     });
 
-    res.json({
-      success: true,
-      data: technicians,
-    });
+    // For each technician, compute active work order count and a simple "isOnline" heuristic
+    const result = await Promise.all(technicians.map(async (t) => {
+      const activeCount = await prisma.workOrder.count({
+        where: {
+          technicianId: t.id,
+          status: { in: ['IN_PROGRESS', 'INSPECTION', 'PENDING'] },
+        },
+      });
+
+      // Simple presence heuristic: consider online if they have any active work orders
+      const isOnline = activeCount > 0;
+
+      return {
+        id: t.id,
+        name: t.name,
+        phoneNumber: t.phoneNumber,
+        vehicleCount: activeCount,
+        isOnline,
+      };
+    }));
+
+    res.json({ success: true, data: result });
   } catch (error: any) {
     res.status(500).json({
       success: false,

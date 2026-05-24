@@ -1129,7 +1129,7 @@ class _WorkOrderCard extends StatelessWidget {
             const SizedBox(height: 12),
             // Order title + date
             Text(
-              _getPriorityLabel(),
+              _cardTitle,
               style: AppTextStyles.titleSmall.copyWith(
                 fontWeight: FontWeight.w800,
                 color: AppColors.onSurface,
@@ -1205,11 +1205,19 @@ class _WorkOrderCard extends StatelessWidget {
     );
   }
 
-  String _getPriorityLabel() {
+  String get _cardTitle {
+    final summary = _servicesSummary.trim();
+    if (summary.isNotEmpty) {
+      final firstItem = summary.split(',').first.trim();
+      if (firstItem.isNotEmpty) {
+        return firstItem.length > 42 ? '${firstItem.substring(0, 42)}…' : firstItem;
+      }
+    }
+
     final p = workOrder.priority.toLowerCase();
     if (p == 'emergency' || p == 'dot_xuat') return 'Sửa chữa đột xuất';
     if (p == 'scheduled' || p == 'dinh_ky') return 'Bảo dưỡng định kỳ';
-    if (p == 'normal') return 'Sửa chữa thường';
+    if (p == 'normal') return 'Phiếu sửa chữa';
     return 'Phiếu sửa chữa';
   }
 }

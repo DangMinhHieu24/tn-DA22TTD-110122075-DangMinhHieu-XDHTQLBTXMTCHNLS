@@ -7,10 +7,13 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // Clear old work orders and vehicles so seed is deterministic
+  await prisma.maintenanceLog.deleteMany();
+  await prisma.warranty.deleteMany();
   await prisma.partsUsed.deleteMany();
   await prisma.inventory.deleteMany();
   await prisma.workOrder.deleteMany();
   await prisma.vehicle.deleteMany();
+  await prisma.appointment.deleteMany();
 
   // Create admin user
   const adminPassword = await bcrypt.hash('admin123', 10);
@@ -394,6 +397,48 @@ async function main() {
     }
   });
   console.log('✅ Work Order 3 created:', workOrder3.orderNumber);
+
+  const maintenanceLogs = await prisma.maintenanceLog.createMany({
+    data: [
+      {
+        vehicleId: vehicle1.id,
+        odometerKm: 3800,
+        serviceType: 'MAINTENANCE',
+        serviceSummary: 'Bảo dưỡng định kỳ 5.000km',
+        notes: 'Kiểm tra tổng quát, siết lại đầu cos pin, vệ sinh dàn điện.',
+        performedAt: new Date('2025-03-12T08:30:00.000Z'),
+        nextServiceKm: 5800,
+      },
+      {
+        vehicleId: vehicle1.id,
+        odometerKm: 4950,
+        serviceType: 'BATTERY_CHECK',
+        serviceSummary: 'Kiểm tra pack pin và BMS',
+        notes: 'Đã hiệu chỉnh cấu hình BMS và kiểm tra dung lượng pin.',
+        performedAt: new Date('2025-05-10T09:00:00.000Z'),
+        nextServiceKm: 5950,
+      },
+      {
+        vehicleId: vehicle2.id,
+        odometerKm: 9800,
+        serviceType: 'BRAKES_TIRES',
+        serviceSummary: 'Thay má phanh trước, kiểm tra lốp',
+        notes: 'Thay má phanh trước và kiểm tra áp suất lốp.',
+        performedAt: new Date('2025-06-18T10:15:00.000Z'),
+        nextServiceKm: 10800,
+      },
+      {
+        vehicleId: vehicle3.id,
+        odometerKm: 14500,
+        serviceType: 'OTHER_REPAIR',
+        serviceSummary: 'Căn chỉnh đĩa phanh, kiểm tra lốp',
+        notes: 'Cân chỉnh lại hệ thống phanh và thay lốp không săm.',
+        performedAt: new Date('2025-07-22T13:45:00.000Z'),
+        nextServiceKm: 15500,
+      },
+    ],
+  });
+  console.log('✅ Maintenance logs created:', maintenanceLogs.count);
 
   console.log('🎉 Seeding completed!');
 }

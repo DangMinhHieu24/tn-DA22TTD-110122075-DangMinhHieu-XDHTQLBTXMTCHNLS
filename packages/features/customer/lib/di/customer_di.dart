@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import '../data/datasources/remote/customer_maintenance_log_remote_datasource.dart';
 import '../data/datasources/remote/customer_vehicle_remote_datasource.dart';
 import '../data/datasources/remote/customer_work_order_remote_datasource.dart';
 import '../data/repositories/customer_repository_impl.dart';
@@ -21,11 +22,16 @@ void setupCustomerDependencies() {
     () => CustomerWorkOrderRemoteDataSourceImpl(dio: getIt<Dio>()),
   );
 
+  getIt.registerLazySingleton<CustomerMaintenanceLogRemoteDataSource>(
+    () => CustomerMaintenanceLogRemoteDataSourceImpl(dio: getIt<Dio>()),
+  );
+
   // Repository
   getIt.registerLazySingleton<CustomerRepository>(
     () => CustomerRepositoryImpl(
       vehicleRemoteDataSource: getIt<CustomerVehicleRemoteDataSource>(),
       workOrderRemoteDataSource: getIt<CustomerWorkOrderRemoteDataSource>(),
+      maintenanceLogRemoteDataSource: getIt<CustomerMaintenanceLogRemoteDataSource>(),
     ),
   );
 

@@ -22,6 +22,7 @@ class VehicleIntakeState extends Equatable {
   final String? vehicleModel;
   final String? vehicleColor;
   final bool? warrantyStatus;
+  final int? currentVehicleKm;
   
   // New vehicle form fields
   final String ownerName;
@@ -57,6 +58,7 @@ class VehicleIntakeState extends Equatable {
     this.vehicleModel,
     this.vehicleColor,
     this.warrantyStatus,
+    this.currentVehicleKm,
     this.ownerName = '',
     this.ownerPhone = '',
     this.vehicleType = '',
@@ -87,6 +89,7 @@ class VehicleIntakeState extends Equatable {
     String? vehicleModel,
     String? vehicleColor,
     bool? warrantyStatus,
+    int? currentVehicleKm,
     String? ownerName,
     String? ownerPhone,
     String? vehicleType,
@@ -116,6 +119,7 @@ class VehicleIntakeState extends Equatable {
       vehicleModel: vehicleModel ?? this.vehicleModel,
       vehicleColor: vehicleColor ?? this.vehicleColor,
       warrantyStatus: warrantyStatus ?? this.warrantyStatus,
+      currentVehicleKm: currentVehicleKm ?? this.currentVehicleKm,
       ownerName: ownerName ?? this.ownerName,
       ownerPhone: ownerPhone ?? this.ownerPhone,
       vehicleType: vehicleType ?? this.vehicleType,
@@ -148,6 +152,7 @@ class VehicleIntakeState extends Equatable {
         vehicleModel,
         vehicleColor,
         warrantyStatus,
+        currentVehicleKm,
         ownerName,
         ownerPhone,
         vehicleType,

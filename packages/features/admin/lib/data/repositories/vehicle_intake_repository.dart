@@ -120,6 +120,7 @@ class VehicleIntakeRepository {
     String? technicianId,
     double? estimatedHours,
     List<File>? photoFiles,
+    int? currentKm,
   }) async {
     try {
       // Upload ảnh lên Firebase Storage nếu có
@@ -154,6 +155,7 @@ class VehicleIntakeRepository {
         'notes': notes,
         'technicianId': _normalizeTechnicianId(technicianId),
         'estimatedHours': estimatedHours,
+        if (currentKm != null) 'currentKm': currentKm,
         'services': services,
         if (photos != null && photos.isNotEmpty) 'photos': photos,
       };

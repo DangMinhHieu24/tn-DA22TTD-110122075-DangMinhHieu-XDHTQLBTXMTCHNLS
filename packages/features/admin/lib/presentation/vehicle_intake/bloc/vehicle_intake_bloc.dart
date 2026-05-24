@@ -50,6 +50,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
       vehicleId: null,
       vehicleFound: false,
       vehicleModel: null,
+      currentVehicleKm: null,
       vehicleColor: null,
       warrantyStatus: null,
     ));
@@ -125,7 +126,6 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
       emit(state.copyWith(errorMessage: 'Không thể chụp ảnh: ${e.toString()}'));
     }
   }
-
   Future<void> _onPhotoPickedFromGallery(
     VehicleIntakePhotoPickedFromGallery event,
     Emitter<VehicleIntakeState> emit,
@@ -168,6 +168,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
           warrantyStatus: vehicle.isUnderWarranty,
           ownerName: vehicle.ownerName ?? '',
           ownerPhone: vehicle.ownerPhone ?? '',
+          currentVehicleKm: vehicle.currentKm,
         ));
         
         // Auto-load vehicle history
@@ -278,7 +279,16 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
     emit(state.copyWith(isSubmitting: true, errorMessage: null));
 
     try {
-      // Validate
+      // Validate KM input first
+      final submittedKm = int.tryParse(state.km.trim());
+      if (submittedKm == null) {
+        throw Exception('Vui lòng nhập số KM hợp lệ');
+      }
+      if (submittedKm < 0) {
+        throw Exception('Số KM không hợp lệ');
+      }
+
+      // Resolve or create vehicle
       late String resolvedVehicleId;
       if (state.vehicleId == null) {
         final plate = state.licensePlate.trim();
@@ -288,6 +298,12 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
 
         final vehicle = await repository.searchVehicle(plate);
         if (vehicle != null) {
+          // Existing vehicle: validate KM is not less than recorded
+          final existingKm = vehicle.currentKm;
+          if (existingKm != null && submittedKm < existingKm) {
+            throw Exception('Số KM mới không được nhỏ hơn số KM hiện tại (${existingKm} km)');
+          }
+
           resolvedVehicleId = vehicle.id;
           emit(state.copyWith(
             vehicleId: resolvedVehicleId,
@@ -297,9 +313,10 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
             warrantyStatus: vehicle.isUnderWarranty,
             ownerName: vehicle.ownerName ?? '',
             ownerPhone: vehicle.ownerPhone ?? '',
+            currentVehicleKm: vehicle.currentKm,
           ));
         } else {
-          // Validate new vehicle form
+          // New vehicle: validate new vehicle fields
           if (state.ownerName.trim().isEmpty) {
             throw Exception('Vui lòng nhập tên chủ xe');
           }
@@ -321,7 +338,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
             model: state.vehicleType.trim(),
             color: state.vehicleColor?.trim().isNotEmpty == true ? state.vehicleColor!.trim() : null,
             warrantyExpiry: null,
-            currentKm: int.tryParse(state.km),
+            currentKm: submittedKm,
           );
 
           resolvedVehicleId = newVehicle.id;
@@ -331,10 +348,16 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
             vehicleModel: newVehicle.model,
             vehicleColor: newVehicle.color,
             warrantyStatus: newVehicle.isUnderWarranty,
+            currentVehicleKm: newVehicle.currentKm,
           ));
         }
       } else {
+        // Vehicle already selected in state; ensure KM is valid vs state
         resolvedVehicleId = state.vehicleId!;
+        final existingKm = state.currentVehicleKm;
+        if (existingKm != null && submittedKm < existingKm) {
+          throw Exception('Số KM mới không được nhỏ hơn số KM hiện tại (${existingKm} km)');
+        }
       }
 
       // Collect selected services
@@ -348,14 +371,20 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
         throw Exception('Vui lòng chọn ít nhất một dịch vụ');
       }
 
+      final estimatedHours = double.tryParse(state.estimatedHours);
+      if (estimatedHours == null || estimatedHours <= 0) {
+        throw Exception('Thời gian hoàn thành phải lớn hơn 0 giờ');
+      }
+
       // Create work order (photos will be uploaded inside repository)
       await repository.createWorkOrder(
         vehicleId: resolvedVehicleId,
         notes: state.notes,
         serviceTypes: services,
         technicianId: state.selectedTechnician,
-        estimatedHours: double.tryParse(state.estimatedHours),
+        estimatedHours: estimatedHours,
         photoFiles: state.photoFiles.isNotEmpty ? state.photoFiles : null,
+        currentKm: submittedKm,
       );
       
       emit(state.copyWith(

@@ -122,6 +122,7 @@ model WorkOrder {
   completedAt       DateTime?       @map("completed_at")
 
   partsUsed         PartsUsed[]
+  maintenanceLog    MaintenanceLog?
 
   @@map("work_orders")
 }
@@ -203,11 +204,17 @@ model MaintenanceLog {
   id             String   @id @default(uuid())
   vehicleId      String   @map("vehicle_id")
   vehicle        Vehicle  @relation(fields: [vehicleId], references: [id])
+  workOrderId    String?  @unique @map("work_order_id")
+  workOrder      WorkOrder? @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
   odometerKm     Int      @map("odometer_km")
   serviceType    String?  @map("service_type")
+  serviceSummary String?  @map("service_summary")
   nextServiceKm  Int?     @map("next_service_km")
   nextServiceDate DateTime? @map("next_service_date")
+  notes          String?
+  performedAt    DateTime @default(now()) @map("performed_at")
 
+  @@index([vehicleId, performedAt])
   @@map("maintenance_logs")
 }
 

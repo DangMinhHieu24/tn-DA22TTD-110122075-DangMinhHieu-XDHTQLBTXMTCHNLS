@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:design_system/design_system.dart';
+import 'package:intl/intl.dart';
 
 class WorkCard extends StatelessWidget {
   final String licensePlate;
@@ -98,7 +99,7 @@ class WorkCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        time!,
+                        _formatScheduledTime(time!),
                         style: AppTextStyles.labelSmall.copyWith(
                           color: AppColors.onSurfaceVariant,
                           fontWeight: FontWeight.w700,
@@ -167,4 +168,13 @@ class WorkCard extends StatelessWidget {
       ),
     );
   }
+
+    String _formatScheduledTime(String scheduledTime) {
+      final parsed = DateTime.tryParse(scheduledTime);
+      if (parsed == null) {
+        return scheduledTime;
+      }
+
+      return DateFormat('HH:mm dd/MM', 'vi').format(parsed.toLocal());
+    }
 }

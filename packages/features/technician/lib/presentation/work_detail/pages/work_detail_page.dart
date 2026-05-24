@@ -79,7 +79,6 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                     _buildTechnicalNotesSection(),
                     const SizedBox(height: 24),
                     _buildCostSummarySection(),
-                    const SizedBox(height: 96), // Extra padding for bottom button
                   ],
                 ),
               ),
@@ -87,8 +86,6 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
           ],
         ),
       ),
-      floatingActionButton: _buildCompleteButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -1298,70 +1295,6 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     );
   }
 
-  /// Complete Button (Floating)
-  Widget _buildCompleteButton() {
-    final nextStatus = _getNextStatus(_currentItem.status);
-    if (nextStatus == null) {
-      return const SizedBox.shrink();
-    }
-    final buttonLabel = _getNextStatusButtonLabel(nextStatus);
-
-    return Container(
-      width: MediaQuery.of(context).size.width - 32,
-      height: 56,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: ElevatedButton(
-        onPressed: () {
-          _showStatusChangeDialog(nextStatus);
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF006E2F).withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Container(
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.check_circle,
-                  size: 20,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  buttonLabel,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   /// Confirmation Dialog
   void _showStatusChangeDialog(WorkStatus nextStatus) {

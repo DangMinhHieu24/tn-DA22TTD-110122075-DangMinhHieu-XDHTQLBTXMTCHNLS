@@ -100,12 +100,15 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
             _vehicleColorController.text = state.vehicleColor!;
           }
         } else if (state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Lỗi: ${state.errorMessage}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          final isKmError = state.errorMessage!.contains('KM');
+          if (!isKmError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       },
       child: Scaffold(
@@ -505,76 +508,95 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                               ],
                             ),
                           // KM and Color inputs
-                          Row(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'SỐ KM HIỆN TẠI',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF3D4A3D),
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFFFFF),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
-                                      ),
-                                      child: TextField(
-                                        controller: _kmController,
-                                        keyboardType: TextInputType.number,
-                                        onChanged: (value) {
-                                          context.read<VehicleIntakeBloc>().add(
-                                            VehicleIntakeKmChanged(value),
-                                          );
-                                        },
-                                        decoration: const InputDecoration(
-                                          hintText: 'Nhập số KM...',
-                                          hintStyle: TextStyle(fontSize: 13),
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'SỐ KM HIỆN TẠI',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF3D4A3D),
+                                            letterSpacing: 0.5,
+                                          ),
                                         ),
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF191C1E),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFFFFFF),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
+                                          ),
+                                          child: TextField(
+                                            controller: _kmController,
+                                            keyboardType: TextInputType.number,
+                                            onChanged: (value) {
+                                              context.read<VehicleIntakeBloc>().add(
+                                                VehicleIntakeKmChanged(value),
+                                              );
+                                            },
+                                            decoration: const InputDecoration(
+                                              hintText: 'Nhập số KM...',
+                                              hintStyle: TextStyle(fontSize: 13),
+                                              border: InputBorder.none,
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF191C1E),
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'MÀU XE',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF3D4A3D),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          state.vehicleColor ?? 'Chưa có thông tin',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF191C1E),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'MÀU XE',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF3D4A3D),
-                                        letterSpacing: 0.5,
-                                      ),
+                              if (state.errorMessage != null && state.errorMessage!.contains('KM'))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    _formatKmError(state.errorMessage!),
+                                    softWrap: true,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      state.vehicleColor ?? 'Chưa có thông tin',
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF191C1E),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ],
@@ -802,26 +824,44 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(color: const Color(0xFFDBDEE0), width: 1),
                                 ),
-                                child: TextField(
-                                  controller: _kmController,
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (value) {
-                                    context.read<VehicleIntakeBloc>().add(
-                                      VehicleIntakeKmChanged(value),
-                                    );
-                                  },
-                                  decoration: const InputDecoration(
-                                    hintText: 'Số KM hiện tại',
-                                    hintStyle: TextStyle(fontSize: 13),
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF191C1E),
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    TextField(
+                                      controller: _kmController,
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) {
+                                        context.read<VehicleIntakeBloc>().add(
+                                          VehicleIntakeKmChanged(value),
+                                        );
+                                      },
+                                      decoration: const InputDecoration(
+                                        hintText: 'Số KM hiện tại',
+                                        hintStyle: TextStyle(fontSize: 13),
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      ),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF191C1E),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              if (state.errorMessage != null && state.errorMessage!.contains('KM'))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    _formatKmError(state.errorMessage!),
+                                    softWrap: true,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -969,6 +1009,10 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
       ),
     ),
     );
+  }
+
+  String _formatKmError(String message) {
+    return message.replaceFirst('Exception: ', '');
   }
 
   /// Step 2: Visual Documentation
@@ -1494,7 +1538,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'ƯỚC TÍNH THỜI GIAN (GIỜ)',
+                  'THỜI GIAN HOÀN THÀNH DỰ KIẾN (GIỜ)',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
@@ -1520,6 +1564,15 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF191C1E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Dùng để tính thời điểm hoàn thành dự kiến cho thợ và khách.',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF5F6B5F),
+                    height: 1.3,
                   ),
                 ),
               ],

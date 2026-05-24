@@ -116,6 +116,67 @@ export const getVehicleById = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get maintenance logs for a vehicle
+ * GET /api/vehicles/:id/maintenance-logs
+ */
+export const getVehicleMaintenanceLogs = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const authUser = (req as any).user;
+
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        ownerId: true,
+      },
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vehicle not found',
+      });
+    }
+
+    if (authUser?.role === 'CUSTOMER' && vehicle.ownerId !== authUser.userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
+      });
+    }
+
+    const maintenanceLogs = await prisma.maintenanceLog.findMany({
+      where: { vehicleId: id },
+      include: {
+        workOrder: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            completedAt: true,
+          },
+        },
+      },
+      orderBy: {
+        performedAt: 'desc',
+      },
+    });
+
+    res.json({
+      success: true,
+      data: maintenanceLogs,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch maintenance logs',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Get vehicle by license plate
  * GET /api/vehicles/plate/:licensePlate
  */
@@ -261,6 +322,17 @@ export const updateVehicle = async (req: Request, res: Response) => {
       warrantyExpiry,
       currentKm 
     } = req.body;
+
+    // Validate currentKm: do not allow decreasing odometer
+    if (currentKm !== undefined && currentKm !== null) {
+      const existing = await prisma.vehicle.findUnique({ where: { id }, select: { currentKm: true } });
+      if (existing && existing.currentKm != null && currentKm < existing.currentKm) {
+        return res.status(400).json({
+          success: false,
+          message: `currentKm (${currentKm}) cannot be less than existing value (${existing.currentKm})`,
+        });
+      }
+    }
 
     const vehicle = await prisma.vehicle.update({
       where: { id },

@@ -2,6 +2,8 @@ import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../domain/entities/customer_maintenance_log.dart';
 import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
 import '../../../domain/repositories/customer_repository.dart';
@@ -27,6 +29,8 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
   late CustomerWorkOrder _currentWorkOrder;
   late final CustomerRepository _customerRepository;
   late final WorkOrderRealtimeService _realtimeService;
+  List<CustomerMaintenanceLog> _maintenanceLogs = const [];
+  bool _isLoadingMaintenanceLogs = false;
 
   @override
   void initState() {
@@ -49,6 +53,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
       onChanged: _refreshWorkOrder,
     );
     _refreshWorkOrder();
+    _refreshMaintenanceLogs();
   }
 
   Future<void> _refreshWorkOrder() async {
@@ -69,6 +74,30 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
         }
       },
     );
+    _refreshMaintenanceLogs();
+  }
+
+  Future<void> _refreshMaintenanceLogs() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingMaintenanceLogs = true;
+    });
+
+    final result = await _customerRepository.getMaintenanceLogsByVehicle(widget.vehicle.id);
+    result.fold(
+      (_) {},
+      (logs) {
+        if (!mounted) return;
+        setState(() {
+          _maintenanceLogs = logs;
+        });
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isLoadingMaintenanceLogs = false;
+    });
   }
 
   @override
@@ -85,8 +114,6 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildAIReminderBanner(),
-                    const SizedBox(height: 24),
                     _buildServiceProgress(),
                     const SizedBox(height: 24),
                     _buildTechnicalAlert(),
@@ -267,7 +294,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  'HẸN TRẢ:',
+                  'DỰ KIẾN XONG:',
                   style: AppTextStyles.labelSmall.copyWith(
                     color: const Color(0xFFD97706),
                     fontWeight: FontWeight.w700,
@@ -276,7 +303,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                   ),
                 ),
                 Text(
-                  _currentWorkOrder.scheduledTime!,
+                  _formatScheduledTime(_currentWorkOrder.scheduledTime!),
                   style: AppTextStyles.titleSmall.copyWith(
                     color: const Color(0xFFD97706),
                     fontWeight: FontWeight.w800,
@@ -284,106 +311,6 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                 ),
               ],
             ),
-        ],
-      ),
-    );
-  }
-
-  // ─── AI Reminder Banner ────────────────────────────────────────────────────
-  Widget _buildAIReminderBanner() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primaryContainer.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primary, AppColors.primaryContainer],
-              ),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI gợi ý: Xe của bạn sắp đến\nhạn bảo dưỡng.',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: 0.95,
-                    minHeight: 6,
-                    backgroundColor:
-                        AppColors.primaryContainer.withValues(alpha: 0.3),
-                    valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Hiện tại: 9.500 km',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      'Còn 500 km',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  'Bảo dưỡng tại: 10.000 km',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: () {},
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Đặt lịch ngay',
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward,
-                          size: 14, color: AppColors.primary),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -406,8 +333,6 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
 
   // ─── Technical Alert ───────────────────────────────────────────────────────
   Widget _buildTechnicalAlert() {
-    if ((_currentWorkOrder.notes ?? '').isEmpty) return const SizedBox.shrink();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -458,7 +383,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _currentWorkOrder.notes ?? '',
+                      'Khách báo xe sụt pin nhanh khi tăng tốc mạnh. Cần kiểm tra pack pin và cập nhật cấu hình BMS.',
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.onSurface,
                         height: 1.5,
@@ -537,61 +462,94 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
 
   // ─── Maintenance History Timeline ──────────────────────────────────────────
   Widget _buildMaintenanceHistory() {
-    final services = _currentWorkOrder.services;
+    final logs = _maintenanceLogs;
+    final visibleLogs = logs.take(3).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Lịch sử bảo trì',
-          style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Lịch sử bảo trì',
+                style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            if (logs.isNotEmpty)
+              Text(
+                '${logs.length} mục',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
-        if (services.isEmpty)
+        if (_isLoadingMaintenanceLogs)
           Text(
-            'Chưa có hạng mục dịch vụ',
+            'Đang tải lịch sử bảo trì...',
             style: AppTextStyles.bodyMedium
                 .copyWith(color: AppColors.onSurfaceVariant),
           )
+        else if (logs.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Xe này chưa có lịch sử bảo trì',
+              style: AppTextStyles.bodyMedium
+                  .copyWith(color: AppColors.onSurfaceVariant),
+            ),
+          )
         else
-          ...services.asMap().entries.map((entry) {
+          ...visibleLogs.asMap().entries.map((entry) {
             final i = entry.key;
-            final service = entry.value;
-            final isLast = i == services.length - 1;
+            final log = entry.value;
+            final isLast = i == visibleLogs.length - 1;
             final isFirst = i == 0;
             return _buildTimelineItem(
-              title: service.serviceType,
-              description: service.description ?? '',
-              date: _formatDate(_currentWorkOrder.createdAt),
+              title: log.serviceSummary?.trim().isNotEmpty == true
+                  ? log.serviceSummary!.trim()
+                  : _mapServiceTypeLabel(log.serviceType ?? ''),
+              description: _buildMaintenanceDescription(log),
+              date: _formatDate(log.performedAt),
               isFirst: isFirst,
               isLast: isLast,
             );
           }),
         const SizedBox(height: 12),
-        // "Xem thêm" button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.expand_more, size: 18),
-            label: Text(
-              'Xem thêm',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
+        if (logs.isNotEmpty)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                // TODO: open full maintenance history screen.
+              },
+              icon: const Icon(Icons.history, size: 18),
+              label: Text(
+                'Xem tất cả lịch sử',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side:
-                  BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.6)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: BorderSide(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.6),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -663,7 +621,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
@@ -673,6 +631,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                             ),
                           ),
                         ),
+                        const SizedBox(width: 12),
                         Text(
                           date,
                           style: AppTextStyles.labelSmall.copyWith(
@@ -682,7 +641,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                       ],
                     ),
                     if (description.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         description,
                         style: AppTextStyles.bodySmall.copyWith(
@@ -722,5 +681,47 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _formatScheduledTime(String scheduledTime) {
+    final parsed = DateTime.tryParse(scheduledTime);
+    if (parsed == null) {
+      return scheduledTime;
+    }
+
+    return DateFormat('HH:mm, dd/MM/yyyy', 'vi').format(parsed.toLocal());
+  }
+
+  String _mapServiceTypeLabel(String serviceType) {
+    switch (serviceType.toUpperCase()) {
+      case 'MAINTENANCE':
+        return 'Bảo dưỡng định kỳ';
+      case 'BATTERY_CHECK':
+        return 'Kiểm tra pin & BMS';
+      case 'BRAKES_TIRES':
+        return 'Phanh & lốp';
+      case 'OTHER_REPAIR':
+        return 'Sửa chữa khác';
+      default:
+        return serviceType;
+    }
+  }
+
+  String _buildMaintenanceDescription(CustomerMaintenanceLog log) {
+    final parts = <String>[];
+
+    if ((log.notes ?? '').trim().isNotEmpty) {
+      parts.add(log.notes!.trim());
+    }
+
+    if (log.odometerKm != null) {
+      parts.add('Km: ${log.odometerKm}');
+    }
+
+    if (log.nextServiceKm != null) {
+      parts.add('Lần sau: ${log.nextServiceKm} km');
+    }
+
+    return parts.join(' • ');
   }
 }

@@ -221,14 +221,9 @@ class _DashboardViewState extends State<_DashboardView> {
 
     if (state is DashboardLoaded) {
       return RefreshIndicator(
-        onRefresh: () async {
-          context.read<DashboardBloc>().add(
-            RefreshDashboardData(technicianId: _technicianId),
-          );
-          // Wait for refresh to complete
-          await Future.delayed(const Duration(milliseconds: 500));
-        },
+        onRefresh: _refreshDashboard,
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,6 +243,14 @@ class _DashboardViewState extends State<_DashboardView> {
     }
 
     return const SizedBox.shrink();
+  }
+
+  Future<void> _refreshDashboard() async {
+    context.read<DashboardBloc>().add(
+      RefreshDashboardData(technicianId: _technicianId),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   Widget _buildStatsCards(DashboardLoaded state) {
@@ -354,12 +357,17 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
-  void _openWorkDetail(BuildContext context, WorkItem item) {
-    Navigator.push(
+  Future<void> _openWorkDetail(BuildContext context, WorkItem item) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => WorkDetailPage(workItem: item),
       ),
+    );
+
+    if (!mounted) return;
+    context.read<DashboardBloc>().add(
+      RefreshDashboardData(technicianId: _technicianId),
     );
   }
 

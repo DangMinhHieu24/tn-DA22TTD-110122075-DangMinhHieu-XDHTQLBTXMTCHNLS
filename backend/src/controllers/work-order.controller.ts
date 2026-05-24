@@ -3,6 +3,27 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const buildServiceSummary = (services: Array<{ serviceType: string; description?: string | null; serviceName?: string | null }>) => {
+  return services
+    .map((service) => service.description || service.serviceName || service.serviceType)
+    .filter((value): value is string => Boolean(value && value.trim()))
+    .join(', ');
+};
+
+const formatScheduledTime = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return date.toISOString();
+};
+
+const buildScheduledTime = (estimatedHours?: number | null) => {
+  if (typeof estimatedHours !== 'number' || !Number.isFinite(estimatedHours) || estimatedHours <= 0) {
+    return undefined;
+  }
+
+  const completionTime = new Date(Date.now() + estimatedHours * 60 * 60 * 1000);
+  return formatScheduledTime(completionTime);
+};
+
 /**
  * Get all work orders
  * GET /api/work-orders
@@ -231,6 +252,19 @@ export const createWorkOrder = async (req: Request, res: Response) => {
         });
       }
 
+      // If currentKm provided in request, update vehicle currentKm if it's greater than existing
+      const { currentKm } = req.body as any;
+      if (typeof currentKm === 'number') {
+        const existing = await tx.vehicle.findUnique({ where: { id: vehicleId }, select: { currentKm: true } });
+        if (!existing || existing.currentKm == null || currentKm >= existing.currentKm) {
+          await tx.vehicle.update({ where: { id: vehicleId }, data: { currentKm } });
+        } else {
+          throw new Error(`Provided currentKm (${currentKm}) is less than existing vehicle odometer (${existing.currentKm})`);
+        }
+      }
+
+      const resolvedScheduledTime = scheduledTime ?? buildScheduledTime(estimatedHours);
+
       return tx.workOrder.create({
         data: {
           orderNumber,
@@ -240,7 +274,7 @@ export const createWorkOrder = async (req: Request, res: Response) => {
           notes,
           technicianId,
           estimatedHours,
-          scheduledTime,
+          scheduledTime: resolvedScheduledTime,
           createdById,
           services: {
             create: services || [],
@@ -460,26 +494,58 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
     const updateData: any = { status: normalizedStatus };
     
     // If status is COMPLETED, set completedAt
-    if (status === 'COMPLETED') {
+    if (normalizedStatus === 'COMPLETED') {
       updateData.completedAt = new Date();
     }
 
-    const workOrder = await prisma.workOrder.update({
-      where: { id },
-      data: updateData,
-      include: {
-        vehicle: {
-          include: {
+    const workOrder = await prisma.$transaction(async (tx) => {
+      const updatedWorkOrder = await tx.workOrder.update({
+        where: { id },
+        data: updateData,
+        include: {
+          vehicle: {
+            select: {
+              id: true,
+              currentKm: true,
+            },
           },
-        },
-        technician: {
-          select: {
-            id: true,
-            name: true,
+          technician: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
+          services: true,
         },
-        services: true,
-      },
+      });
+
+      if (updatedWorkOrder.status === 'COMPLETED') {
+        const serviceSummary = buildServiceSummary(updatedWorkOrder.services);
+        const serviceType = updatedWorkOrder.services[0]?.serviceType ?? null;
+
+        await tx.maintenanceLog.upsert({
+          where: { workOrderId: id },
+          update: {
+            vehicleId: updatedWorkOrder.vehicleId,
+            odometerKm: updatedWorkOrder.vehicle?.currentKm ?? 0,
+            serviceType,
+            serviceSummary,
+            notes: updatedWorkOrder.notes,
+            performedAt: updatedWorkOrder.completedAt ?? new Date(),
+          },
+          create: {
+            vehicleId: updatedWorkOrder.vehicleId,
+            workOrderId: id,
+            odometerKm: updatedWorkOrder.vehicle?.currentKm ?? 0,
+            serviceType,
+            serviceSummary,
+            notes: updatedWorkOrder.notes,
+            performedAt: updatedWorkOrder.completedAt ?? new Date(),
+          },
+        });
+      }
+
+      return updatedWorkOrder;
     });
 
     res.json({
@@ -545,13 +611,14 @@ export const updateWorkOrder = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { notes, estimatedHours, scheduledTime, priority } = req.body;
+    const resolvedScheduledTime = scheduledTime ?? buildScheduledTime(estimatedHours);
 
     const workOrder = await prisma.workOrder.update({
       where: { id },
       data: {
         notes,
         estimatedHours,
-        scheduledTime,
+        scheduledTime: resolvedScheduledTime,
         priority,
       },
       include: {

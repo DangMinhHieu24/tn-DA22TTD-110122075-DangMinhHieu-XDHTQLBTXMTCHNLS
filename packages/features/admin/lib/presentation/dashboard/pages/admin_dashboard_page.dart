@@ -4,6 +4,8 @@ import 'package:get_it/get_it.dart';
 import 'package:auth/presentation/bloc/auth_bloc.dart';
 import '../../dashboard/bloc/dashboard_bloc.dart';
 import '../../dashboard/bloc/dashboard_event.dart';
+import '../../../data/repositories/vehicle_intake_repository.dart';
+import '../../../data/models/technician_model.dart';
 import '../../dashboard/bloc/dashboard_state.dart';
 import '../../../domain/entities/dashboard_stats.dart';
 import '../../vehicle_intake/pages/reception_hub_page.dart';
@@ -21,12 +23,36 @@ class AdminDashboardPage extends StatefulWidget {
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _selectedNavIndex = 0;
   late final DashboardBloc _dashboardBloc;
+  final VehicleIntakeRepository _vehicleIntakeRepository = GetIt.instance<VehicleIntakeRepository>();
+  List<TechnicianModel> _technicians = [];
+  bool _loadingTechnicians = false;
+  String? _techniciansError;
 
   @override
   void initState() {
     super.initState();
     _dashboardBloc = GetIt.instance<DashboardBloc>();
     _dashboardBloc.add(LoadDashboardStats());
+    // Defer loading technicians until auth state is available
+  }
+
+  Future<void> _loadTechnicians() async {
+    try {
+      setState(() {
+        _loadingTechnicians = true;
+        _techniciansError = null;
+      });
+      final list = await _vehicleIntakeRepository.getTechnicians();
+      setState(() {
+        _technicians = list;
+        _loadingTechnicians = false;
+      });
+    } catch (e) {
+      setState(() {
+        _techniciansError = e.toString();
+        _loadingTechnicians = false;
+      });
+    }
   }
 
   @override
@@ -46,6 +72,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               '/login',
               (route) => false,
             );
+            return;
+          }
+
+          // When authenticated, load technicians (token available via AuthLocalDataSource)
+          if (state is AuthAuthenticated) {
+            // Avoid redundant reloads
+            if (!_loadingTechnicians && _technicians.isEmpty && _techniciansError == null) {
+              _loadTechnicians();
+            }
           }
         },
         child: BlocBuilder<AuthBloc, AuthState>(
@@ -68,23 +103,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         ? _buildVehicleIntakePage()
                         : _selectedNavIndex == 3 
                         ? _buildProfilePage(userName, userEmail, context)
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.only(bottom: 96), // pb-24 (24*4=96)
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 24, 16, 32), // pt-6 px-4 pb-8 (reduced from pt-20)
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildPageHeader(),
-                                  const SizedBox(height: 32), // mb-8
-                                  BlocBuilder<DashboardBloc, DashboardState>(
-                                    builder: (context, dashboardState) {
-                                      return _buildQuickStatsGrid(dashboardState);
-                                    },
-                                  ),
-                                  const SizedBox(height: 24), // space-y-6
-                                  _buildMainContent(),
-                                ],
+                        : RefreshIndicator(
+                            onRefresh: () async {
+                              await Future.wait([
+                                _loadTechnicians(),
+                                Future(() => _dashboardBloc.add(LoadDashboardStats())),
+                              ]);
+                            },
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 96), // pb-24 (24*4=96)
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 24, 16, 32), // pt-6 px-4 pb-8 (reduced from pt-20)
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildPageHeader(),
+                                    const SizedBox(height: 32), // mb-8
+                                    BlocBuilder<DashboardBloc, DashboardState>(
+                                      builder: (context, dashboardState) {
+                                        return _buildQuickStatsGrid(dashboardState);
+                                      },
+                                    ),
+                                    const SizedBox(height: 24), // space-y-6
+                                    _buildMainContent(),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -1012,12 +1056,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ],
           ),
           const SizedBox(height: 16), // mb-4
-          // Technician items - space-y-4
-          _buildTechnicianItem('TA', 'Tuấn Anh', 'Trưởng nhóm', 4, true, const Color(0xFF006E2F)),
-          const SizedBox(height: 16),
-          _buildTechnicianItem('MĐ', 'Minh Đức', 'Chuyên viên điện', 2, true, const Color(0xFF0058BE)),
-          const SizedBox(height: 16),
-          _buildTechnicianItem('HQ', 'Hoàng Quân', 'Thực tập sinh', 0, false, const Color(0xFF3D4A3D)),
+          // Technician items - dynamic
+          if (_loadingTechnicians)
+            const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))),
+          if (!_loadingTechnicians && _technicians.isEmpty)
+            Text(_techniciansError == null ? 'Không có kỹ thuật viên' : 'Lỗi tải: ${_techniciansError}'),
+          if (!_loadingTechnicians)
+            ..._technicians.map((t) {
+              final initials = t.name.isNotEmpty ? t.name.split(' ').map((s) => s.isNotEmpty ? s[0] : '').take(2).join() : 'K';
+              final badgeColor = t.isOnline ? const Color(0xFF006E2F) : const Color(0xFF3D4A3D);
+              return Column(
+                children: [
+                  _buildTechnicianItem(initials, t.name, 'Kỹ thuật viên', t.vehicleCount, t.isOnline, badgeColor),
+                  const SizedBox(height: 16),
+                ],
+              );
+            }).toList(),
           const SizedBox(height: 16), // mt-4
           // View all button
           SizedBox(

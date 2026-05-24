@@ -58,10 +58,16 @@ class DashboardLoaded extends DashboardState {
 
   // Helper getters
   List<WorkItem> get urgentWorkItems =>
-      workItems.where((item) => item.priority == WorkPriority.urgent).toList();
+      workItems
+        .where((item) => item.priority == WorkPriority.urgent)
+        .where((item) => item.status != WorkStatus.completed)
+        .toList();
 
   List<WorkItem> get normalWorkItems =>
-      workItems.where((item) => item.priority == WorkPriority.normal).toList();
+      workItems
+        .where((item) => item.priority == WorkPriority.normal)
+        .where((item) => item.status != WorkStatus.completed)
+        .toList();
 }
 
 class DashboardError extends DashboardState {

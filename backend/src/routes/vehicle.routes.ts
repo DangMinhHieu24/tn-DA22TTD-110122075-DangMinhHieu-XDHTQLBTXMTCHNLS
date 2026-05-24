@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getVehicles,
   getVehicleById,
+  getVehicleMaintenanceLogs,
   getVehicleByLicensePlate,
   createVehicle,
   updateVehicle,
@@ -19,6 +20,9 @@ router.get('/', getVehicles);
 
 // GET /api/vehicles/plate/:licensePlate - Get vehicle by license plate
 router.get('/plate/:licensePlate', getVehicleByLicensePlate);
+
+// GET /api/vehicles/:id/maintenance-logs - Get vehicle maintenance history
+router.get('/:id/maintenance-logs', getVehicleMaintenanceLogs);
 
 // GET /api/vehicles/:id - Get vehicle by ID
 router.get('/:id', getVehicleById);
