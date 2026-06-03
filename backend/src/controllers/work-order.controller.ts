@@ -952,7 +952,8 @@ export const getRevenueReport = async (req: Request, res: Response) => {
       const dayOrders = currentOrders.filter((order) => isInRange(order.completedAt, dayStart, dayEnd));
       const revenue = dayOrders.reduce((sum, order) => sum + computeWorkOrderTotalRevenue(order), 0);
       return {
-        date: dayStart.toISOString().slice(0, 10),
+        // Use local date to avoid timezone offset (toISOString returns UTC)
+        date: `${dayStart.getFullYear()}-${String(dayStart.getMonth() + 1).padStart(2, '0')}-${String(dayStart.getDate()).padStart(2, '0')}`,
         revenue,
         orders: dayOrders.length,
       };
