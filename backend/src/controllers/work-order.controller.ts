@@ -882,7 +882,17 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     const rangeDays = Math.max(1, Math.ceil((rangeEndExclusive.getTime() - rangeStart.getTime()) / msPerDay));
 
     const previousRangeEnd = new Date(rangeStart);
-    const previousRangeStart = new Date(rangeStart.getTime() - rangeDays * msPerDay);
+    // For full calendar month ranges, compare with the previous calendar month
+    // (e.g., May 1-31 vs April 1-30). For custom/short ranges, use same-length
+    // period immediately before (e.g., 7-day window vs the 7 days before).
+    let previousRangeStart: Date;
+    if (rangeDays >= 28 && rangeDays <= 31 && rangeStart.getDate() === 1) {
+      // Full calendar month → compare with previous calendar month
+      previousRangeStart = new Date(rangeStart.getFullYear(), rangeStart.getMonth() - 1, 1);
+    } else {
+      // Custom range → same-length previous period
+      previousRangeStart = new Date(rangeStart.getTime() - rangeDays * msPerDay);
+    }
 
     const workOrders = await prisma.workOrder.findMany({
       where: {
