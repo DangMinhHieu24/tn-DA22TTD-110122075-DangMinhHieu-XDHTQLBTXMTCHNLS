@@ -663,13 +663,21 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     return {0, 9.clamp(0, last), 19.clamp(0, last), last}.toList()..sort();
   }
 
-  void _onLineChartTap(double localX, double chartWidth, int pointCount) {
+  void _onLineChartPointerDown(double localX, double chartWidth, int pointCount) {
     if (pointCount <= 0) return;
     final index = pointCount <= 1
         ? 0
         : ((localX / chartWidth).clamp(0.0, 1.0) * (pointCount - 1)).round().clamp(0, pointCount - 1);
+    if (_lineChartTouchIndex != index) {
+      setState(() {
+        _lineChartTouchIndex = index;
+      });
+    }
+  }
+
+  void _onLineChartPointerUp() {
     setState(() {
-      _lineChartTouchIndex = _lineChartTouchIndex == index ? null : index;
+      _lineChartTouchIndex = null;
     });
   }
 
@@ -779,11 +787,18 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
                 height: 200,
                 child: Listener(
                   behavior: HitTestBehavior.opaque,
-                  onPointerDown: (event) => _onLineChartTap(
+                  onPointerDown: (event) => _onLineChartPointerDown(
                     event.localPosition.dx,
                     chartWidth,
                     pointCount,
                   ),
+                  onPointerMove: (event) => _onLineChartPointerDown(
+                    event.localPosition.dx,
+                    chartWidth,
+                    pointCount,
+                  ),
+                  onPointerUp: (_) => _onLineChartPointerUp(),
+                  onPointerCancel: (_) => _onLineChartPointerUp(),
                   child: IgnorePointer(child: chart),
                 ),
               ),
@@ -846,58 +861,52 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     final chartValue = chartPoints[index];
     final dayLabel = DateFormat('dd/MM/yyyy').format(daily.startDate);
 
-    return Material(
-      elevation: 6,
-      shadowColor: const Color(0xFF191C1E).withValues(alpha: 0.2),
-      color: const Color(0xFF2D3133),
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2D3133),
         borderRadius: BorderRadius.circular(10),
-        onTap: () => setState(() => _lineChartTouchIndex = null),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      dayLabel,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFFB0B8B4),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    if (cumulative)
-                      Text(
-                        'Tích lũy: ${_formatMillions(chartValue.revenue)} VND',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    Text(
-                      cumulative
-                          ? 'Trong ngày: +${_formatMillions(daily.revenue)} · ${daily.orders} đơn'
-                          : '${_formatMillions(daily.revenue)} VND · ${daily.orders} đơn',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFE8EDEA),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.close, size: 16, color: Color(0xFFB0B8B4)),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF191C1E).withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-        ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            dayLabel,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFFB0B8B4),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          if (cumulative)
+            Text(
+              'Tích lũy: ${_formatMillions(chartValue.revenue)} VND',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          Text(
+            cumulative
+                ? 'Trong ngày: +${_formatMillions(daily.revenue)} · ${daily.orders} đơn'
+                : '${_formatMillions(daily.revenue)} VND · ${daily.orders} đơn',
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFFE8EDEA),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
