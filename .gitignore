@@ -21,5 +21,6 @@ ios/.symlinks/
 coverage/
 *.iml
 .metadata
-temp_login.json.idea/
+temp_login.json
+.idea/
 
