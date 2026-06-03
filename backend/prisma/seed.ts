@@ -1,8 +1,47 @@
+// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+const buildSpreadDates = (startDate: Date, endDate: Date, count: number) => {
+  if (count <= 1) {
+    return [new Date((startDate.getTime() + endDate.getTime()) / 2)];
+  }
+
+  const span = endDate.getTime() - startDate.getTime();
+  return Array.from({ length: count }, (_, index) => new Date(startDate.getTime() + Math.round((span * index) / (count - 1))));
+};
+
+const setBusinessHour = (date: Date, hour: number, minute: number) => {
+  const result = new Date(date);
+  result.setHours(hour, minute, 0, 0);
+  return result;
+};
+
+const roundMoney = (value: number) => Math.round(value / 1000) * 1000;
+
+const buildPhotos = (label: string, index: number) => {
+  const photos = [
+    'https://upload.wikimedia.org/wikipedia/commons/4/41/EVScooterAtVancouver.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/3/3b/ZEV_2700_electric_motor_scooter.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/d/db/Horwin_CR6_Black_Edition.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/2/2f/Motor_scooter_in_an_auto_shop.jpg',
+  ];
+
+  return [
+    {
+      photoUrl: photos[index % photos.length],
+      photoType: 'INTAKE',
+      description: `Ảnh tiếp nhận - ${label}`,
+    },
+    {
+      photoUrl: photos[(index + 1) % photos.length],
+      photoType: 'AFTER_REPAIR',
+      description: `Ảnh hoàn tất - ${label}`,
+    },
+  ];
+};
 async function main() {
   console.log('🌱 Seeding database...');
 
@@ -233,6 +272,9 @@ async function main() {
           'Pin Li-ion 60V 20Ah (pack)',
           'BMS 60V 30A',
           'Sạc 60V 5A',
+          'Bộ điều khiển 60V 35A',
+          'Tay ga điện (Hall)',
+          'Cảm biến phanh (cut-off)',
           'Má phanh trước (đĩa)',
           'Đĩa phanh trước 220mm',
           'Lốp không săm 90/90-12',
@@ -247,156 +289,130 @@ async function main() {
   const batteryPack = partByName.get('Pin Li-ion 60V 20Ah (pack)')!;
   const bms = partByName.get('BMS 60V 30A')!;
   const charger = partByName.get('Sạc 60V 5A')!;
+  
+  
+  const controller = partByName.get('Bộ điều khiển 60V 35A')!;
+  const throttle = partByName.get('Tay ga điện (Hall)')!;
+  const brakeSensor = partByName.get('Cảm biến phanh (cut-off)')!;
 
-  // Create work orders
-  const workOrder1 = await prisma.workOrder.create({
-    data: {
-      orderNumber: 'WO-2026-001',
-      vehicleId: vehicle1.id,
-      status: 'PENDING',
-      priority: 'URGENT',
-      notes: 'Khách báo xe sụt pin nhanh khi tăng tốc mạnh. Cần kiểm tra pack pin và cập nhật cấu hình BMS.',
-      technicianId: technician1.id,
-      estimatedHours: 2.5,
-      createdById: admin.id,
-      services: {
-        create: [
-          { serviceType: 'BATTERY_CHECK', description: 'Kiểm tra pack pin và BMS' },
-          { serviceType: 'OTHER_REPAIR', description: 'Cập nhật cấu hình BMS' }
-        ]
-      },
-      photos: {
-        create: [
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/ZEV_2700_electric_motor_scooter.jpg',
-            photoType: 'INTAKE',
-            description: 'Anh xe khi nhan xe',
-          },
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/41/EVScooterAtVancouver.jpg',
-            photoType: 'INTAKE',
-            description: 'Anh xe mat ben trai',
-          },
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Horwin_CR6_Black_Edition.jpg',
-            photoType: 'AFTER_REPAIR',
-            description: 'Anh xe sau khi kiem tra xong',
-          },
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Motor_scooter_in_an_auto_shop.jpg',
-            photoType: 'AFTER_REPAIR',
-            description: 'Anh xe mat ben phai',
-          },
-        ],
-      },
-      partsUsed: {
-        create: [
-          {
-            partId: bms.id,
-            quantity: 1,
-            unitPrice: bms.sellPrice,
-          },
-        ],
-      },
-    }
-  });
-  console.log('✅ Work Order 1 created:', workOrder1.orderNumber);
+  const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const currentMonthEnd = new Date();
+  currentMonthEnd.setHours(18, 0, 0, 0);
+  const previousMonthStart = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() - 1, 1);
+  const previousMonthEnd = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth(), 0);
+  previousMonthEnd.setHours(18, 0, 0, 0);
 
-  const workOrder2 = await prisma.workOrder.create({
-    data: {
-      orderNumber: 'WO-2026-002',
-      vehicleId: vehicle2.id,
-      status: 'INSPECTION',
-      priority: 'NORMAL',
-      notes: 'Bảo dưỡng mốc 10.000km. Thay má phanh trước, kiểm tra áp suất lốp và kiểm tra sạc.',
-      technicianId: technician1.id,
-      estimatedHours: 1.5,
-      scheduledTime: '14:00',
-      createdById: admin.id,
-      services: {
-        create: [
-          { serviceType: 'MAINTENANCE', description: 'Bảo dưỡng định kỳ 10.000km' },
-          { serviceType: 'BRAKES_TIRES', description: 'Thay má phanh trước' }
-        ]
-      },
-      photos: {
-        create: [
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Horwin_CR6_Black_Edition.jpg',
-            photoType: 'INTAKE',
-            description: 'Anh xe khi nhan xe',
-          },
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/41/EVScooterAtVancouver.jpg',
-            photoType: 'AFTER_REPAIR',
-            description: 'Anh xe canh sau',
-          },
-        ],
-      },
-      partsUsed: {
-        create: [
-          {
-            partId: brakePad.id,
-            quantity: 1,
-            unitPrice: brakePad.sellPrice,
-          },
-          {
-            partId: charger.id,
-            quantity: 1,
-            unitPrice: charger.sellPrice,
-          },
-        ],
-      },
-    }
-  });
-  console.log('✅ Work Order 2 created:', workOrder2.orderNumber);
+  // Create a spread of completed dates, with most orders landing in the current month.
+  const completedDates = [
+    ...buildSpreadDates(previousMonthStart, previousMonthEnd, 6),
+    ...buildSpreadDates(currentMonthStart, currentMonthEnd, 24),
+  ].map((d, i) =>
+    setBusinessHour(d, [8, 9, 10, 11, 13, 14, 15, 16][i % 8], [0, 15, 30, 45, 0, 20, 40, 50][i % 8])
+  );
 
-  const workOrder3 = await prisma.workOrder.create({
-    data: {
-      orderNumber: 'WO-2026-003',
-      vehicleId: vehicle3.id,
-      status: 'IN_PROGRESS',
-      priority: 'NORMAL',
-      notes: 'Thay lốp không săm, kiểm tra và căn chỉnh đĩa phanh. Khách đang đợi tại sảnh.',
-      technicianId: technician2.id,
-      estimatedHours: 1.0,
-      createdById: admin.id,
-      services: {
-        create: [
-          { serviceType: 'BRAKES_TIRES', description: 'Thay lốp không săm 90/90-12' }
-        ]
+  const vehicles = [vehicle1, vehicle2, vehicle3];
+  const techs = [technician1, technician2];
+  const serviceTypes = ['MAINTENANCE', 'BATTERY_CHECK', 'BRAKES_TIRES', 'OTHER_REPAIR'];
+  const basePrices = [150000, 170000, 200000, 220000, 250000, 300000];
+
+  let orderIndex = 1;
+
+  for (let i = 0; i < completedDates.length; i++) {
+    const completedAt = completedDates[i];
+    const createdAt = new Date(completedAt.getTime() - (1 + (i % 4)) * 60 * 60 * 1000);
+    const vehicle = vehicles[i % vehicles.length];
+    const tech = techs[i % techs.length];
+    const svcType = serviceTypes[i % serviceTypes.length];
+    const svcName = svcType === 'MAINTENANCE' ? 'Bảo dưỡng định kỳ' : svcType === 'BATTERY_CHECK' ? 'Kiểm tra pin/BMS' : svcType === 'BRAKES_TIRES' ? 'Phanh & lốp' : 'Sửa chữa khác';
+    const servicePrice = basePrices[i % basePrices.length];
+
+    const partsUsedList: any[] = [];
+    if (i % 3 === 0) partsUsedList.push({ partId: bms.id, quantity: 1, unitPrice: bms.sellPrice });
+    if (i % 4 === 0) partsUsedList.push({ partId: brakePad.id, quantity: 1, unitPrice: brakePad.sellPrice });
+    if (i % 5 === 0) partsUsedList.push({ partId: tire.id, quantity: 1, unitPrice: tire.sellPrice });
+
+    const partsTotal = partsUsedList.reduce((s, p) => s + (p.quantity * p.unitPrice), 0);
+    const totalPrice = roundMoney(partsTotal + servicePrice);
+
+    const workOrder = await prisma.workOrder.create({
+      data: {
+        orderNumber: `WO-${new Date().getFullYear()}-${String(orderIndex).padStart(3, '0')}`,
+        vehicleId: vehicle.id,
+        status: 'COMPLETED',
+        priority: i % 7 === 0 ? 'URGENT' : 'NORMAL',
+        notes: `${svcName} - seed order ${orderIndex}`,
+        technicianId: tech.id,
+        estimatedHours: 1 + (i % 3) * 0.5,
+        scheduledTime: `${8 + (i % 9)}:00`,
+        totalPrice,
+        createdAt,
+        completedAt,
+        createdById: admin.id,
+        services: {
+          create: [
+            {
+              serviceType: svcType,
+              serviceName: svcName,
+              description: svcName,
+              price: servicePrice,
+            },
+          ],
+        },
+        photos: { create: buildPhotos(svcName, i) },
+        partsUsed: { create: partsUsedList.map((p) => ({ partId: p.partId, quantity: p.quantity, unitPrice: p.unitPrice })) },
       },
-      photos: {
-        create: [
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/41/EVScooterAtVancouver.jpg',
-            photoType: 'INTAKE',
-            description: 'Anh xe khi nhan xe',
-          },
-          {
-            photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/ZEV_2700_electric_motor_scooter.jpg',
-            photoType: 'AFTER_REPAIR',
-            description: 'Anh xe canh truoc',
-          },
-        ],
+    });
+
+    // bump vehicle km
+    await prisma.vehicle.update({ where: { id: vehicle.id }, data: { currentKm: (vehicle.currentKm ?? 0) + (100 + i * 10) } });
+
+    await prisma.maintenanceLog.create({
+      data: {
+        vehicleId: vehicle.id,
+        workOrderId: workOrder.id,
+        odometerKm: (vehicle.currentKm ?? 0) + (100 + i * 10),
+        serviceType: svcType,
+        serviceSummary: svcName,
+        notes: `Auto-seeded maintenance for ${svcName}`,
+        performedAt: completedAt,
+        nextServiceKm: (vehicle.currentKm ?? 0) + (100 + i * 10) + 800,
       },
-      partsUsed: {
-        create: [
-          {
-            partId: tire.id,
-            quantity: 1,
-            unitPrice: tire.sellPrice,
-          },
-          {
-            partId: brakeDisc.id,
-            quantity: 1,
-            unitPrice: brakeDisc.sellPrice,
-          },
-        ],
+    });
+
+    orderIndex += 1;
+    console.log('✅ Seeded completed work order:', workOrder.orderNumber);
+  }
+
+  // create a few active orders (PENDING / IN_PROGRESS / INSPECTION)
+  const activeStatuses = ['PENDING', 'IN_PROGRESS', 'INSPECTION'];
+  for (let j = 0; j < 6; j++) {
+    const vehicle = vehicles[j % vehicles.length];
+    const tech = techs[j % techs.length];
+    const status = activeStatuses[j % activeStatuses.length];
+    const createdAt = new Date();
+    const svcType = serviceTypes[j % serviceTypes.length];
+    const svcName = svcType === 'MAINTENANCE' ? 'Bảo dưỡng' : svcType === 'BATTERY_CHECK' ? 'Pin' : svcType === 'BRAKES_TIRES' ? 'Phanh' : 'Sửa chữa';
+
+    const order = await prisma.workOrder.create({
+      data: {
+        orderNumber: `WO-${new Date().getFullYear()}-${String(orderIndex).padStart(3, '0')}`,
+        vehicleId: vehicle.id,
+        status,
+        priority: 'NORMAL',
+        notes: `Active seeded order ${orderIndex}`,
+        technicianId: tech.id,
+        estimatedHours: 1.5,
+        scheduledTime: `${9 + j}:30`,
+        createdAt,
+        createdById: admin.id,
+        services: { create: [{ serviceType: svcType, serviceName: svcName, description: svcName, price: basePrices[j % basePrices.length] }] },
       },
-    }
-  });
-  console.log('✅ Work Order 3 created:', workOrder3.orderNumber);
+    });
+
+    orderIndex += 1;
+    console.log('✅ Seeded active work order:', order.orderNumber);
+  
+  }
 
   const maintenanceLogs = await prisma.maintenanceLog.createMany({
     data: [
@@ -441,11 +457,12 @@ async function main() {
   console.log('✅ Maintenance logs created:', maintenanceLogs.count);
 
   console.log('🎉 Seeding completed!');
+
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seeding error:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

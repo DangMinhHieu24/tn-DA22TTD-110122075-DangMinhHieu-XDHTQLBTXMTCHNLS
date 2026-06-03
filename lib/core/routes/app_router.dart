@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth/auth.dart';
-import 'package:technician/technician.dart';
-import 'package:admin/admin.dart';
-import 'package:customer/customer.dart';
+import 'package:technician/technician.dart' as tech;
+import 'package:admin/admin.dart' as admin;
+import 'package:customer/customer.dart' as customer;
 import 'package:get_it/get_it.dart';
 
 class AppRouter {
@@ -11,6 +11,7 @@ class AppRouter {
   static const String login = '/login';
   static const String register = '/register';
   static const String adminDashboard = '/admin/dashboard';
+  static const String adminRevenueReport = '/admin/revenue-report';
   static const String technicianDashboard = '/technician/dashboard';
   static const String customerDashboard = '/customer/dashboard';
 
@@ -44,17 +45,25 @@ class AppRouter {
 
       case technicianDashboard:
         return MaterialPageRoute(
-          builder: (_) => const TechnicianDashboardPage(),
+          builder: (_) => const tech.TechnicianDashboardPage(),
         );
 
       case adminDashboard:
         return MaterialPageRoute(
-          builder: (_) => const AdminDashboardPage(),
+          builder: (_) => const admin.AdminDashboardPage(),
+        );
+
+      case adminRevenueReport:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => GetIt.instance<admin.RevenueReportBloc>(),
+            child: const admin.AdminRevenueReportPage(),
+          ),
         );
 
       case customerDashboard:
         return MaterialPageRoute(
-          builder: (_) => const MyVehiclesPage(),
+          builder: (_) => const customer.MyVehiclesPage(),
         );
 
       default:

@@ -13,7 +13,7 @@ import { errorHandler } from './middleware/error.middleware';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Middleware
 app.use(helmet());
@@ -58,8 +58,10 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🌐 Server accessible on http://0.0.0.0:${PORT}`);
+  console.log(`📱 Android Emulator: http://10.0.2.2:${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

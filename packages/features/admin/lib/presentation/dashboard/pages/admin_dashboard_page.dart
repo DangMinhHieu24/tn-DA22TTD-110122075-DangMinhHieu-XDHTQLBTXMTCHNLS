@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:auth/presentation/bloc/auth_bloc.dart';
 import '../../dashboard/bloc/dashboard_bloc.dart';
 import '../../dashboard/bloc/dashboard_event.dart';
@@ -22,6 +23,7 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _selectedNavIndex = 0;
+  int _selectedRevenueBarIndex = -1;
   late final DashboardBloc _dashboardBloc;
   final VehicleIntakeRepository _vehicleIntakeRepository = GetIt.instance<VehicleIntakeRepository>();
   List<TechnicianModel> _technicians = [];
@@ -33,6 +35,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     super.initState();
     _dashboardBloc = GetIt.instance<DashboardBloc>();
     _dashboardBloc.add(LoadDashboardStats());
+    // Try loading technicians immediately (will succeed if token already available)
+    _loadTechnicians();
     // Defer loading technicians until auth state is available
   }
 
@@ -81,6 +85,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             if (!_loadingTechnicians && _technicians.isEmpty && _techniciansError == null) {
               _loadTechnicians();
             }
+
+            // Ensure dashboard stats are reloaded after authentication so API call includes token
+            _dashboardBloc.add(LoadDashboardStats());
           }
         },
         child: BlocBuilder<AuthBloc, AuthState>(
@@ -509,7 +516,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '8.5M',
+                        '8.5tr',
                         style: TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
@@ -522,10 +529,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       Padding(
                         padding: EdgeInsets.only(bottom: 2),
                         child: Text(
-                          'VNĐ',
+                          'VND',
                           style: TextStyle(
-                            fontSize: 16, // text-lg
-                            fontWeight: FontWeight.w600, // font-semibold
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                             color: Color(0xFF3D4A3D),
                           ),
                         ),
@@ -601,16 +608,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Biểu đồ doanh thu (7 ngày)',
-                style: TextStyle(
-                  fontSize: 16, // text-lg
-                  fontWeight: FontWeight.w700, // font-bold
-                  color: Color(0xFF191C1E),
+              const Expanded(
+                child: Text(
+                  'Biểu đồ doanh thu (7 ngày)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF191C1E),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).pushNamed('/admin/revenue-report');
+                },
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: Size.zero,
@@ -619,8 +633,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 child: const Text(
                   'Chi tiết',
                   style: TextStyle(
-                    fontSize: 13, // text-sm
-                    fontWeight: FontWeight.w500, // font-medium
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                     color: Color(0xFF006E2F),
                   ),
                 ),
@@ -631,7 +645,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           // Chart - h-48
           SizedBox(
             height: 192, // h-48 (48*4=192)
-            child: _buildBarChartWithGrid(),
+            child: BlocBuilder<DashboardBloc, DashboardState>(
+              builder: (context, state) {
+                final isLive = state is DashboardLoaded;
+                final weekly = isLive
+                    ? state.stats.weeklyRevenue
+                    : <double>[8500000.0, 9500000.0, 4200000.0, 12000000.0, 7200000.0, 10300000.0, 7800000.0];
+                return _buildBarChartWithGrid(weekly, isLive: isLive);
+              },
+            ),
           ),
         ],
       ),
@@ -639,30 +661,79 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   /// Bar Chart with Grid Lines and Y-axis labels
-  Widget _buildBarChartWithGrid() {
-    // Data: h-[40%], h-[60%], h-[30%], h-[80%], h-[50%], h-[75%], h-[55%]
-    final dataHeights = [0.40, 0.60, 0.30, 0.80, 0.50, 0.75, 0.55];
+  Widget _buildBarChartWithGrid(List<double> weeklyRevenue, {bool isLive = false}) {
     final labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    
+
+    // If no real data, fallback to sample values (VND)
+    final data = weeklyRevenue.isNotEmpty
+        ? weeklyRevenue
+        : [4000000, 6000000, 3000000, 8000000, 5000000, 7500000, 5500000];
+
+    // Ensure all values are doubles to avoid runtime type mismatch
+    final values = data.map((e) => e.toDouble()).toList();
+    final maxY = values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 0.0;
+
+    // Compute fractions (0..1) for each bar using double values
+    final fractions = values.map((v) => (maxY > 0 ? (v / maxY) : 0.0).clamp(0.0, 1.0)).toList();
+
+    String _fmt(double v) {
+      if (v <= 0) return '0tr';
+      final tr = v / 1000000;
+      // show integer millions as '2tr', otherwise one decimal '1.8tr'
+      final text = (tr % 1 == 0) ? tr.toInt().toString() : tr.toStringAsFixed(1);
+      return '${text}tr';
+    }
+
+    String _tooltipValue(double value) {
+      if (value <= 0) return '0đ';
+      final formatter = NumberFormat('#,###', 'vi_VN');
+      if (value >= 1000000) {
+        final millionValue = value / 1000000;
+        final text = millionValue % 1 == 0 ? millionValue.toStringAsFixed(0) : millionValue.toStringAsFixed(1);
+        return '${text.replaceAll('.', ',')}tr';
+      }
+      return '${formatter.format(value).replaceAll(',', '.')}đ';
+    }
+
+    final yTicks = List.generate(4, (i) => maxY * (3 - i) / 3);
+
     return Stack(
       children: [
+        // Demo/live indicator
+        if (!isLive)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2EE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Dữ liệu demo',
+                style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D)),
+              ),
+            ),
+          ),
         // Y-axis labels - absolute left-0 top-0 h-full pb-6 pr-2
         Positioned(
           left: 0,
           top: 0,
           bottom: 24, // pb-6
           child: Container(
-            width: 32, // pr-2 + space for text
+            width: 44, // increased width to avoid wrapping
             padding: const EdgeInsets.only(right: 8),
-            child: const Column(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('15M', style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D))),
-                Text('10M', style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D))),
-                Text('5M', style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D))),
-                Text('0', style: TextStyle(fontSize: 11, color: Color(0xFF3D4A3D))),
-              ],
+              children: yTicks.map((t) => Text(
+                _fmt(t),
+                style: const TextStyle(fontSize: 11, color: Color(0xFF3D4A3D)),
+                softWrap: false,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )).toList(),
             ),
           ),
         ),
@@ -686,24 +757,74 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 crossAxisAlignment: CrossAxisAlignment.end, // Align all bars to bottom
                 children: List.generate(7, (index) {
-                  final height = dataHeights[index];
+                  final heightFraction = fractions.length > index ? fractions[index] : 0.0;
+                  final value = values.length > index ? values[index] : 0.0;
+                  final isSelected = _selectedRevenueBarIndex == index && value > 0;
                   return Expanded(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        width: 8, // w-2 - exact 8px like HTML
-                        height: 168 * height, // 168 = chart height minus padding
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Color(0x33006E2F), // from-primary/20
-                              Color(0xFF006E2F), // to-primary
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        setState(() {
+                          _selectedRevenueBarIndex = index;
+                        });
+                      },
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: SizedBox(
+                          width: 32,
+                          child: Stack(
+                            alignment: Alignment.bottomCenter,
+                            clipBehavior: Clip.none,
+                            children: [
+                              if (isSelected)
+                                Positioned(
+                                  top: -38,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF191C1E),
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.18),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      _tooltipValue(value),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Container(
+                                width: 8, // w-2 - exact 8px like HTML
+                                height: 168 * heightFraction, // 168 = chart height minus padding
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: isSelected
+                                        ? [
+                                            const Color(0x66006E2F),
+                                            const Color(0xFF006E2F),
+                                          ]
+                                        : [
+                                            const Color(0x33006E2F),
+                                            const Color(0xFF006E2F),
+                                          ],
+                                  ),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
+                                ),
+                              ),
                             ],
-                          ),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(4), // rounded-t-full but smaller radius
                           ),
                         ),
                       ),
@@ -884,86 +1005,170 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             end: Alignment.bottomRight,
             colors: [
               Color(0xFFFFFFFF),
-              Color(0xFFFFF5F4),
+              Color(0xFFFFF0ED),
             ],
           ),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: const Color(0xFFF0D7D1),
-            width: 0.8,
+            color: const Color(0xFFECC5BC),
+            width: 1.1,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF191C1E).withValues(alpha: 0.1),
-              blurRadius: 30,
-              offset: const Offset(0, 12),
-              spreadRadius: 0,
+              color: const Color(0xFFBA1A1A).withValues(alpha: 0.12),
+              blurRadius: 40,
+              offset: const Offset(0, 16),
+              spreadRadius: 1,
             ),
             BoxShadow(
-              color: const Color(0xFF191C1E).withValues(alpha: 0.06),
-              blurRadius: 10,
+              color: const Color(0xFF191C1E).withValues(alpha: 0.08),
+              blurRadius: 16,
               offset: const Offset(0, 4),
               spreadRadius: 0,
             ),
           ],
         ),
-        child: Row(
+        child: Stack(
           children: [
-            // Red bar on left - w-1 (4px)
-            Container(
-              width: 4,
-              color: const Color(0xFFBA1A1A), // bg-error
+            Positioned(
+              top: -20,
+              right: -12,
+              child: Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFFF8B7C).withValues(alpha: 0.14),
+                      const Color(0xFFFF8B7C).withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            // Content with padding
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20), // p-5
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    const Row(
+            Row(
+              children: [
+                Container(
+                  width: 6,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFFBA1A1A),
+                        Color(0xFFFF8B7C),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.warning, color: Color(0xFFBA1A1A), size: 20),
-                        SizedBox(width: 8), // gap-2
-                        Text(
-                          'Cảnh báo hệ thống',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF191C1E),
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFDAD6).withValues(alpha: 0.88),
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFBA1A1A).withValues(alpha: 0.12),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFBA1A1A), size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Cảnh báo hệ thống',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF191C1E),
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Tổng hợp các mục cần theo dõi ngay hôm nay',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF5E6B5F),
+                                      height: 1.25,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {},
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text(
+                                'Xem tất cả',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF006E2F),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildAlertChip('3 cảnh báo', const Color(0xFFBA1A1A), const Color(0xFFFFDAD6).withValues(alpha: 0.95)),
+                            _buildAlertChip('1 cần xử lý ngay', const Color(0xFF9E4036), const Color(0xFFFFE5E1).withValues(alpha: 0.96)),
+                            _buildAlertChip('1 mức trung bình', const Color(0xFF6D7B6C), const Color(0xFFF2F4F6)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildAlertItem(
+                          Icons.inventory,
+                          'Phụ tùng sắp hết',
+                          'Má phanh trước (Còn 2 bộ)',
+                          const Color(0xFFBA1A1A),
+                          const Color(0xFFFFDAD6).withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildAlertItem(
+                          Icons.schedule,
+                          'Xe trễ hẹn',
+                          'Biển số: 30G-789.01 (Trễ 2 giờ)',
+                          const Color(0xFF9E4036),
+                          const Color(0xFFFF8B7C).withValues(alpha: 0.18),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildAlertItem(
+                          Icons.history,
+                          'Bảo hành sắp hết hạn',
+                          '3 xe trong tuần này',
+                          const Color(0xFF6D7B6C),
+                          const Color(0xFFF2F4F6).withValues(alpha: 0.96),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16), // mb-4
-                    // Alert items - space-y-3
-                    _buildAlertItem(
-                      Icons.inventory,
-                      'Phụ tùng sắp hết',
-                      'Má phanh trước (Còn 2 bộ)',
-                      const Color(0xFFBA1A1A),
-                      const Color(0xFFFFDAD6).withValues(alpha: 0.4), // error-container/20 - lighter red
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAlertItem(
-                      Icons.schedule,
-                      'Xe trễ hẹn',
-                      'Biển số: 30G-789.01 (Trễ 2 giờ)',
-                      const Color(0xFF9E4036),
-                      const Color(0xFFFF8B7C).withValues(alpha: 0.2), // tertiary-container/20 - darker pink/red
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAlertItem(
-                      Icons.history,
-                      'Bảo hành sắp hết hạn',
-                      '3 xe trong tuần này',
-                      const Color(0xFF6D7B6C),
-                      const Color(0xFFF2F4F6), // surface-container-low - lighter gray
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -975,14 +1180,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   /// flex items-start gap-3 p-3 rounded-xl
   Widget _buildAlertItem(IconData icon, String title, String subtitle, Color iconColor, Color bgColor) {
     return Container(
-      padding: const EdgeInsets.all(12), // p-3
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12), // rounded-xl
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: iconColor.withValues(alpha: 0.14),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(icon, color: iconColor.withValues(alpha: 0.7), size: 20), // slightly transparent, larger
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
           const SizedBox(width: 12), // gap-3
           Expanded(
             child: Column(
@@ -991,22 +1214,41 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 14, // text-sm (larger)
-                    fontWeight: FontWeight.w600, // font-semibold
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: Color(0xFF191C1E),
                   ),
                 ),
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontSize: 12, // text-xs (larger)
-                    color: Color(0xFF6D7B6C),
+                    fontSize: 12,
+                    color: Color(0xFF4F5B50),
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAlertChip(String label, Color textColor, Color backgroundColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: textColor.withValues(alpha: 0.12)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
       ),
     );
   }
@@ -1060,7 +1302,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           if (_loadingTechnicians)
             const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))),
           if (!_loadingTechnicians && _technicians.isEmpty)
-            Text(_techniciansError == null ? 'Không có kỹ thuật viên' : 'Lỗi tải: ${_techniciansError}'),
+            Column(
+              children: [
+                Text(_techniciansError == null ? 'Không có kỹ thuật viên' : 'Lỗi tải: $_techniciansError'),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () async {
+                    await _loadTechnicians();
+                  },
+                  child: const Text('Tải lại'),
+                ),
+              ],
+            ),
           if (!_loadingTechnicians)
             ..._technicians.map((t) {
               final initials = t.name.isNotEmpty ? t.name.split(' ').map((s) => s.isNotEmpty ? s[0] : '').take(2).join() : 'K';
@@ -1071,7 +1324,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   const SizedBox(height: 16),
                 ],
               );
-            }).toList(),
+            }),
           const SizedBox(height: 16), // mt-4
           // View all button
           SizedBox(
@@ -1221,7 +1474,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           children: [
             _buildNavItem(Icons.home, 'HOME', 0),
             _buildNavItem(Icons.bolt, 'ALERTS', 1),
-            _buildNavItem(Icons.two_wheeler, 'TIẾP NHẬN', 2),
+            _buildNavItem(Icons.two_wheeler, 'TIẾP NHẬN XE', 2),
             _buildNavItem(Icons.person, 'PROFILE', 3),
           ],
         ),
@@ -1267,7 +1520,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  /// Reception Hub - gateway trước khi tiếp nhận xe mới
+  /// Reception Hub - gateway tr╞░ß╗¢c khi tiß║┐p nhß║¡n xe mß╗¢i
   Widget _buildVehicleIntakePage() {
     return const ReceptionHubPage();
   }

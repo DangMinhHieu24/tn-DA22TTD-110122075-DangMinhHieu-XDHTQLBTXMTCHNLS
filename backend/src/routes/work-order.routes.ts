@@ -10,6 +10,7 @@ import {
   updateWorkOrder,
   deleteWorkOrder,
   getDashboardStats,
+  getRevenueReport,
 } from '../controllers/work-order.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -20,6 +21,9 @@ router.use(authenticate);
 
 // GET /api/work-orders/stats/dashboard - Get dashboard stats
 router.get('/stats/dashboard', getDashboardStats);
+
+// GET /api/work-orders/stats/revenue-report - Get revenue report
+router.get('/stats/revenue-report', getRevenueReport);
 
 // GET /api/work-orders - Get all work orders (with filters)
 router.get('/', getWorkOrders);

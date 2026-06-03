@@ -22,8 +22,8 @@ class InventoryModel {
       id: json['id'] as String,
       partName: json['partName'] as String,
       imageUrl: json['imageUrl'] as String?,
-      quantity: (json['quantity'] as num).toInt(),
-      minThreshold: (json['minThreshold'] as num).toInt(),
+      quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+      minThreshold: (json['minThreshold'] as num?)?.toInt() ?? 0,
       unitPrice: (json['unitPrice'] as num).toDouble(),
       sellPrice: (json['sellPrice'] as num).toDouble(),
     );

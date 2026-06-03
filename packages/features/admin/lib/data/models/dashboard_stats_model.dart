@@ -96,7 +96,7 @@ class TechnicianStatusModel extends TechnicianStatus {
       id: json['id'] as String,
       name: json['name'] as String,
       status: json['status'] as String,
-      activeVehicles: json['activeVehicles'] as int,
+      activeVehicles: (json['activeVehicles'] as num?)?.toInt() ?? 0,
     );
   }
 

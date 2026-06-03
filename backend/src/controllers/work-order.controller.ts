@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, WorkOrderStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -22,6 +22,44 @@ const buildScheduledTime = (estimatedHours?: number | null) => {
 
   const completionTime = new Date(Date.now() + estimatedHours * 60 * 60 * 1000);
   return formatScheduledTime(completionTime);
+};
+
+const computeWorkOrderRevenue = (workOrder: {
+  totalPrice?: number | null;
+  partsUsed?: Array<{ quantity: number; unitPrice: number }>;
+}) => {
+  if (typeof workOrder.totalPrice === 'number' && Number.isFinite(workOrder.totalPrice)) {
+    return workOrder.totalPrice;
+  }
+
+  return (workOrder.partsUsed ?? []).reduce((sum, part) => {
+    const quantity = typeof part.quantity === 'number' ? part.quantity : 0;
+    const unitPrice = typeof part.unitPrice === 'number' ? part.unitPrice : 0;
+    return sum + quantity * unitPrice;
+  }, 0);
+};
+
+const computeMaintenanceServiceTotal = (workOrder: {
+  services?: Array<{ price?: number | null }>;
+}) => {
+  return (workOrder.services ?? []).reduce((sum, service) => {
+    const price = typeof service.price === 'number' && Number.isFinite(service.price)
+      ? service.price
+      : 0;
+    return sum + price;
+  }, 0);
+};
+
+const computeWorkOrderTotalRevenue = (workOrder: {
+  totalPrice?: number | null;
+  partsUsed?: Array<{ quantity: number; unitPrice: number }>;
+  services?: Array<{ price?: number | null }>;
+}) => {
+  if (typeof workOrder.totalPrice === 'number' && Number.isFinite(workOrder.totalPrice)) {
+    return workOrder.totalPrice;
+  }
+
+  return computeWorkOrderRevenue(workOrder) + computeMaintenanceServiceTotal(workOrder);
 };
 
 /**
@@ -516,33 +554,71 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
             },
           },
           services: true,
+          partsUsed: {
+            select: {
+              quantity: true,
+              unitPrice: true,
+            },
+          },
         },
       });
 
       if (updatedWorkOrder.status === 'COMPLETED') {
-        const serviceSummary = buildServiceSummary(updatedWorkOrder.services);
-        const serviceType = updatedWorkOrder.services[0]?.serviceType ?? null;
+        const totalPrice = computeWorkOrderRevenue(updatedWorkOrder) + computeMaintenanceServiceTotal(updatedWorkOrder);
+
+        const savedWorkOrder = await tx.workOrder.update({
+          where: { id },
+          data: {
+            totalPrice,
+          },
+          include: {
+            vehicle: {
+              select: {
+                id: true,
+                currentKm: true,
+              },
+            },
+            technician: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            services: true,
+            partsUsed: {
+              select: {
+                quantity: true,
+                unitPrice: true,
+              },
+            },
+          },
+        });
+
+        const serviceSummary = buildServiceSummary(savedWorkOrder.services);
+        const serviceType = savedWorkOrder.services[0]?.serviceType ?? null;
 
         await tx.maintenanceLog.upsert({
           where: { workOrderId: id },
           update: {
-            vehicleId: updatedWorkOrder.vehicleId,
-            odometerKm: updatedWorkOrder.vehicle?.currentKm ?? 0,
+            vehicleId: savedWorkOrder.vehicleId,
+            odometerKm: savedWorkOrder.vehicle?.currentKm ?? 0,
             serviceType,
             serviceSummary,
-            notes: updatedWorkOrder.notes,
-            performedAt: updatedWorkOrder.completedAt ?? new Date(),
+            notes: savedWorkOrder.notes,
+            performedAt: savedWorkOrder.completedAt ?? new Date(),
           },
           create: {
-            vehicleId: updatedWorkOrder.vehicleId,
+            vehicleId: savedWorkOrder.vehicleId,
             workOrderId: id,
-            odometerKm: updatedWorkOrder.vehicle?.currentKm ?? 0,
+            odometerKm: savedWorkOrder.vehicle?.currentKm ?? 0,
             serviceType,
             serviceSummary,
-            notes: updatedWorkOrder.notes,
-            performedAt: updatedWorkOrder.completedAt ?? new Date(),
+            notes: savedWorkOrder.notes,
+            performedAt: savedWorkOrder.completedAt ?? new Date(),
           },
         });
+
+        return savedWorkOrder;
       }
 
       return updatedWorkOrder;
@@ -685,6 +761,44 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+
+    const completedRevenueOrders = await prisma.workOrder.findMany({
+      where: {
+        status: 'COMPLETED',
+        completedAt: {
+          gte: sevenDaysAgo,
+          lt: startOfTomorrow,
+        },
+      },
+      select: {
+        totalPrice: true,
+        completedAt: true,
+        partsUsed: {
+          select: {
+            quantity: true,
+            unitPrice: true,
+          },
+        },
+      },
+    });
+
+    const completedTodayRevenue = completedRevenueOrders
+      .filter((workOrder) => (workOrder.completedAt ?? new Date(0)) >= startOfToday)
+      .reduce((sum, workOrder) => sum + computeWorkOrderRevenue(workOrder), 0);
+
+    const weeklyRevenue = Array.from({ length: 7 }, (_, index) => {
+      const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - index));
+      const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      const dayEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
+
+      return completedRevenueOrders
+        .filter((workOrder) => {
+          const completedAt = workOrder.completedAt;
+          return completedAt != null && completedAt >= dayStart && completedAt < dayEnd;
+        })
+        .reduce((sum, workOrder) => sum + computeWorkOrderRevenue(workOrder), 0);
+    });
 
     const totalWorkOrders = await prisma.workOrder.count();
     const pendingWorkOrders = await prisma.workOrder.count({
@@ -721,6 +835,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         inProgressWorkOrders,
         completedWorkOrders,
         completedToday,
+        revenueToday: completedTodayRevenue,
+        weeklyRevenue,
         totalVehicles,
         totalCustomers,
         totalTechnicians,
@@ -730,6 +846,189 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard stats',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get revenue report
+ * GET /api/work-orders/stats/revenue-report?start=ISO&end=ISO
+ */
+export const getRevenueReport = async (req: Request, res: Response) => {
+  try {
+    const { start, end } = req.query;
+
+    if (!start || !end) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing start or end query params',
+      });
+    }
+
+    const startDate = new Date(start as string);
+    const endDate = new Date(end as string);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid start or end date',
+      });
+    }
+
+    const rangeStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const rangeEndExclusive = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const rangeDays = Math.max(1, Math.ceil((rangeEndExclusive.getTime() - rangeStart.getTime()) / msPerDay));
+
+    const previousRangeEnd = new Date(rangeStart);
+    const previousRangeStart = new Date(rangeStart.getTime() - rangeDays * msPerDay);
+
+    const workOrders = await prisma.workOrder.findMany({
+      where: {
+        status: { in: [WorkOrderStatus.COMPLETED, WorkOrderStatus.PAID] },
+        completedAt: {
+          gte: previousRangeStart,
+          lt: rangeEndExclusive,
+        },
+      },
+      select: {
+        id: true,
+        totalPrice: true,
+        completedAt: true,
+        partsUsed: {
+          select: {
+            quantity: true,
+            unitPrice: true,
+          },
+        },
+        services: {
+          select: {
+            price: true,
+            description: true,
+            serviceName: true,
+            serviceType: true,
+          },
+        },
+        technician: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    const isInRange = (date: Date | null, startBound: Date, endBound: Date) => {
+      if (!date) return false;
+      return date >= startBound && date < endBound;
+    };
+
+    const currentOrders = workOrders.filter((order) => isInRange(order.completedAt, rangeStart, rangeEndExclusive));
+    const previousOrders = workOrders.filter((order) => isInRange(order.completedAt, previousRangeStart, rangeStart));
+
+    const totalRevenue = currentOrders.reduce((sum, order) => sum + computeWorkOrderTotalRevenue(order), 0);
+    const previousTotalRevenue = previousOrders.reduce((sum, order) => sum + computeWorkOrderTotalRevenue(order), 0);
+
+    const growthPercent = previousTotalRevenue > 0
+      ? ((totalRevenue - previousTotalRevenue) / previousTotalRevenue) * 100
+      : totalRevenue > 0
+        ? 100
+        : 0;
+
+    const dailyRevenue = Array.from({ length: rangeDays }, (_, index) => {
+      const dayStart = new Date(rangeStart.getTime() + index * msPerDay);
+      const dayEnd = new Date(dayStart.getTime() + msPerDay);
+      const dayOrders = currentOrders.filter((order) => isInRange(order.completedAt, dayStart, dayEnd));
+      const revenue = dayOrders.reduce((sum, order) => sum + computeWorkOrderTotalRevenue(order), 0);
+      return {
+        date: dayStart.toISOString().slice(0, 10),
+        revenue,
+        orders: dayOrders.length,
+      };
+    });
+
+    const serviceTotals = new Map<string, number>();
+    currentOrders.forEach((order) => {
+      (order.services ?? []).forEach((service) => {
+        const label = service.serviceName || service.description || service.serviceType || 'Khác';
+        const price = typeof service.price === 'number' && Number.isFinite(service.price)
+          ? service.price
+          : 0;
+        serviceTotals.set(label, (serviceTotals.get(label) ?? 0) + price);
+      });
+    });
+
+    const topServices = Array.from(serviceTotals.entries())
+      .map(([name, revenue]) => ({
+        name,
+        revenue,
+        percent: totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 6);
+
+    const technicianTotals = new Map<string, { id: string; name: string; revenue: number; orders: number }>();
+    currentOrders.forEach((order) => {
+      if (!order.technician) return;
+      const key = order.technician.id;
+      const existing = technicianTotals.get(key) ?? {
+        id: order.technician.id,
+        name: order.technician.name,
+        revenue: 0,
+        orders: 0,
+      };
+      existing.revenue += computeWorkOrderTotalRevenue(order);
+      existing.orders += 1;
+      technicianTotals.set(key, existing);
+    });
+
+    // Also count active (non-COMPLETED) orders per technician
+    const activeStatuses: WorkOrderStatus[] = [
+      WorkOrderStatus.PENDING,
+      WorkOrderStatus.IN_PROGRESS,
+      WorkOrderStatus.INSPECTION,
+    ];
+
+    const activeOrders = await prisma.workOrder.findMany({
+      where: {
+        status: { in: activeStatuses },
+        technicianId: { not: null },
+      },
+      select: {
+        technicianId: true,
+      },
+    });
+
+    const activeCounts = new Map<string, number>();
+    activeOrders.forEach((o) => {
+      const tid = o.technicianId;
+      if (!tid) return;
+      activeCounts.set(tid, (activeCounts.get(tid) ?? 0) + 1);
+    });
+
+    const technicians = Array.from(technicianTotals.values())
+      .map((t) => ({ ...t, activeOrders: activeCounts.get(t.id) ?? 0 }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    res.json({
+      success: true,
+      data: {
+        rangeStart: rangeStart.toISOString(),
+        rangeEnd: endDate.toISOString(),
+        totalRevenue,
+        previousTotalRevenue,
+        growthPercent,
+        totalOrders: currentOrders.length,
+        dailyRevenue,
+        topServices,
+        technicians,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch revenue report',
       error: error.message,
     });
   }
