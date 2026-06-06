@@ -554,10 +554,18 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
             },
           },
           services: true,
-          partsUsed: {
+           partsUsed: {
             select: {
+              id: true,
               quantity: true,
               unitPrice: true,
+              partId: true,
+              part: {
+                select: {
+                  partName: true,
+                  warrantyDays: true,
+                },
+              },
             },
           },
         },
@@ -587,8 +595,16 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
             services: true,
             partsUsed: {
               select: {
+                id: true,
                 quantity: true,
                 unitPrice: true,
+                partId: true,
+                part: {
+                  select: {
+                    partName: true,
+                    warrantyDays: true,
+                  },
+                },
               },
             },
           },
@@ -617,6 +633,29 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
             performedAt: savedWorkOrder.completedAt ?? new Date(),
           },
         });
+
+        // Create PartWarranty records for parts with warranty
+        const completedAt = savedWorkOrder.completedAt ?? new Date();
+        for (const pu of savedWorkOrder.partsUsed) {
+          if (pu.part.warrantyDays > 0) {
+            const expiryDate = new Date(completedAt.getTime() + pu.part.warrantyDays * 24 * 60 * 60 * 1000);
+            await tx.partWarranty.upsert({
+              where: { partUsedId: pu.id },
+              update: {
+                expiryDate,
+              },
+              create: {
+                partUsedId: pu.id,
+                partId: pu.partId,
+                workOrderId: id,
+                vehicleId: savedWorkOrder.vehicleId,
+                warrantyDays: pu.part.warrantyDays,
+                startDate: completedAt,
+                expiryDate,
+              },
+            });
+          }
+        }
 
         return savedWorkOrder;
       }
@@ -827,6 +866,94 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       where: { role: 'TECHNICIAN' },
     });
 
+    // --- System Alerts ---
+
+    // 1. Low stock inventory
+    const allInventory = await prisma.inventory.findMany({
+      select: { id: true, partName: true, quantity: true, minThreshold: true },
+    });
+    const lowStockAlerts = allInventory
+      .filter((item) => item.quantity <= item.minThreshold)
+      .map((item) => ({
+        id: `low-stock-${item.id}`,
+        title: 'Phụ tùng sắp hết',
+        description: `${item.partName} (Còn ${item.quantity})`,
+        type: 'lowStock',
+        createdAt: now.toISOString(),
+      }));
+
+    // 2. Overdue vehicles (IN_PROGRESS > 48h)
+    const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    const overdueOrders = await prisma.workOrder.findMany({
+      where: {
+        status: 'IN_PROGRESS',
+        createdAt: { lte: twoDaysAgo },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        vehicle: { select: { licensePlate: true } },
+      },
+    });
+    const overdueAlerts = overdueOrders.map((order) => {
+      const hoursOverdue = Math.floor((now.getTime() - order.createdAt.getTime()) / (1000 * 60 * 60));
+      return {
+        id: `delayed-${order.id}`,
+        title: 'Xe trễ hẹn',
+        description: `Biển số: ${order.vehicle.licensePlate} (Trễ ${hoursOverdue}h)`,
+        type: 'delayedVehicle',
+        createdAt: order.createdAt.toISOString(),
+      };
+    });
+
+    // 3. Expiring warranties (within next 7 days)
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expiringWarranties = await prisma.warranty.findMany({
+      where: {
+        expiryDate: { gte: now, lte: weekFromNow },
+      },
+      select: {
+        id: true,
+        expiryDate: true,
+        vehicle: { select: { licensePlate: true } },
+      },
+    });
+    const warrantyAlerts = expiringWarranties.map((w) => {
+      const daysLeft = Math.ceil((w.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        id: `warranty-${w.id}`,
+        title: 'Bảo hành sắp hết hạn',
+        description: `Xe ${w.vehicle.licensePlate} (Còn ${daysLeft} ngày)`,
+        type: 'warrantyExpiring',
+        createdAt: now.toISOString(),
+      };
+    });
+
+    // 4. Expiring part warranties (within next 7 days)
+    const expiringPartWarranties = await prisma.partWarranty.findMany({
+      where: {
+        expiryDate: { gte: now, lte: weekFromNow },
+      },
+      select: {
+        id: true,
+        expiryDate: true,
+        part: { select: { partName: true } },
+        vehicle: { select: { licensePlate: true } },
+      },
+    });
+    const partWarrantyAlerts = expiringPartWarranties.map((pw) => {
+      const daysLeft = Math.ceil((pw.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        id: `part-warranty-${pw.id}`,
+        title: 'Bảo hành linh kiện sắp hết',
+        description: `${pw.part.partName} - Xe ${pw.vehicle.licensePlate} (Còn ${daysLeft} ngày)`,
+        type: 'partWarrantyExpiring',
+        createdAt: now.toISOString(),
+      };
+    });
+
+    const alerts = [...lowStockAlerts, ...overdueAlerts, ...warrantyAlerts, ...partWarrantyAlerts];
+
     res.json({
       success: true,
       data: {
@@ -840,6 +967,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         totalVehicles,
         totalCustomers,
         totalTechnicians,
+        alerts,
       },
     });
   } catch (error: any) {

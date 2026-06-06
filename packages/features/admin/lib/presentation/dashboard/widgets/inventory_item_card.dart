@@ -15,6 +15,9 @@ class InventoryItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bloc = context.read<InventoryBloc>();
     final currencyFmt = NumberFormat.decimalPattern('vi');
+    final sku = item.id.length >= 8
+        ? item.id.substring(0, 8).toUpperCase()
+        : item.id.toUpperCase();
 
     // Status
     final String statusLabel;
@@ -68,7 +71,8 @@ class InventoryItemCard extends StatelessWidget {
                       : null,
                 ),
                 child: item.imageUrl == null || item.imageUrl!.isEmpty
-                    ? const Icon(Icons.inventory_2_outlined, size: 32, color: Color(0xFFBCCBB9))
+                    ? const Icon(Icons.inventory_2_outlined,
+                        size: 32, color: Color(0xFFBCCBB9))
                     : null,
               ),
               const SizedBox(width: 12),
@@ -90,7 +94,7 @@ class InventoryItemCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'SKU-${item.id.substring(0, 8).toUpperCase()}',
+                      'SKU-$sku',
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF6D7B6C),
@@ -103,7 +107,8 @@ class InventoryItemCard extends StatelessWidget {
                       children: [
                         // Status pill
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: statusBg,
                             borderRadius: BorderRadius.circular(999),
@@ -127,7 +132,8 @@ class InventoryItemCard extends StatelessWidget {
                             color: const Color(0xFFF2F4F6),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: const Color(0xFFBCCBB9).withValues(alpha: 0.2),
+                              color: const Color(0xFFBCCBB9)
+                                  .withValues(alpha: 0.2),
                             ),
                           ),
                           child: Row(
@@ -136,11 +142,13 @@ class InventoryItemCard extends StatelessWidget {
                               _buildAdjustBtn(
                                 icon: Icons.remove,
                                 onTap: item.quantity > 0
-                                    ? () => bloc.add(AdjustInventoryQuantity(item.id, -1))
+                                    ? () => bloc.add(
+                                        AdjustInventoryQuantity(item.id, -1))
                                     : null,
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 6),
                                 child: Text(
                                   '${item.quantity}',
                                   style: const TextStyle(
@@ -152,7 +160,8 @@ class InventoryItemCard extends StatelessWidget {
                               ),
                               _buildAdjustBtn(
                                 icon: Icons.add,
-                                onTap: () => bloc.add(AdjustInventoryQuantity(item.id, 1)),
+                                onTap: () => bloc
+                                    .add(AdjustInventoryQuantity(item.id, 1)),
                               ),
                               const Padding(
                                 padding: EdgeInsets.only(right: 6),
@@ -232,7 +241,8 @@ class InventoryItemCard extends StatelessWidget {
         child: Icon(
           icon,
           size: 14,
-          color: onTap == null ? const Color(0xFFBCCBB9) : const Color(0xFF3D4A3D),
+          color:
+              onTap == null ? const Color(0xFFBCCBB9) : const Color(0xFF3D4A3D),
         ),
       ),
     );

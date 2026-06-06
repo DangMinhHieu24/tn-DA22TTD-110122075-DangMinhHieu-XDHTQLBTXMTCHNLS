@@ -6,6 +6,7 @@ class InventoryModel {
   final int minThreshold;
   final double unitPrice;
   final double sellPrice;
+  final int warrantyDays;
 
   const InventoryModel({
     required this.id,
@@ -15,18 +16,32 @@ class InventoryModel {
     required this.minThreshold,
     required this.unitPrice,
     required this.sellPrice,
+    this.warrantyDays = 0,
   });
 
   factory InventoryModel.fromJson(Map<String, dynamic> json) {
     return InventoryModel(
-      id: json['id'] as String,
-      partName: json['partName'] as String,
+      id: json['id'] as String? ?? '',
+      partName: json['partName'] as String? ?? 'Không rõ',
       imageUrl: json['imageUrl'] as String?,
-      quantity: (json['quantity'] as num?)?.toInt() ?? 0,
-      minThreshold: (json['minThreshold'] as num?)?.toInt() ?? 0,
-      unitPrice: (json['unitPrice'] as num).toDouble(),
-      sellPrice: (json['sellPrice'] as num).toDouble(),
+      quantity: _asInt(json['quantity']),
+      minThreshold: _asInt(json['minThreshold']),
+      unitPrice: _asDouble(json['unitPrice']),
+      sellPrice: _asDouble(json['sellPrice']),
+      warrantyDays: _asInt(json['warrantyDays']),
     );
+  }
+
+  static int _asInt(dynamic value) {
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static double _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toJson() {
@@ -37,6 +52,7 @@ class InventoryModel {
       'minThreshold': minThreshold,
       'unitPrice': unitPrice,
       'sellPrice': sellPrice,
+      'warrantyDays': warrantyDays,
     };
   }
 
@@ -44,7 +60,8 @@ class InventoryModel {
   bool get isBelowThreshold => quantity <= minThreshold;
 
   /// Tồn kho đang ở mức gần cảnh báo (< threshold * 1.5)
-  bool get isNearThreshold => quantity <= minThreshold * 1.5 && quantity > minThreshold;
+  bool get isNearThreshold =>
+      quantity <= minThreshold * 1.5 && quantity > minThreshold;
 
   InventoryModel copyWith({
     String? id,
@@ -54,6 +71,7 @@ class InventoryModel {
     int? minThreshold,
     double? unitPrice,
     double? sellPrice,
+    int? warrantyDays,
   }) {
     return InventoryModel(
       id: id ?? this.id,
@@ -63,6 +81,7 @@ class InventoryModel {
       minThreshold: minThreshold ?? this.minThreshold,
       unitPrice: unitPrice ?? this.unitPrice,
       sellPrice: sellPrice ?? this.sellPrice,
+      warrantyDays: warrantyDays ?? this.warrantyDays,
     );
   }
 }

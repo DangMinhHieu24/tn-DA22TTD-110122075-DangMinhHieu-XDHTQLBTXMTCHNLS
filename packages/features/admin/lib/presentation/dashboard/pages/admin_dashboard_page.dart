@@ -129,11 +129,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                     const SizedBox(height: 32), // mb-8
                                     BlocBuilder<DashboardBloc, DashboardState>(
                                       builder: (context, dashboardState) {
-                                        return _buildQuickStatsGrid(dashboardState);
+                                        return Column(
+                                          children: [
+                                            _buildQuickStatsGrid(dashboardState),
+                                            const SizedBox(height: 24),
+                                            _buildMainContent(dashboardState),
+                                          ],
+                                        );
                                       },
                                     ),
-                                    const SizedBox(height: 24), // space-y-6
-                                    _buildMainContent(),
                                   ],
                                 ),
                               ),
@@ -551,7 +555,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   /// Main Content - 2 column layout on desktop
   /// grid grid-cols-1 lg:grid-cols-3 gap-6
-  Widget _buildMainContent() {
+  Widget _buildMainContent(DashboardState dashboardState) {
     return Column(
       children: [
         // Revenue Chart
@@ -561,7 +565,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _buildQuickShortcuts(),
         const SizedBox(height: 24), // gap-6
         // Alerts Section
-        _buildAlertsSection(),
+        _buildAlertsSection(dashboardState),
         const SizedBox(height: 24), // gap-6
         // Technicians Section
         _buildTechniciansSection(),
@@ -995,7 +999,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   /// Alerts Section
   /// bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15
   /// relative overflow-hidden
-  Widget _buildAlertsSection() {
+  Widget _buildAlertsSection(DashboardState dashboardState) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Container(
@@ -1113,7 +1117,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () => Navigator.of(context).pushNamed('/admin/alerts'),
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 minimumSize: Size.zero,
@@ -1131,39 +1135,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _buildAlertChip('3 cảnh báo', const Color(0xFFBA1A1A), const Color(0xFFFFDAD6).withValues(alpha: 0.95)),
-                            _buildAlertChip('1 cần xử lý ngay', const Color(0xFF9E4036), const Color(0xFFFFE5E1).withValues(alpha: 0.96)),
-                            _buildAlertChip('1 mức trung bình', const Color(0xFF6D7B6C), const Color(0xFFF2F4F6)),
-                          ],
-                        ),
+                        _buildAlertChips(dashboardState),
                         const SizedBox(height: 16),
-                        _buildAlertItem(
-                          Icons.inventory,
-                          'Phụ tùng sắp hết',
-                          'Má phanh trước (Còn 2 bộ)',
-                          const Color(0xFFBA1A1A),
-                          const Color(0xFFFFDAD6).withValues(alpha: 0.6),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildAlertItem(
-                          Icons.schedule,
-                          'Xe trễ hẹn',
-                          'Biển số: 30G-789.01 (Trễ 2 giờ)',
-                          const Color(0xFF9E4036),
-                          const Color(0xFFFF8B7C).withValues(alpha: 0.18),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildAlertItem(
-                          Icons.history,
-                          'Bảo hành sắp hết hạn',
-                          '3 xe trong tuần này',
-                          const Color(0xFF6D7B6C),
-                          const Color(0xFFF2F4F6).withValues(alpha: 0.96),
-                        ),
+                        _buildAlertItems(dashboardState),
                       ],
                     ),
                   ),
@@ -1250,6 +1224,104 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           color: textColor,
         ),
       ),
+    );
+  }
+
+  List<SystemAlert> _getAlerts(DashboardState state) {
+    if (state is DashboardLoaded) return state.stats.alerts;
+    return const [];
+  }
+
+  Map<AlertType, ({IconData icon, Color color, Color bgColor, String label})> get _alertTypeMeta => {
+    AlertType.lowStock: (
+      icon: Icons.inventory,
+      color: const Color(0xFFBA1A1A),
+      bgColor: const Color(0xFFFFDAD6),
+      label: 'sắp hết',
+    ),
+    AlertType.delayedVehicle: (
+      icon: Icons.schedule,
+      color: const Color(0xFF9E4036),
+      bgColor: const Color(0xFFFFE5E1),
+      label: 'trễ hẹn',
+    ),
+    AlertType.warrantyExpiring: (
+      icon: Icons.shield_outlined,
+      color: const Color(0xFF6D7B6C),
+      bgColor: const Color(0xFFF2F4F6),
+      label: 'sắp hết hạn',
+    ),
+    AlertType.partWarrantyExpiring: (
+      icon: Icons.build_outlined,
+      color: const Color(0xFF9E4036),
+      bgColor: const Color(0xFFFFE5E1),
+      label: 'BH linh kiện',
+    ),
+  };
+
+  Widget _buildAlertChips(DashboardState dashboardState) {
+    final alerts = _getAlerts(dashboardState);
+    if (alerts.isEmpty) return const SizedBox.shrink();
+
+    final counts = <AlertType, int>{};
+    for (final a in alerts) {
+      counts[a.type] = (counts[a.type] ?? 0) + 1;
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: counts.entries.map((e) {
+        final meta = _alertTypeMeta[e.key]!;
+        return _buildAlertChip(
+          '${e.value} ${meta.label}',
+          meta.color,
+          meta.bgColor.withValues(alpha: 0.95),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAlertItems(DashboardState dashboardState) {
+    final alerts = _getAlerts(dashboardState);
+    if (alerts.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_outline, size: 20, color: const Color(0xFF006E2F)),
+            const SizedBox(width: 8),
+            const Text(
+              'Không có cảnh báo nào',
+              style: TextStyle(fontSize: 14, color: Color(0xFF5E6B5F)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    const maxShow = 3;
+    final shown = alerts.take(maxShow).toList();
+
+    return Column(
+      children: shown.map((alert) {
+        final meta = _alertTypeMeta[alert.type] ?? (
+          icon: Icons.warning_amber_rounded,
+          color: const Color(0xFFBA1A1A),
+          bgColor: const Color(0xFFFFDAD6),
+          label: '',
+        );
+        return Padding(
+          padding: EdgeInsets.only(bottom: shown.last == alert ? 0 : 12),
+          child: _buildAlertItem(
+            meta.icon,
+            alert.title,
+            alert.description,
+            meta.color,
+            meta.bgColor.withValues(alpha: 0.6),
+          ),
+        );
+      }).toList(),
     );
   }
 

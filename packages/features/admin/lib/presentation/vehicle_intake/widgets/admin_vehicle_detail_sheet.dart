@@ -3,7 +3,7 @@ import '../../../data/models/vehicle_model.dart';
 
 class AdminVehicleDetailSheet extends StatelessWidget {
   final VehicleModel vehicle;
-  final VoidCallback onIntakePressed;
+  final ValueChanged<String> onIntakePressed;
 
   const AdminVehicleDetailSheet({
     super.key,
@@ -11,7 +11,7 @@ class AdminVehicleDetailSheet extends StatelessWidget {
     required this.onIntakePressed,
   });
 
-  static void show(BuildContext context, VehicleModel vehicle, VoidCallback onIntakePressed) {
+  static void show(BuildContext context, VehicleModel vehicle, ValueChanged<String> onIntakePressed) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -192,7 +192,7 @@ class AdminVehicleDetailSheet extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context); // Close sheet
-                onIntakePressed(); // Trigger intake page
+                onIntakePressed(vehicle.licensePlate);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF006E2F),

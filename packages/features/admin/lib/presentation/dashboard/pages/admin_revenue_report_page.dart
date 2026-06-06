@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:get_it/get_it.dart';
 import '../../../domain/entities/revenue_report.dart';
 import '../../../domain/usecases/get_revenue_report.dart';
@@ -31,6 +32,12 @@ enum _ServiceRange {
   month,
 }
 
+enum _DailyRange {
+  today,
+  sevenDays,
+  thirtyDays,
+}
+
 class AdminRevenueReportPage extends StatefulWidget {
   const AdminRevenueReportPage({super.key});
 
@@ -49,11 +56,11 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
   Map<String, int> _monthlyTechnicianCompleted = {};
   bool _isMonthlyLoading = true;
   int _selectedServiceIndex = -1;
-  int _selectedBarIndex = -1;
   /// Điểm đang chọn trên biểu đồ đường (tháng / khoảng dài).
   int? _lineChartTouchIndex;
   bool _isServiceRangeLoading = false;
   final Map<_ServiceRange, List<ServiceBreakdown>> _serviceRangeCache = {};
+  _DailyRange _dailyRange = _DailyRange.sevenDays;
 
   static const int _maxServices = 6;
 
@@ -61,10 +68,11 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     final now = DateTime.now();
     switch (_selectedRange) {
       case _ReportRange.sevenDays:
-        return DateTimeRange(
-          start: DateTime(now.year, now.month, now.day - 6),
-          end: DateTime(now.year, now.month, now.day),
-        );
+        // Previous calendar week (Monday → Sunday)
+        final daysSinceMonday = now.weekday - DateTime.monday;
+        final thisMonday = DateTime(now.year, now.month, now.day - daysSinceMonday);
+        final lastMonday = thisMonday.subtract(const Duration(days: 7));
+        return DateTimeRange(start: lastMonday, end: lastMonday.add(const Duration(days: 6)));
       case _ReportRange.thirtyDays:
         // Use previous calendar month (month before the current date)
         final prevMonthStart = DateTime(now.year, now.month - 1, 1);
@@ -355,7 +363,7 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
                 );
                 return;
               }
-              _copyReportCsv(context, report);
+              _exportReportFile(context, report);
             },
             icon: const Icon(Icons.file_download_outlined, color: Color(0xFF006E2F)),
           ),
@@ -377,7 +385,7 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _chip(
-              '7 ngày',
+              'Tuần trước',
               selected: _selectedRange == _ReportRange.sevenDays,
               onTap: () => _selectRange(_ReportRange.sevenDays),
             ),
@@ -459,7 +467,6 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
         ? _buildChartLabels(points)
         : const ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
     final maxValue = values.isEmpty ? 0.0 : values.reduce((a, b) => a > b ? a : b);
-    final maxIndex = values.isEmpty ? -1 : values.indexOf(maxValue);
     final total = report.totalRevenue;
     final growth = report.growthPercent;
     final useMonthlySpline =
@@ -486,7 +493,9 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
           Builder(builder: (context) {
             final headerTitle = _selectedRange == _ReportRange.thirtyDays
               ? 'Doanh thu tháng trước'
-                : _rangeTitle(report);
+                : _selectedRange == _ReportRange.sevenDays
+                  ? 'Doanh thu tuần trước'
+                    : _rangeTitle(report);
             return Row(
               children: [
                 Expanded(
@@ -536,102 +545,9 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
               ),
             )
           else
-            rawPoints.length <= 7
-                ? SizedBox(
-                    height: 230,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _DashedTrendPainter(),
-                          ),
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          // Render bars for every value entry; labels may be a reduced set
-                          // used only for the axis ticks below.
-                          children: List.generate(values.length, (index) {
-                              final value = values[index];
-                              final height = maxValue <= 0 ? 0.0 : (value / maxValue);
-                              final isMax = index == maxIndex && value > 0;
-                              final isSelected = index == _selectedBarIndex;
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _selectedBarIndex = isSelected ? -1 : index),
-                                  child: SizedBox(
-                                    height: 200,
-                                    child: Stack(
-                                      alignment: Alignment.bottomCenter,
-                                      children: [
-                                        // tooltip only when selected
-                                        if (isSelected)
-                                          Positioned(
-                                            top: 0,
-                                            child: _buildTooltip(value, points[index].orders),
-                                          ),
-                                        // diamond marker when selected
-                                        if (isSelected)
-                                          Positioned(
-                                            top: 44,
-                                            child: Transform.rotate(
-                                              angle: 0.785398, // 45deg
-                                              child: Container(
-                                                width: 10,
-                                                height: 10,
-                                                color: const Color(0xFF2D3133),
-                                              ),
-                                            ),
-                                          ),
-                                        Positioned(
-                                          bottom: 22,
-                                          child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 280),
-                                            curve: Curves.easeOutCubic,
-                                            height: 120 * height,
-                                            width: isSelected ? 44 : 36,
-                                            decoration: BoxDecoration(
-                                              gradient: isSelected
-                                                  ? const LinearGradient(
-                                                      begin: Alignment.bottomCenter,
-                                                      end: Alignment.topCenter,
-                                                      colors: [
-                                                        Color(0x33006E2F),
-                                                        Color(0xFF006E2F),
-                                                      ],
-                                                    )
-                                                  : const LinearGradient(
-                                                      begin: Alignment.bottomCenter,
-                                                      end: Alignment.topCenter,
-                                                      colors: [
-                                                        Color(0xFFEEF1F3),
-                                                        Color(0xFFEEF1F3),
-                                                      ],
-                                                    ),
-                                              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                                              boxShadow: [
-                                                if (isSelected)
-                                                  BoxShadow(
-                                                    color: const Color(0xFF006E2F).withValues(alpha: 0.22),
-                                                    blurRadius: 18,
-                                                    offset: const Offset(0, 8),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                        ),
-                      ],
-                    ),
-                  )
-                : useMonthlySpline
-                    ? _buildMonthlySplineChart(points)
-                    : _buildDenseDailyLineChart(points, labels, maxValue),
+            useMonthlySpline
+                ? _buildMonthlySplineChart(points)
+                : _buildDenseDailyLineChart(points, labels, maxValue),
           const SizedBox(height: 8),
         ],
       ),
@@ -1010,50 +926,14 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     );
   }
 
-  Widget _buildTooltip(double value, int orders) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2D3133),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '${_formatMillions(value)} VND',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  '(${orders} đơn)',
-                  style: const TextStyle(color: Color(0xFFEFF1F3), fontSize: 10),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 2),
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: Color(0xFF2D3133),
-              shape: BoxShape.rectangle,
-            ),
-            transform: Matrix4.rotationZ(0.785398),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSummaryCards(RevenueReport report) {
-    final last7Revenue = _sumLastDays(report.dailyRevenue, 7);
-    final previous7Revenue = _sumPreviousDays(report.dailyRevenue, 7);
-    final weekGrowth = _calculateGrowth(last7Revenue, previous7Revenue);
+    final isWeeklyView = _selectedRange == _ReportRange.sevenDays;
+    final last7Revenue = isWeeklyView
+        ? report.totalRevenue
+        : _sumLastDays(report.dailyRevenue, 7);
+    final weekGrowth = isWeeklyView
+        ? report.growthPercent
+        : _calculateGrowth(last7Revenue, _sumPreviousDays(report.dailyRevenue, 7));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1255,7 +1135,7 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
       case _ReportTab.services:
         return _buildPopularServices(report.topServices);
       case _ReportTab.daily:
-        return _buildDailyBreakdown(report.dailyRevenue);
+        return _buildDailyBreakdown(report.dailyRevenue, _dailyRange);
       case _ReportTab.technicians:
         return _buildTechnicianBreakdown(report.technicians);
     }
@@ -1573,9 +1453,55 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     );
   }
 
-  Widget _buildDailyBreakdown(List<RevenuePoint> points) {
+  Widget _buildDailyBreakdown(List<RevenuePoint> points, _DailyRange range) {
     if (points.isEmpty) {
       return _buildEmptyState('Chưa có dữ liệu doanh thu theo ngày.');
+    }
+
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    List<RevenuePoint> filtered;
+    switch (range) {
+      case _DailyRange.today:
+        filtered = points.where((p) => p.date.year == todayStart.year && p.date.month == todayStart.month && p.date.day == todayStart.day).toList();
+        break;
+      case _DailyRange.sevenDays:
+        // Take the last 7 available days in the report data
+        filtered = [...points]..sort((a, b) => b.date.compareTo(a.date));
+        filtered = filtered.take(7).toList();
+        break;
+      case _DailyRange.thirtyDays:
+        // Take the last 30 available days in the report data
+        filtered = [...points]..sort((a, b) => b.date.compareTo(a.date));
+        filtered = filtered.take(30).toList();
+        break;
+    }
+    filtered.sort((a, b) => b.date.compareTo(a.date));
+
+    final totalRev = filtered.fold<double>(0, (s, p) => s + p.revenue);
+    final totalOrders = filtered.fold<int>(0, (s, p) => s + p.orders);
+
+    Widget _chip(_DailyRange value, String label) {
+      final selected = range == value;
+      return GestureDetector(
+        onTap: () => setState(() => _dailyRange = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFF006E2F) : const Color(0xFFF0F6F2),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: selected ? const Color(0xFF006E2F) : const Color(0xFFDDE7E2)),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : const Color(0xFF1F2A24),
+            ),
+          ),
+        ),
+      );
     }
 
     return Container(
@@ -1594,37 +1520,70 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Theo ngày',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF191C1E)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Theo ngày',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF191C1E)),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _chip(_DailyRange.today, 'Hôm nay'),
+                  const SizedBox(width: 6),
+                  _chip(_DailyRange.sevenDays, '7 ngày'),
+                  const SizedBox(width: 6),
+                  _chip(_DailyRange.thirtyDays, '30 ngày'),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FBF5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.account_balance_wallet_rounded, size: 14, color: Color(0xFF006E2F)),
+                const SizedBox(width: 6),
+                Text(
+                  'Tổng: ${_formatMillions(totalRev)} · $totalOrders đơn',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF006E2F)),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          // Show newest date first
-          ...((([...points]..sort((a, b) => b.date.compareTo(a.date))).map((point) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ...filtered.map((point) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DateFormat('dd/MM/yyyy').format(point.date),
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3D4A3D)),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      DateFormat('dd/MM/yyyy').format(point.date),
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF3D4A3D)),
+                      _formatMillions(point.revenue),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          _formatMillions(point.revenue),
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                        ),
-                        Text(
-                          '${point.orders} đơn',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                        ),
-                      ],
+                    const SizedBox(width: 4),
+                    Text(
+                      '(${point.orders} đơn)',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                     ),
                   ],
                 ),
-              ))).toList()),
+              ],
+            ),
+          )),
         ],
       ),
     );
@@ -1783,9 +1742,9 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () => _copyReportCsv(context, report),
+        onPressed: () => _exportReportFile(context, report),
         icon: const Icon(Icons.description_outlined, size: 18),
-        label: const Text('Xuất báo cáo PDF/CSV'),
+        label: const Text('Xuất báo cáo CSV'),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF006E2F),
           foregroundColor: Colors.white,
@@ -2146,33 +2105,60 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     );
   }
 
-  Future<void> _copyReportCsv(BuildContext context, RevenueReport report) async {
-    final buffer = StringBuffer();
-    buffer.writeln('range,${_formatRangeLabel(report.rangeStart, report.rangeEnd)}');
-    buffer.writeln('total_revenue,${report.totalRevenue}');
-    buffer.writeln('growth_percent,${report.growthPercent}');
-    buffer.writeln('total_orders,${report.totalOrders}');
-    buffer.writeln('');
-    buffer.writeln('date,revenue,orders');
+  Future<void> _exportReportFile(BuildContext context, RevenueReport report) async {
+    final rangeLabel = _formatRangeLabel(report.rangeStart, report.rangeEnd);
+    final nowStr = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final avgDaily = report.dailyRevenue.isNotEmpty
+        ? report.totalRevenue / report.dailyRevenue.length
+        : 0.0;
+
+    final buf = StringBuffer();
+    buf.writeln('BÁO CÁO DOANH THU');
+    buf.writeln('='.padRight(50, '='));
+    buf.writeln('Kỳ báo cáo:,$rangeLabel');
+    buf.writeln('Ngày xuất:,$nowStr');
+    buf.writeln('');
+    buf.writeln('TỔNG QUAN');
+    buf.writeln('Tổng doanh thu:,${_formatMillions(report.totalRevenue)} VND');
+    buf.writeln('Tổng đơn hàng:,${report.totalOrders} đơn');
+    buf.writeln('Tăng trưởng:,${_formatPercent(report.growthPercent)}');
+    buf.writeln('TB doanh thu/ngày:,${_formatMillions(avgDaily)} VND');
+    buf.writeln('');
+    buf.writeln('CHI TIẾT THEO NGÀY');
+    buf.writeln('Ngày,Doanh thu,Số đơn');
     for (final point in report.dailyRevenue) {
-      buffer.writeln('${DateFormat('yyyy-MM-dd').format(point.date)},${point.revenue},${point.orders}');
+      buf.writeln('${DateFormat('dd/MM/yyyy').format(point.date)},${_formatMillions(point.revenue)} VND,${point.orders}');
     }
-    buffer.writeln('');
-    buffer.writeln('service,revenue,percent');
-    for (final service in report.topServices) {
-      buffer.writeln('${service.name},${service.revenue},${service.percent.toStringAsFixed(2)}');
+    buf.writeln('');
+    buf.writeln('DỊCH VỤ PHỔ BIẾN');
+    buf.writeln('Tên dịch vụ,Doanh thu,Tỷ lệ');
+    for (final svc in report.topServices) {
+      buf.writeln('${svc.name},${_formatMillions(svc.revenue)} VND,${svc.percent.toStringAsFixed(1)}%');
     }
-    buffer.writeln('');
-    buffer.writeln('technician,revenue,orders');
+    buf.writeln('');
+    buf.writeln('KỸ THUẬT VIÊN');
+    buf.writeln('Tên,Doanh thu,Đơn hoàn thành');
     for (final tech in report.technicians) {
-      buffer.writeln('${tech.name},${tech.revenue},${tech.orders}');
+      buf.writeln('${tech.name},${_formatMillions(tech.revenue)} VND,${tech.orders}');
     }
 
-    await Clipboard.setData(ClipboardData(text: buffer.toString()));
+    final csvContent = buf.toString();
+    final tempDir = Directory.systemTemp;
+    final fileName = 'bao_cao_doanh_thu_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.csv';
+    final file = File('${tempDir.path}/$fileName');
+    await file.writeAsString(csvContent, flush: true);
+
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã copy báo cáo CSV vào clipboard.')),
-    );
+    try {
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Báo cáo doanh thu $rangeLabel',
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã lưu file: $fileName')),
+      );
+    }
   }
 
   Future<void> _handleRefresh(BuildContext context) async {
@@ -2218,32 +2204,4 @@ class _ChartPoint {
   }
 }
 
-class _DashedTrendPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFBCCBB9).withValues(alpha: 0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
 
-    final path = Path()
-      ..moveTo(0, size.height * 0.65)
-      ..quadraticBezierTo(size.width * 0.25, size.height * 0.5, size.width * 0.45, size.height * 0.6)
-      ..quadraticBezierTo(size.width * 0.65, size.height * 0.4, size.width * 0.85, size.height * 0.2);
-
-    const dashWidth = 6.0;
-    const dashSpace = 6.0;
-    double distance = 0.0;
-    for (final metric in path.computeMetrics()) {
-      while (distance < metric.length) {
-        final segment = metric.extractPath(distance, distance + dashWidth);
-        canvas.drawPath(segment, paint);
-        distance += dashWidth + dashSpace;
-      }
-      distance = 0.0;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

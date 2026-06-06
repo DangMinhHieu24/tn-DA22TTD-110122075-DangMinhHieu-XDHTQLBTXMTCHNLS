@@ -46,13 +46,20 @@ class InventoryLoaded extends InventoryState {
 }
 
 class InventorySubmitting extends InventoryState {
-  const InventorySubmitting();
+  final InventoryLoaded? previous;
+
+  const InventorySubmitting({this.previous});
+
+  @override
+  List<Object?> get props => [previous];
 }
 
 class InventoryError extends InventoryState {
   final String message;
-  const InventoryError(this.message);
+  final InventoryLoaded? previous;
+
+  const InventoryError(this.message, {this.previous});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previous];
 }

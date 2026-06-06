@@ -18,96 +18,126 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     on<DeleteInventoryItem>(_onDelete);
   }
 
-  Future<void> _onLoad(LoadInventory event, Emitter<InventoryState> emit) async {
+  Future<void> _onLoad(
+      LoadInventory event, Emitter<InventoryState> emit) async {
+    final prev = _loadedStateOrNull(state);
     emit(const InventoryLoading());
     try {
       final items = await _dataSource.getInventoryItems();
       final sorted = _sortByPriority(items);
       emit(InventoryLoaded(allItems: sorted, filteredItems: sorted));
     } catch (e) {
-      emit(InventoryError(e.toString()));
+      emit(InventoryError(e.toString(), previous: prev));
     }
   }
 
   void _onSearch(SearchInventory event, Emitter<InventoryState> emit) {
-    final current = state;
-    if (current is! InventoryLoaded) return;
+    final current = _loadedStateOrNull(state);
+    if (current == null) return;
 
     final q = event.query.toLowerCase().trim();
     final filtered = q.isEmpty
-      ? current.allItems
-      : current.allItems.where((e) => e.partName.toLowerCase().contains(q)).toList();
+        ? current.allItems
+        : current.allItems
+            .where((e) => e.partName.toLowerCase().contains(q))
+            .toList();
     final sorted = _sortByPriority(filtered);
 
     emit(current.copyWith(filteredItems: sorted, searchQuery: event.query));
   }
 
-  Future<void> _onCreate(CreateInventoryItem event, Emitter<InventoryState> emit) async {
-    final prev = state;
-    emit(const InventorySubmitting());
+  Future<void> _onCreate(
+      CreateInventoryItem event, Emitter<InventoryState> emit) async {
+    final prev = _loadedStateOrNull(state);
+    emit(InventorySubmitting(previous: prev));
     try {
       final newItem = await _dataSource.createInventoryItem(event.data);
-      if (prev is InventoryLoaded) {
+      if (prev != null) {
         final updated = _sortByPriority([newItem, ...prev.allItems]);
-        emit(InventoryLoaded(allItems: updated, filteredItems: updated));
+        emit(_applySearch(prev, updated));
       } else {
         add(const LoadInventory());
       }
     } catch (e) {
-      emit(InventoryError(e.toString()));
+      emit(InventoryError(e.toString(), previous: prev));
     }
   }
 
-  Future<void> _onUpdate(UpdateInventoryItem event, Emitter<InventoryState> emit) async {
-    final prev = state;
-    emit(const InventorySubmitting());
+  Future<void> _onUpdate(
+      UpdateInventoryItem event, Emitter<InventoryState> emit) async {
+    final prev = _loadedStateOrNull(state);
+    emit(InventorySubmitting(previous: prev));
     try {
-      final updatedItem = await _dataSource.updateInventoryItem(event.id, event.data);
-      if (prev is InventoryLoaded) {
-        final updated = prev.allItems.map((e) => e.id == event.id ? updatedItem : e).toList();
+      final updatedItem =
+          await _dataSource.updateInventoryItem(event.id, event.data);
+      if (prev != null) {
+        final updated = prev.allItems
+            .map((e) => e.id == event.id ? updatedItem : e)
+            .toList();
         final sorted = _sortByPriority(updated);
-        emit(InventoryLoaded(allItems: sorted, filteredItems: sorted));
+        emit(_applySearch(prev, sorted));
       } else {
         add(const LoadInventory());
       }
     } catch (e) {
-      emit(InventoryError(e.toString()));
+      emit(InventoryError(e.toString(), previous: prev));
     }
   }
 
-  Future<void> _onAdjust(AdjustInventoryQuantity event, Emitter<InventoryState> emit) async {
-    final prev = state;
-    if (prev is! InventoryLoaded) return;
+  Future<void> _onAdjust(
+      AdjustInventoryQuantity event, Emitter<InventoryState> emit) async {
+    final prev = _loadedStateOrNull(state);
+    if (prev == null) return;
     try {
-      final adjustedItem = await _dataSource.adjustQuantity(event.id, event.delta);
-      final updated = prev.allItems.map((e) => e.id == event.id ? adjustedItem : e).toList();
+      final adjustedItem =
+          await _dataSource.adjustQuantity(event.id, event.delta);
+      final updated = prev.allItems
+          .map((e) => e.id == event.id ? adjustedItem : e)
+          .toList();
       final sortedAll = _sortByPriority(updated);
-      final q = prev.searchQuery.toLowerCase().trim();
-      final filtered = q.isEmpty
-          ? sortedAll
-          : sortedAll.where((e) => e.partName.toLowerCase().contains(q)).toList();
-      final sortedFiltered = _sortByPriority(filtered);
-      emit(prev.copyWith(allItems: sortedAll, filteredItems: sortedFiltered));
+      emit(_applySearch(prev, sortedAll));
     } catch (e) {
-      emit(InventoryError(e.toString()));
+      emit(InventoryError(e.toString(), previous: prev));
     }
   }
 
-  Future<void> _onDelete(DeleteInventoryItem event, Emitter<InventoryState> emit) async {
-    final prev = state;
-    emit(const InventorySubmitting());
+  Future<void> _onDelete(
+      DeleteInventoryItem event, Emitter<InventoryState> emit) async {
+    final prev = _loadedStateOrNull(state);
+    emit(InventorySubmitting(previous: prev));
     try {
       await _dataSource.deleteInventoryItem(event.id);
-      if (prev is InventoryLoaded) {
+      if (prev != null) {
         final updated = prev.allItems.where((e) => e.id != event.id).toList();
         final sorted = _sortByPriority(updated);
-        emit(InventoryLoaded(allItems: sorted, filteredItems: sorted));
+        emit(_applySearch(prev, sorted));
       } else {
         add(const LoadInventory());
       }
     } catch (e) {
-      emit(InventoryError(e.toString()));
+      emit(InventoryError(e.toString(), previous: prev));
     }
+  }
+
+  InventoryLoaded? _loadedStateOrNull(InventoryState state) {
+    if (state is InventoryLoaded) return state;
+    if (state is InventorySubmitting) return state.previous;
+    if (state is InventoryError) return state.previous;
+    return null;
+  }
+
+  InventoryLoaded _applySearch(
+      InventoryLoaded previous, List<InventoryModel> allItems) {
+    final sortedAll = _sortByPriority(allItems);
+    final q = previous.searchQuery.toLowerCase().trim();
+    final filtered = q.isEmpty
+        ? sortedAll
+        : sortedAll.where((e) => e.partName.toLowerCase().contains(q)).toList();
+
+    return previous.copyWith(
+      allItems: sortedAll,
+      filteredItems: _sortByPriority(filtered),
+    );
   }
 
   List<InventoryModel> _sortByPriority(List<InventoryModel> items) {

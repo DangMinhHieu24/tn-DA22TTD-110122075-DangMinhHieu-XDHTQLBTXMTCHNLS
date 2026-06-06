@@ -653,10 +653,12 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
     // TODO: navigate to vehicle detail page
   }
 
-  void _openNewIntake() {
+  void _openNewIntake([String licensePlate = '']) {
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => const VehicleIntakePage(),
+        pageBuilder: (_, animation, __) => VehicleIntakePage(
+          initialLicensePlate: licensePlate.isNotEmpty ? licensePlate : null,
+        ),
         transitionsBuilder: (_, animation, __, child) {
           return SlideTransition(
             position: Tween<Offset>(

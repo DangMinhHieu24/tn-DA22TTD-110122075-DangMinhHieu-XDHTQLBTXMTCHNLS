@@ -36,6 +36,7 @@ export 'presentation/dashboard/bloc/revenue_report_event.dart';
 export 'presentation/dashboard/bloc/revenue_report_state.dart';
 export 'presentation/dashboard/pages/admin_dashboard_page.dart';
 export 'presentation/dashboard/pages/admin_revenue_report_page.dart';
+export 'presentation/dashboard/pages/admin_alerts_page.dart';
 export 'presentation/dashboard/widgets/stat_card.dart';
 export 'presentation/dashboard/widgets/shortcut_button.dart';
 export 'presentation/dashboard/widgets/alert_item.dart';

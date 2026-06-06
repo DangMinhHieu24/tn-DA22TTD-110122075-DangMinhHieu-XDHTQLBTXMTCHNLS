@@ -52,7 +52,7 @@ export const getInventoryItemById = async (req: Request, res: Response) => {
 
 export const createInventoryItem = async (req: Request, res: Response) => {
   try {
-    const { partName, imageUrl, quantity, minThreshold, unitPrice, sellPrice } = req.body;
+    const { partName, imageUrl, quantity, minThreshold, unitPrice, sellPrice, warrantyDays } = req.body;
 
     const item = await prisma.inventory.create({
       data: {
@@ -62,6 +62,7 @@ export const createInventoryItem = async (req: Request, res: Response) => {
         minThreshold: minThreshold ?? 0,
         unitPrice: unitPrice ?? 0,
         sellPrice: sellPrice ?? 0,
+        warrantyDays: warrantyDays ?? 0,
       },
     });
 
@@ -82,7 +83,7 @@ export const createInventoryItem = async (req: Request, res: Response) => {
 export const updateInventoryItem = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { partName, imageUrl, quantity, minThreshold, unitPrice, sellPrice } = req.body;
+    const { partName, imageUrl, quantity, minThreshold, unitPrice, sellPrice, warrantyDays } = req.body;
 
     const item = await prisma.inventory.update({
       where: { id },
@@ -93,6 +94,7 @@ export const updateInventoryItem = async (req: Request, res: Response) => {
         minThreshold,
         unitPrice,
         sellPrice,
+        warrantyDays,
       },
     });
 

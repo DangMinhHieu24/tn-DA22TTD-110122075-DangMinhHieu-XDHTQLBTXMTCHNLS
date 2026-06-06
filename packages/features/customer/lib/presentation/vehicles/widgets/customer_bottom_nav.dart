@@ -39,9 +39,9 @@ class CustomerBottomNav extends StatelessWidget {
                 onTap: () => onItemSelected?.call(0),
               ),
               _NavItem(
-                icon: Icons.build_outlined,
-                activeIcon: Icons.build,
-                label: 'DỊCH VỤ',
+                icon: Icons.calendar_month_outlined,
+                activeIcon: Icons.calendar_month,
+                label: 'ĐẶT LỊCH',
                 isSelected: selectedIndex == 1,
                 onTap: () => onItemSelected?.call(1),
               ),

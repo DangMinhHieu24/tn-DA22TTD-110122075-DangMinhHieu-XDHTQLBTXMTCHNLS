@@ -6,6 +6,7 @@ import 'package:design_system/design_system.dart';
 import '../widgets/customer_app_bar.dart';
 import '../widgets/customer_bottom_nav.dart';
 import '../../account/pages/customer_account_page.dart';
+import '../../appointments/pages/appointments_page.dart';
 import '../bloc/customer_vehicle_bloc.dart';
 import '../widgets/customer_vehicle_card.dart';
 import 'vehicle_detail_page.dart';
@@ -88,7 +89,13 @@ class _MyVehiclesPageState extends State<MyVehiclesPage> {
               CustomerBottomNav(
                 selectedIndex: 0,
                 onItemSelected: (index) {
-                  if (index == 3) {
+                  if (index == 1) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => const AppointmentsPage(),
+                      ),
+                    );
+                  } else if (index == 3) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (_) => const CustomerAccountPage(),

@@ -5,7 +5,7 @@ import 'admin_vehicle_detail_sheet.dart';
 
 class CustomerVehiclesSheet extends StatelessWidget {
   final CustomerWithVehicles customer;
-  final VoidCallback onIntakePressed; // If they want to add a new vehicle for this customer
+  final ValueChanged<String> onIntakePressed;
 
   const CustomerVehiclesSheet({
     super.key,
@@ -13,7 +13,7 @@ class CustomerVehiclesSheet extends StatelessWidget {
     required this.onIntakePressed,
   });
 
-  static void show(BuildContext context, CustomerWithVehicles customer, VoidCallback onIntakePressed) {
+  static void show(BuildContext context, CustomerWithVehicles customer, ValueChanged<String> onIntakePressed) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -163,7 +163,7 @@ class CustomerVehiclesSheet extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () {
                   Navigator.pop(context); // Close sheet
-                  onIntakePressed(); // Add new vehicle flow
+                  onIntakePressed(''); // Add new vehicle flow
                 },
                 icon: const Icon(Icons.add, color: Color(0xFF006E2F)),
                 label: const Text(

@@ -7,6 +7,9 @@ import 'package:customer/customer.dart';
 final getIt = GetIt.instance;
 
 Future<void> configureDependencies() async {
+  // Reset GetIt for hot restart compatibility
+  await getIt.reset();
+
   // Setup auth dependencies
   setupAuthDependencies();
   

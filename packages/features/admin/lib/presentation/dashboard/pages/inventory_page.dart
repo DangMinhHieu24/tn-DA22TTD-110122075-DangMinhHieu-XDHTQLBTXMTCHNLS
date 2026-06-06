@@ -38,6 +38,7 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _bloc.close();
     super.dispose();
   }
 
@@ -71,29 +72,20 @@ class _InventoryPageState extends State<InventoryPage> {
                     }
                   },
                   builder: (context, state) {
-                    if (state is InventoryLoading || state is InventoryInitial) {
+                    if (state is InventoryLoading ||
+                        state is InventoryInitial) {
                       return const Center(
-                        child: CircularProgressIndicator(color: Color(0xFF006E2F)),
+                        child:
+                            CircularProgressIndicator(color: Color(0xFF006E2F)),
                       );
                     }
 
-                    if (state is InventoryLoaded || state is InventorySubmitting) {
-                      final loaded = state is InventoryLoaded
-                          ? state
-                          : (_bloc.state is InventoryLoaded
-                              ? _bloc.state as InventoryLoaded
-                              : null);
-
-                      if (loaded == null) {
-                        return const Center(
-                          child: CircularProgressIndicator(color: Color(0xFF006E2F)),
-                        );
-                      }
-
+                    final loaded = _loadedStateOrNull(state);
+                    if (loaded != null) {
                       return _buildList(context, loaded);
                     }
 
-                    return const SizedBox.shrink();
+                    return _buildEmptyState(false);
                   },
                 ),
               ),
@@ -105,6 +97,13 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
       ),
     );
+  }
+
+  InventoryLoaded? _loadedStateOrNull(InventoryState state) {
+    if (state is InventoryLoaded) return state;
+    if (state is InventorySubmitting) return state.previous;
+    if (state is InventoryError) return state.previous;
+    return null;
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -172,7 +171,8 @@ class _InventoryPageState extends State<InventoryPage> {
                 onChanged: (q) => _bloc.add(SearchInventory(q)),
                 style: const TextStyle(fontSize: 15, color: Color(0xFF191C1E)),
                 decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search_rounded, color: Color(0xFF6D7B6C), size: 22),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: Color(0xFF6D7B6C), size: 22),
                   hintText: 'Tìm kiếm phụ tùng, mã SKU...',
                   hintStyle: TextStyle(fontSize: 14, color: Color(0xFF6D7B6C)),
                   border: InputBorder.none,
@@ -261,7 +261,8 @@ class _InventoryPageState extends State<InventoryPage> {
             child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.delete_outline_rounded, color: Color(0xFF93000A), size: 22),
+                Icon(Icons.delete_outline_rounded,
+                    color: Color(0xFF93000A), size: 22),
                 SizedBox(height: 4),
                 Text(
                   'Xóa',
@@ -275,37 +276,36 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
           ),
           confirmDismiss: (_) async {
-            bool confirmed = false;
-            await showDialog(
+            final confirmed = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 title: const Text('Xóa phụ tùng?',
-                    style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF191C1E))),
-                content: Text('Bạn có chắc muốn xóa "${items[index].partName}"?'),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800, color: Color(0xFF191C1E))),
+                content:
+                    Text('Bạn có chắc muốn xóa "${items[index].partName}"?'),
                 actions: [
                   TextButton(
-                    onPressed: () {
-                      confirmed = false;
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Hủy', style: TextStyle(color: Color(0xFF3D4A3D))),
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Hủy',
+                        style: TextStyle(color: Color(0xFF3D4A3D))),
                   ),
                   ElevatedButton(
-                    onPressed: () {
-                      confirmed = true;
-                      Navigator.pop(ctx);
-                    },
+                    onPressed: () => Navigator.pop(ctx, true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFBA1A1A),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+                    child: const Text('Xóa',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
             );
-            return confirmed;
+            return confirmed ?? false;
           },
           onDismissed: (_) => _bloc.add(DeleteInventoryItem(items[index].id)),
           child: InventoryItemCard(item: items[index]),
@@ -326,7 +326,8 @@ class _InventoryPageState extends State<InventoryPage> {
               color: const Color(0xFFE8F5E9),
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.inventory_2_outlined, size: 40, color: Color(0xFF006E2F)),
+            child: const Icon(Icons.inventory_2_outlined,
+                size: 40, color: Color(0xFF006E2F)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -339,7 +340,9 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            isSearch ? 'Thử tìm với từ khóa khác' : 'Nhấn nút "+" để thêm phụ tùng đầu tiên',
+            isSearch
+                ? 'Thử tìm với từ khóa khác'
+                : 'Nhấn nút "+" để thêm phụ tùng đầu tiên',
             style: const TextStyle(fontSize: 14, color: Color(0xFF6D7B6C)),
           ),
         ],

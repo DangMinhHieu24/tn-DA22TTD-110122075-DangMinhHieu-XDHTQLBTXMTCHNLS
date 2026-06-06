@@ -80,6 +80,7 @@ model Vehicle {
 
   maintenanceLogs MaintenanceLog[]
   warranties     Warranty[]
+  partWarranties PartWarranty[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -122,6 +123,7 @@ model WorkOrder {
   completedAt       DateTime?       @map("completed_at")
 
   partsUsed         PartsUsed[]
+  partWarranties    PartWarranty[]
   maintenanceLog    MaintenanceLog?
 
   @@map("work_orders")
@@ -164,8 +166,10 @@ model Inventory {
   minThreshold Int     @map("min_threshold")
   unitPrice    Float   @map("unit_price")
   sellPrice    Float   @map("sell_price")
+  warrantyDays Int     @default(0) @map("warranty_days")
 
   partsUsed    PartsUsed[]
+  partWarranties PartWarranty[]
 
   @@map("inventory")
 }
@@ -178,8 +182,26 @@ model PartsUsed {
   part       Inventory @relation(fields: [partId], references: [id])
   quantity   Int
   unitPrice  Float    @map("unit_price")
+  partWarranty PartWarranty?
 
   @@map("parts_used")
+}
+
+model PartWarranty {
+  id           String   @id @default(uuid())
+  partUsedId   String   @unique @map("part_used_id")
+  partUsed     PartsUsed @relation(fields: [partUsedId], references: [id], onDelete: Cascade)
+  partId       String   @map("part_id")
+  part         Inventory @relation(fields: [partId], references: [id])
+  workOrderId  String   @map("work_order_id")
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id])
+  vehicleId    String   @map("vehicle_id")
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id])
+  warrantyDays Int      @map("warranty_days")
+  startDate    DateTime @default(now()) @map("start_date")
+  expiryDate   DateTime @map("expiry_date")
+
+  @@map("part_warranties")
 }
 
 enum AppointmentStatus {

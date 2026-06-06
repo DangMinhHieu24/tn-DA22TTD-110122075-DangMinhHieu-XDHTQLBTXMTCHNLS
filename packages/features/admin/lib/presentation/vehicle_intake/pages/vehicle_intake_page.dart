@@ -8,19 +8,23 @@ import '../bloc/vehicle_intake_bloc.dart';
 /// Vehicle Intake Page - 100% converted from HTML design
 /// Follows Material Design 3 color system and "Kinetic Sanctuary" design philosophy
 class VehicleIntakePage extends StatelessWidget {
-  const VehicleIntakePage({super.key});
+  final String? initialLicensePlate;
+
+  const VehicleIntakePage({super.key, this.initialLicensePlate});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => GetIt.instance<VehicleIntakeBloc>(),
-      child: const _VehicleIntakeView(),
+      child: _VehicleIntakeView(initialLicensePlate: initialLicensePlate),
     );
   }
 }
 
 class _VehicleIntakeView extends StatefulWidget {
-  const _VehicleIntakeView();
+  final String? initialLicensePlate;
+
+  const _VehicleIntakeView({this.initialLicensePlate});
 
   @override
   State<_VehicleIntakeView> createState() => _VehicleIntakeViewState();
@@ -43,7 +47,13 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VehicleIntakeBloc>().add(const VehicleIntakeTechniciansRequested());
+      final bloc = context.read<VehicleIntakeBloc>();
+      bloc.add(const VehicleIntakeTechniciansRequested());
+
+      if (widget.initialLicensePlate != null && widget.initialLicensePlate!.isNotEmpty) {
+        _licensePlateController.text = widget.initialLicensePlate!;
+        bloc.add(VehicleIntakeLicensePlateSearched(widget.initialLicensePlate!));
+      }
     });
   }
 

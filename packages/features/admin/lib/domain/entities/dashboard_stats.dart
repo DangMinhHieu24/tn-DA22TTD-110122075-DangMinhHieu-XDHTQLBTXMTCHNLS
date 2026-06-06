@@ -51,6 +51,7 @@ enum AlertType {
   lowStock,
   delayedVehicle,
   warrantyExpiring,
+  partWarrantyExpiring,
 }
 
 class TechnicianStatus extends Equatable {

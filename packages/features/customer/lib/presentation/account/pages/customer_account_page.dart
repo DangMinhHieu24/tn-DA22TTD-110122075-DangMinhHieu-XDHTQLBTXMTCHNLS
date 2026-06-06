@@ -4,6 +4,7 @@ import 'package:auth/auth.dart';
 import 'package:design_system/design_system.dart';
 import '../../vehicles/widgets/customer_bottom_nav.dart';
 import '../../vehicles/pages/my_vehicles_page.dart';
+import '../../appointments/pages/appointments_page.dart';
 
 class CustomerAccountPage extends StatelessWidget {
   const CustomerAccountPage({super.key});
@@ -104,6 +105,12 @@ class CustomerAccountPage extends StatelessWidget {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (_) => const MyVehiclesPage(),
+                      ),
+                    );
+                  } else if (index == 1) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => const AppointmentsPage(),
                       ),
                     );
                   }

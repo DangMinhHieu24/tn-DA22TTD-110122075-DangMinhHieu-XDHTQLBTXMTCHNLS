@@ -43,6 +43,7 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
   late final TextEditingController _thresholdCtrl;
   late final TextEditingController _unitPriceCtrl;
   late final TextEditingController _sellPriceCtrl;
+  late final TextEditingController _warrantyDaysCtrl;
 
   bool get _isEdit => widget.item != null;
 
@@ -55,6 +56,7 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
     _thresholdCtrl = TextEditingController(text: item?.minThreshold.toString() ?? '5');
     _unitPriceCtrl = TextEditingController(text: item?.unitPrice.toStringAsFixed(0) ?? '');
     _sellPriceCtrl = TextEditingController(text: item?.sellPrice.toStringAsFixed(0) ?? '');
+    _warrantyDaysCtrl = TextEditingController(text: item?.warrantyDays.toString() ?? '0');
   }
 
   @override
@@ -64,6 +66,7 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
     _thresholdCtrl.dispose();
     _unitPriceCtrl.dispose();
     _sellPriceCtrl.dispose();
+    _warrantyDaysCtrl.dispose();
     super.dispose();
   }
 
@@ -75,6 +78,7 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
       'minThreshold': int.tryParse(_thresholdCtrl.text) ?? 5,
       'unitPrice': double.tryParse(_unitPriceCtrl.text.replaceAll(',', '')) ?? 0,
       'sellPrice': double.tryParse(_sellPriceCtrl.text.replaceAll(',', '')) ?? 0,
+      'warrantyDays': int.tryParse(_warrantyDaysCtrl.text) ?? 0,
     };
     Navigator.pop(context);
     widget.onSubmit(data);
@@ -197,6 +201,24 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
                       ],
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Bảo hành (ngày)
+              _buildLabel('Bảo hành (ngày)'),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _warrantyDaysCtrl,
+                      hint: '0 = không BH',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.info_outline, size: 16, color: Color(0xFF6D7B6C)),
                 ],
               ),
               const SizedBox(height: 32),

@@ -12,6 +12,7 @@ class AppRouter {
   static const String register = '/register';
   static const String adminDashboard = '/admin/dashboard';
   static const String adminRevenueReport = '/admin/revenue-report';
+  static const String adminAlerts = '/admin/alerts';
   static const String technicianDashboard = '/technician/dashboard';
   static const String customerDashboard = '/customer/dashboard';
 
@@ -59,6 +60,18 @@ class AppRouter {
             create: (_) => GetIt.instance<admin.RevenueReportBloc>(),
             child: const admin.AdminRevenueReportPage(),
           ),
+        );
+
+      case adminAlerts:
+        return MaterialPageRoute(
+          builder: (_) {
+            final bloc = GetIt.instance<admin.DashboardBloc>();
+            bloc.add(admin.LoadDashboardStats());
+            return BlocProvider.value(
+              value: bloc,
+              child: const admin.AdminAlertsPage(),
+            );
+          },
         );
 
       case customerDashboard:

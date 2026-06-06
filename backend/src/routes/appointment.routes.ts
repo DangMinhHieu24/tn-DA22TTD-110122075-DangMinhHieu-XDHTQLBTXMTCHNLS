@@ -1,0 +1,23 @@
+import { Router } from 'express';
+import {
+  getMyAppointments,
+  createAppointment,
+  cancelAppointment,
+} from '../controllers/appointment.controller';
+import { authenticate } from '../middleware/auth.middleware';
+
+const router = Router();
+
+// All routes require authentication
+router.use(authenticate);
+
+// GET /api/appointments/my - Get my appointments
+router.get('/my', getMyAppointments);
+
+// POST /api/appointments - Create appointment
+router.post('/', createAppointment);
+
+// PATCH /api/appointments/:id/cancel - Cancel appointment
+router.patch('/:id/cancel', cancelAppointment);
+
+export default router;
