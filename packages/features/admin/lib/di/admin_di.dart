@@ -1,17 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:core/core.dart';
+import '../domain/repositories/admin_appointment_repository.dart';
 import '../domain/repositories/dashboard_repository.dart';
 import '../domain/repositories/revenue_report_repository.dart';
 import '../domain/usecases/get_dashboard_stats.dart';
 import '../domain/usecases/get_revenue_report.dart';
+import '../domain/usecases/get_upcoming_appointments.dart';
+import '../domain/usecases/delete_appointment.dart';
 import '../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../presentation/dashboard/bloc/revenue_report_bloc.dart';
 import '../presentation/vehicle_intake/bloc/vehicle_intake_bloc.dart';
+import '../presentation/vehicle_intake/bloc/admin_appointment_bloc.dart';
 import '../presentation/dashboard/bloc/inventory_bloc.dart';
+import '../data/repositories/admin_appointment_repository_impl.dart';
 import '../data/repositories/dashboard_repository_impl.dart';
 import '../data/repositories/revenue_report_repository_impl.dart';
 import '../data/repositories/vehicle_intake_repository.dart';
+import '../data/datasources/remote/admin_appointment_remote_datasource.dart';
 import '../data/datasources/remote/dashboard_remote_datasource.dart';
 import '../data/datasources/remote/revenue_report_remote_datasource.dart';
 import '../data/datasources/remote/vehicle_remote_datasource.dart';
@@ -21,6 +27,8 @@ import '../data/datasources/remote/inventory_remote_datasource.dart';
 final getIt = GetIt.instance;
 
 void setupAdminDependencies() {
+  print('🔧 Setting up Admin dependencies...');
+  
   // Services
   getIt.registerLazySingleton<ImageUploadService>(
     () => ImageUploadService(),
@@ -74,7 +82,26 @@ void setupAdminDependencies() {
     ),
   );
 
+  // Appointment data source + repository
+  getIt.registerLazySingleton<AdminAppointmentRemoteDataSource>(
+    () => AdminAppointmentRemoteDataSourceImpl(dio: getIt<Dio>()),
+  );
+
+  getIt.registerLazySingleton<AdminAppointmentRepository>(
+    () => AdminAppointmentRepositoryImpl(
+      remoteDataSource: getIt<AdminAppointmentRemoteDataSource>(),
+    ),
+  );
+
   // Use cases
+  getIt.registerLazySingleton<GetUpcomingAppointments>(
+    () => GetUpcomingAppointments(getIt<AdminAppointmentRepository>()),
+  );
+
+  getIt.registerLazySingleton<DeleteAppointment>(
+    () => DeleteAppointment(getIt<AdminAppointmentRepository>()),
+  );
+
   getIt.registerLazySingleton<GetDashboardStats>(
     () => GetDashboardStats(getIt<DashboardRepository>()),
   );
@@ -105,10 +132,31 @@ void setupAdminDependencies() {
     ),
   );
 
+  // Presentation - Admin Appointment Bloc
+  print('📦 Registering AdminAppointmentBloc...');
+  try {
+    getIt.registerFactory<AdminAppointmentBloc>(
+      () {
+        print('  ↳ Factory called, getting GetUpcomingAppointments...');
+        final useCase = getIt<GetUpcomingAppointments>();
+        print('  ↳ Got useCase, creating AdminAppointmentBloc...');
+        return AdminAppointmentBloc(
+          getUpcomingAppointments: useCase,
+        );
+      },
+    );
+    print('✅ AdminAppointmentBloc registered successfully');
+  } catch (e) {
+    print('❌ Error registering AdminAppointmentBloc: $e');
+    rethrow;
+  }
+
   // Presentation - Inventory Bloc
   getIt.registerFactory<InventoryBloc>(
     () => InventoryBloc(
       dataSource: getIt<InventoryRemoteDataSource>(),
     ),
   );
+  
+  print('✅ Admin dependencies setup completed!');
 }

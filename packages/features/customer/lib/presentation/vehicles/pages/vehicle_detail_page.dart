@@ -11,6 +11,7 @@ import 'customer_work_order_detail_page.dart';
 import '../widgets/customer_bottom_nav.dart';
 import 'my_vehicles_page.dart';
 import '../../account/pages/customer_account_page.dart';
+import '../../warranties/pages/customer_warranty_page.dart';
 
 class VehicleDetailPage extends StatefulWidget {
   final CustomerVehicle vehicle;
@@ -706,8 +707,96 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
                   const SizedBox(height: 20),
                   // Quick info grid
                   _buildQuickInfoGrid(),
+                  const SizedBox(height: 16),
+                  // Warranty button
+                  _buildWarrantyButton(context),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWarrantyButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CustomerWarrantyPage(
+              vehicleId: widget.vehicle.id,
+              licensePlate: widget.vehicle.licensePlate,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFECFDF5),
+              Color(0xFFD1FAE5),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF86EFAC),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF059669).withValues(alpha: 0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: Color(0xFF059669),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.verified_user,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Thông tin bảo hành',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF065F46),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Xem chi tiết các loại bảo hành của xe',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: const Color(0xFF059669).withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 18,
+              color: Color(0xFF059669),
             ),
           ],
         ),

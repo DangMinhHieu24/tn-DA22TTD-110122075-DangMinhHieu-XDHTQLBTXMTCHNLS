@@ -1,36 +1,33 @@
 import 'package:equatable/equatable.dart';
 
-class CustomerAppointment extends Equatable {
+class AdminAppointment extends Equatable {
   final String id;
-  final String customerId;
-  final DateTime scheduledAt;
+  final String customerName;
+  final String? customerPhone;
   final String? serviceType;
   final String? notes;
-  final String status; // PENDING, CONFIRMED, CANCELLED
+  final DateTime scheduledAt;
+  final String status;
   final String? vehicleLicensePlate;
-  final String? vehicleBrand;
   final String? vehicleModel;
+  final String? vehicleBrand;
 
-  const CustomerAppointment({
+  const AdminAppointment({
     required this.id,
-    required this.customerId,
-    required this.scheduledAt,
+    required this.customerName,
+    this.customerPhone,
     this.serviceType,
     this.notes,
+    required this.scheduledAt,
     required this.status,
     this.vehicleLicensePlate,
-    this.vehicleBrand,
     this.vehicleModel,
+    this.vehicleBrand,
   });
 
   bool get isPending => status == 'PENDING';
   bool get isConfirmed => status == 'CONFIRMED';
   bool get isCancelled => status == 'CANCELLED';
-  bool get canCancel => isPending || isConfirmed;
-
-  /// Lịch hẹn sắp tới (chưa qua và chưa hủy)
-  bool get isUpcoming =>
-      !isCancelled && scheduledAt.isAfter(DateTime.now());
 
   String get serviceTypeLabel {
     switch (serviceType) {
@@ -60,18 +57,17 @@ class CustomerAppointment extends Equatable {
     }
   }
 
-  bool get hasVehicle => vehicleLicensePlate != null;
-
   @override
   List<Object?> get props => [
         id,
-        customerId,
-        scheduledAt,
+        customerName,
+        customerPhone,
         serviceType,
         notes,
+        scheduledAt,
         status,
         vehicleLicensePlate,
-        vehicleBrand,
         vehicleModel,
+        vehicleBrand,
       ];
 }

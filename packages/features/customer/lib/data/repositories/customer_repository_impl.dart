@@ -74,12 +74,14 @@ class CustomerRepositoryImpl implements CustomerRepository {
     required DateTime scheduledAt,
     String? serviceType,
     String? notes,
+    String? vehicleId,
   }) async {
     try {
       final appointment = await appointmentRemoteDataSource.createAppointment({
-        'scheduledAt': scheduledAt.toIso8601String(),
+        'scheduledAt': scheduledAt.toUtc().toIso8601String(),
         if (serviceType != null) 'serviceType': serviceType,
         if (notes != null) 'notes': notes,
+        if (vehicleId != null) 'vehicleId': vehicleId,
       });
       return Right(appointment);
     } catch (e) {

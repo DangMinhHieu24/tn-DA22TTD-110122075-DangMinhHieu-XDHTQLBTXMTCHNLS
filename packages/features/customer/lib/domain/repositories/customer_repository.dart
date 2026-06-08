@@ -16,6 +16,7 @@ abstract class CustomerRepository {
     required DateTime scheduledAt,
     String? serviceType,
     String? notes,
+    String? vehicleId,
   });
   Future<Either<Failure, void>> cancelAppointment(String id);
 }

@@ -108,6 +108,32 @@ class AppointmentCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
+          // Vehicle info
+          if (appointment.hasVehicle) ...[
+            Row(
+              children: [
+                Icon(
+                  Icons.directions_car,
+                  size: 18,
+                  color: AppColors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${appointment.vehicleBrand ?? ''} ${appointment.vehicleModel ?? ''} • ${appointment.vehicleLicensePlate}',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+
           // Service type
           Row(
             children: [

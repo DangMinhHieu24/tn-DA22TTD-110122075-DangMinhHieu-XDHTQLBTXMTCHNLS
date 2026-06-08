@@ -7,17 +7,14 @@ import 'package:customer/customer.dart';
 final getIt = GetIt.instance;
 
 Future<void> configureDependencies() async {
-  // Reset GetIt for hot restart compatibility
-  await getIt.reset();
-
-  // Setup auth dependencies
+  // Setup auth dependencies first (provides Dio)
   setupAuthDependencies();
+  
+  // Setup admin dependencies (depends on Dio from auth)
+  setupAdminDependencies();
   
   // Setup technician dependencies
   setupTechnicianDependencies();
-  
-  // Setup admin dependencies
-  setupAdminDependencies();
   
   // Setup customer dependencies
   setupCustomerDependencies();

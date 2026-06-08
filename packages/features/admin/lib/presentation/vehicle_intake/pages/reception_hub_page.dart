@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:core/core.dart';
+import 'package:intl/intl.dart';
 import '../../../data/datasources/remote/vehicle_remote_datasource.dart';
+import '../../../domain/entities/admin_appointment.dart';
+import '../../../domain/usecases/delete_appointment.dart';
+import '../bloc/admin_appointment_bloc.dart';
+import '../bloc/admin_appointment_event.dart';
+import '../bloc/admin_appointment_state.dart';
 import '../widgets/admin_vehicle_detail_sheet.dart';
 import '../widgets/customer_vehicles_sheet.dart';
 import 'vehicle_intake_page.dart';
@@ -17,6 +24,8 @@ class ReceptionHubPage extends StatefulWidget {
   State<ReceptionHubPage> createState() => _ReceptionHubPageState();
 }
 
+enum _AppointmentFilter { today, upcoming, all }
+
 class _ReceptionHubPageState extends State<ReceptionHubPage>
     with SingleTickerProviderStateMixin {
   int _searchTab = 0; // 0 = biển số, 1 = SĐT
@@ -24,6 +33,7 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
   late final AnimationController _animController;
   late final Animation<double> _fadeIn;
   bool _isSearching = false;
+  _AppointmentFilter _appointmentFilter = _AppointmentFilter.upcoming;
 
   @override
   void initState() {
@@ -45,37 +55,44 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeIn,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF7F9FB),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Search section ──────────────────────────────
-                      _buildSearchSection(),
-                      const SizedBox(height: 20),
-                      // ── QR Scan Card ────────────────────────────────
-                      _buildQRScanCard(),
-                      const SizedBox(height: 28),
-                      // ── Upcoming customers ──────────────────────────
-                      _buildUpcomingSection(),
-                      const SizedBox(height: 100), // space above FAB
-                    ],
+    return BlocProvider(
+      create: (context) {
+        final bloc = GetIt.instance<AdminAppointmentBloc>();
+        bloc.add(_buildAppointmentEvent());
+        return bloc;
+      },
+      child: FadeTransition(
+        opacity: _fadeIn,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF7F9FB),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Search section ──────────────────────────────
+                        _buildSearchSection(),
+                        const SizedBox(height: 20),
+                        // ── QR Scan Card ────────────────────────────────
+                        _buildQRScanCard(),
+                        const SizedBox(height: 28),
+                        // ── Upcoming customers ──────────────────────────
+                        _buildUpcomingSection(),
+                        const SizedBox(height: 100), // space above FAB
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          // ── Floating CTA ─────────────────────────────────────────────
+          bottomNavigationBar: _buildBottomCTA(),
         ),
-        // ── Floating CTA ─────────────────────────────────────────────
-        bottomNavigationBar: _buildBottomCTA(),
       ),
     );
   }
@@ -316,82 +333,202 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
   // ────────────────────────────────────────────────────────────────────
   // Upcoming Customers Section
   // ────────────────────────────────────────────────────────────────────
+  String get _sectionTitle {
+    switch (_appointmentFilter) {
+      case _AppointmentFilter.today:
+        return 'Hôm nay';
+      case _AppointmentFilter.upcoming:
+        return 'Sắp tới (7 ngày tới)';
+      case _AppointmentFilter.all:
+        return 'Tất cả lịch hẹn';
+    }
+  }
+
+  LoadUpcomingAppointments _buildAppointmentEvent() {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    switch (_appointmentFilter) {
+      case _AppointmentFilter.today:
+        return LoadUpcomingAppointments(date: today);
+      case _AppointmentFilter.upcoming:
+        final nextWeek = DateFormat('yyyy-MM-dd')
+            .format(DateTime.now().add(const Duration(days: 7)));
+        // dateFrom = hôm nay, dateTo = 7 ngày tới
+        return LoadUpcomingAppointments(dateFrom: today, dateTo: nextWeek);
+      case _AppointmentFilter.all:
+        return LoadUpcomingAppointments();
+    }
+  }
+
   Widget _buildUpcomingSection() {
-    // Mock data - sẽ được thay bằng API sau
-    final upcomingCustomers = [
-      const _UpcomingCustomer(
-        name: 'Nguyễn Văn A',
-        vehicleModel: 'VinFast Klara S',
-        licensePlate: '29A-123.45',
-        timeLabel: '14:30',
-        timeType: _TimeType.scheduled,
-        note: 'Bảo dưỡng định kỳ 5000km',
-        hasAlert: false,
-      ),
-      const _UpcomingCustomer(
-        name: 'Trần Thị B',
-        vehicleModel: 'Dat Bike Weaver++',
-        licensePlate: '59B-987.65',
-        timeLabel: 'Đang chờ',
-        timeType: _TimeType.waiting,
-        note: 'Lỗi cell pin số 4',
-        hasAlert: true,
-      ),
-    ];
+    const filterLabels = ['Hôm nay', 'Sắp tới', 'Tất cả'];
+    final currentIndex = _AppointmentFilter.values.indexOf(_appointmentFilter);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header
+        // Header with dropdown
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Khách hàng sắp đến',
-              style: TextStyle(
+            Text(
+              _sectionTitle,
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF191C1E),
                 letterSpacing: -0.3,
               ),
             ),
-            GestureDetector(
-              onTap: () {},
-              child: const Text(
-                'Xem tất cả',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF006E2F),
+            PopupMenuButton<int>(
+              onSelected: (value) {
+                if (value != currentIndex) {
+                  setState(() => _appointmentFilter = _AppointmentFilter.values[value]);
+                  context.read<AdminAppointmentBloc>().add(_buildAppointmentEvent());
+                }
+              },
+              offset: const Offset(0, 40),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              itemBuilder: (_) => [
+                for (var i = 0; i < filterLabels.length; i++)
+                  PopupMenuItem<int>(
+                    value: i,
+                    child: Row(
+                      children: [
+                        Text(
+                          filterLabels[i],
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: currentIndex == i ? FontWeight.w700 : FontWeight.w400,
+                            color: currentIndex == i
+                                ? const Color(0xFF006E2F)
+                                : const Color(0xFF191C1E),
+                          ),
+                        ),
+                        if (currentIndex == i) ...[
+                          const SizedBox(width: 8),
+                          const Icon(Icons.check, size: 16, color: Color(0xFF006E2F)),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECEEF0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      filterLabels[currentIndex],
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF006E2F),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_drop_down_rounded,
+                      size: 18,
+                      color: Color(0xFF006E2F),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        // Customer cards
-        ...upcomingCustomers.map(
-          (customer) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildCustomerCard(customer),
-          ),
+        // Customer cards from BLoC
+        BlocBuilder<AdminAppointmentBloc, AdminAppointmentState>(
+          builder: (context, state) {
+            if (state is AdminAppointmentLoading) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            if (state is AdminAppointmentError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    'Không thể tải lịch hẹn',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFFBA1A1A),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            final appointments = state is AdminAppointmentLoaded
+                ? state.appointments
+                : <AdminAppointment>[];
+
+            if (appointments.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.event_busy_rounded,
+                        size: 40,
+                        color: Color(0xFFBCCBB9),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Chưa có lịch hẹn nào',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF3D4A3D),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: appointments.map((appointment) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildSwipeableCard(appointment),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );
   }
 
-  Widget _buildCustomerCard(_UpcomingCustomer customer) {
-    final isWaiting = customer.timeType == _TimeType.waiting;
+  Widget _buildAppointmentCard(AdminAppointment appointment) {
+    final isPending = appointment.isPending;
+    final timeStr = DateFormat('HH:mm').format(appointment.scheduledAt);
+    final isToday = _isSameDay(appointment.scheduledAt, DateTime.now());
+    final hasVehicle = appointment.vehicleLicensePlate != null;
 
     return GestureDetector(
-      onTap: () => _openVehicleDetails(customer),
+      onTap: () => _openAppointmentDetails(appointment),
+      behavior: HitTestBehavior.translucent,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: customer.hasAlert
-                ? const Color(0xFFBA1A1A).withValues(alpha: 0.15)
+            color: isPending
+                ? const Color(0xFF006E2F).withValues(alpha: 0.2)
                 : const Color(0xFFBCCBB9).withValues(alpha: 0.4),
             width: 1,
           ),
@@ -405,17 +542,19 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
         ),
         child: Row(
           children: [
-            // Vehicle icon
+            // Customer icon
             Container(
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
+                color: isPending
+                    ? const Color(0xFFECFDF5)
+                    : const Color(0xFFECEEF0),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
-                  Icons.electric_bike_rounded,
+                  hasVehicle ? Icons.electric_bike_rounded : Icons.person_rounded,
                   color: Color(0xFF006E2F),
                   size: 26,
                 ),
@@ -431,79 +570,85 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        customer.name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF191C1E),
-                        ),
-                      ),
-                      // Time badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isWaiting
-                              ? const Color(0xFFECEEF0)
-                              : const Color(0xFF006E2F),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          customer.timeLabel,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: isWaiting
-                                ? const Color(0xFF3D4A3D)
-                                : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  // Vehicle + plate
-                  Text(
-                    '${customer.vehicleModel} • ${customer.licensePlate}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF3D4A3D),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Note
-                  Row(
-                    children: [
-                      Icon(
-                        customer.hasAlert
-                            ? Icons.warning_amber_rounded
-                            : Icons.build_circle_outlined,
-                        size: 14,
-                        color: customer.hasAlert
-                            ? const Color(0xFFBA1A1A)
-                            : const Color(0xFF6D7B6C),
-                      ),
-                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          customer.note,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: customer.hasAlert
-                                ? const Color(0xFFBA1A1A)
-                                : const Color(0xFF6D7B6C),
-                            fontWeight: customer.hasAlert
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                          appointment.customerName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF191C1E),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      // Time badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isPending
+                              ? const Color(0xFF006E2F)
+                              : const Color(0xFFECEEF0),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          isToday ? timeStr : DateFormat('dd/MM').format(appointment.scheduledAt),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: isPending ? Colors.white : const Color(0xFF3D4A3D),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
+                  const SizedBox(height: 4),
+                  // Vehicle info (if available)
+                  if (hasVehicle)
+                    Text(
+                      '${appointment.vehicleBrand ?? ''} ${appointment.vehicleModel ?? ''} • ${appointment.vehicleLicensePlate}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF3D4A3D),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  // Service type
+                  Text(
+                    appointment.serviceTypeLabel,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6D7B6C),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  if (appointment.notes != null && appointment.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    // Note
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.build_circle_outlined,
+                          size: 14,
+                          color: Color(0xFF6D7B6C),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            appointment.notes!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6D7B6C),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -518,6 +663,67 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
         ),
       ),
     );
+  }
+
+  Widget _buildSwipeableCard(AdminAppointment appointment) {
+    return Dismissible(
+      key: ValueKey(appointment.id),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => _confirmDelete(appointment),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFBA1A1A),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+      ),
+      child: _buildAppointmentCard(appointment),
+    );
+  }
+
+  Future<bool> _confirmDelete(AdminAppointment appointment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Xóa lịch hẹn'),
+        content: Text('Bạn có chắc muốn xóa lịch hẹn của ${appointment.customerName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFBA1A1A)),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return false;
+    if (!mounted) return false;
+
+    final result = await GetIt.instance<DeleteAppointment>()(appointment.id);
+
+    return result.fold(
+      (failure) {
+        if (mounted) _showErrorSnackBar('Xóa thất bại: ${failure.message}');
+        return false;
+      },
+      (_) {
+        if (mounted) {
+          context.read<AdminAppointmentBloc>().add(DeleteAppointmentEvent(id: appointment.id));
+        }
+        return true;
+      },
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   // ────────────────────────────────────────────────────────────────────
@@ -649,8 +855,177 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
   }
 
 
-  void _openVehicleDetails(_UpcomingCustomer customer) {
-    // TODO: navigate to vehicle detail page
+  void _openAppointmentDetails(AdminAppointment appointment) {
+    final timeStr = DateFormat('HH:mm').format(appointment.scheduledAt);
+    final dateStr = DateFormat('EEEE, dd/MM/yyyy', 'vi').format(appointment.scheduledAt);
+    final isToday = _isSameDay(appointment.scheduledAt, DateTime.now());
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFBCCBB9),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Header: tên + trạng thái
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        appointment.customerName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF191C1E),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: appointment.isPending
+                            ? const Color(0xFFFEF3C7)
+                            : appointment.isConfirmed
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        appointment.statusLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: appointment.isPending
+                              ? const Color(0xFFD97706)
+                              : appointment.isConfirmed
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (appointment.customerPhone != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    appointment.customerPhone!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6D7B6C),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+
+                // Thời gian
+                _infoRow(Icons.calendar_today, isToday ? timeStr : '$dateStr • $timeStr'),
+                const SizedBox(height: 12),
+
+                // Dịch vụ
+                _infoRow(Icons.build_outlined, appointment.serviceTypeLabel),
+                const SizedBox(height: 12),
+
+                // Xe
+                if (appointment.vehicleLicensePlate != null) ...[
+                  _infoRow(
+                    Icons.directions_car,
+                    '${appointment.vehicleBrand ?? ''} ${appointment.vehicleModel ?? ''} • ${appointment.vehicleLicensePlate}',
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Ghi chú
+                if (appointment.notes != null && appointment.notes!.isNotEmpty) ...[
+                  _infoRow(Icons.notes, appointment.notes!),
+                  const SizedBox(height: 12),
+                ],
+
+                const SizedBox(height: 20),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+
+                // Nút: Tiếp nhận xe
+                SizedBox(
+                  width: double.infinity,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF006E2F), Color(0xFF009844)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        final plate = appointment.vehicleLicensePlate;
+                        _openNewIntake(plate ?? '');
+                      },
+                      icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                      label: const Text('Tiếp nhận xe'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _infoRow(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: const Color(0xFF006E2F)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF191C1E),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   void _openNewIntake([String licensePlate = '']) {
@@ -678,30 +1053,8 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Helpers & Models
+// Helpers
 // ────────────────────────────────────────────────────────────────────
-enum _TimeType { scheduled, waiting }
-
-class _UpcomingCustomer {
-  final String name;
-  final String vehicleModel;
-  final String licensePlate;
-  final String timeLabel;
-  final _TimeType timeType;
-  final String note;
-  final bool hasAlert;
-
-  const _UpcomingCustomer({
-    required this.name,
-    required this.vehicleModel,
-    required this.licensePlate,
-    required this.timeLabel,
-    required this.timeType,
-    required this.note,
-    required this.hasAlert,
-  });
-}
-
 /// Formatter tự động uppercase biển số
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override

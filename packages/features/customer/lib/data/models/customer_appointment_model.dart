@@ -8,9 +8,13 @@ class CustomerAppointmentModel extends CustomerAppointment {
     super.serviceType,
     super.notes,
     required super.status,
+    super.vehicleLicensePlate,
+    super.vehicleBrand,
+    super.vehicleModel,
   });
 
   factory CustomerAppointmentModel.fromJson(Map<String, dynamic> json) {
+    final vehicle = json['vehicle'] as Map<String, dynamic>?;
     return CustomerAppointmentModel(
       id: json['id'] as String,
       customerId: json['customerId'] as String,
@@ -18,6 +22,9 @@ class CustomerAppointmentModel extends CustomerAppointment {
       serviceType: json['serviceType'] as String?,
       notes: json['notes'] as String?,
       status: json['status'] as String,
+      vehicleLicensePlate: vehicle?['licensePlate'] as String?,
+      vehicleBrand: vehicle?['brand'] as String?,
+      vehicleModel: vehicle?['model'] as String?,
     );
   }
 

@@ -81,6 +81,7 @@ model Vehicle {
   maintenanceLogs MaintenanceLog[]
   warranties     Warranty[]
   partWarranties PartWarranty[]
+  appointments   Appointment[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -214,6 +215,8 @@ model Appointment {
   id          String   @id @default(uuid())
   customerId  String   @map("customer_id")
   customer    User     @relation(fields: [customerId], references: [id])
+  vehicleId   String?  @map("vehicle_id")
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
   scheduledAt DateTime @map("scheduled_at")
   serviceType String?  @map("service_type")
   notes       String?

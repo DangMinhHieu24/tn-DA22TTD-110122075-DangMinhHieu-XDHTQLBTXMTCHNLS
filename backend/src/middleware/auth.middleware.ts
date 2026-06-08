@@ -22,3 +22,29 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     return res.status(401).json({ message: 'Token không hợp lệ' });
   }
 };
+
+/**
+ * Middleware to check if user has required role
+ * Usage: requireRole('ADMIN') or requireRole(['ADMIN', 'TECHNICIAN'])
+ */
+export const requireRole = (...allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as any).user;
+
+    if (!user || !user.role) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. Required role: ${allowedRoles.join(' or ')}`,
+      });
+    }
+
+    next();
+  };
+};

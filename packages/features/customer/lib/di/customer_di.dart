@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:core/core.dart';
+import 'package:auth/auth.dart';
 import '../data/datasources/remote/customer_appointment_remote_datasource.dart';
 import '../data/datasources/remote/customer_maintenance_log_remote_datasource.dart';
 import '../data/datasources/remote/customer_vehicle_remote_datasource.dart';
@@ -37,6 +39,17 @@ void setupCustomerDependencies() {
 
   getIt.registerLazySingleton<CustomerAppointmentRemoteDataSource>(
     () => CustomerAppointmentRemoteDataSourceImpl(dio: getIt<Dio>()),
+  );
+
+  // Warranty Service
+  getIt.registerLazySingleton<WarrantyService>(
+    () => WarrantyService(
+      baseUrl: 'http://10.0.2.2:3000/api',
+      getToken: () async {
+        final authLocalDataSource = getIt<AuthLocalDataSource>();
+        return (await authLocalDataSource.getToken()) ?? '';
+      },
+    ),
   );
 
   // Repository

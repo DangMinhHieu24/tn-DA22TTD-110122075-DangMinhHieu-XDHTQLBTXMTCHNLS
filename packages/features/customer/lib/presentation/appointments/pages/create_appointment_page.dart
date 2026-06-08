@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:design_system/design_system.dart';
 import 'package:intl/intl.dart';
+import '../../../domain/entities/customer_vehicle.dart';
+import '../../../domain/usecases/get_customer_vehicles.dart';
 import '../bloc/appointment_bloc.dart';
 
 class CreateAppointmentPage extends StatefulWidget {
@@ -15,8 +18,11 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _selectedServiceType;
+  String? _selectedVehicleId;
   final _notesController = TextEditingController();
   bool _isSubmitting = false;
+  List<CustomerVehicle> _vehicles = [];
+  bool _isLoadingVehicles = true;
 
   final List<Map<String, dynamic>> _serviceTypes = [
     {
@@ -44,6 +50,24 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
       'description': 'Các dịch vụ sửa chữa khác',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVehicles();
+  }
+
+  Future<void> _loadVehicles() async {
+    final result = await GetIt.instance<GetCustomerVehicles>()();
+    if (!mounted) return;
+    result.fold(
+      (_) => setState(() => _isLoadingVehicles = false),
+      (vehicles) => setState(() {
+        _vehicles = vehicles;
+        _isLoadingVehicles = false;
+      }),
+    );
+  }
 
   @override
   void dispose() {
@@ -97,26 +121,32 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Step 1: Service type
-              _buildSectionTitle('1', 'Chọn dịch vụ'),
+              // Step 1: Vehicle
+              _buildSectionTitle('1', 'Chọn xe'),
+              const SizedBox(height: 12),
+              _buildVehicleSelector(),
+              const SizedBox(height: 28),
+
+              // Step 2: Service type
+              _buildSectionTitle('2', 'Chọn dịch vụ'),
               const SizedBox(height: 12),
               _buildServiceTypeSelector(),
               const SizedBox(height: 28),
 
-              // Step 2: Date
-              _buildSectionTitle('2', 'Chọn ngày'),
+              // Step 3: Date
+              _buildSectionTitle('3', 'Chọn ngày'),
               const SizedBox(height: 12),
               _buildDatePicker(),
               const SizedBox(height: 28),
 
-              // Step 3: Time
-              _buildSectionTitle('3', 'Chọn giờ'),
+              // Step 4: Time
+              _buildSectionTitle('4', 'Chọn giờ'),
               const SizedBox(height: 12),
               _buildTimePicker(),
               const SizedBox(height: 28),
 
-              // Step 4: Notes
-              _buildSectionTitle('4', 'Ghi chú (tuỳ chọn)'),
+              // Step 5: Notes
+              _buildSectionTitle('5', 'Ghi chú (tuỳ chọn)'),
               const SizedBox(height: 12),
               _buildNotesField(),
               const SizedBox(height: 36),
@@ -158,6 +188,137 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildVehicleSelector() {
+    if (_isLoadingVehicles) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    String? displayText;
+    IconData displayIcon;
+    if (_selectedVehicleId == null) {
+      displayText = 'Chọn xe (không bắt buộc)';
+      displayIcon = Icons.directions_car;
+    } else if (_selectedVehicleId == 'none') {
+      displayText = 'Không chọn xe';
+      displayIcon = Icons.block;
+    } else {
+      final selected = _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
+      displayText = '${selected.brand ?? ''} ${selected.model} - ${selected.licensePlate}';
+      displayIcon = Icons.directions_car;
+    }
+
+    return GestureDetector(
+      onTap: _showVehiclePicker,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _selectedVehicleId != null
+                ? AppColors.primary
+                : AppColors.outlineVariant.withValues(alpha: 0.5),
+            width: _selectedVehicleId != null ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              displayIcon,
+              color: _selectedVehicleId != null
+                  ? AppColors.primary
+                  : AppColors.onSurfaceVariant,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                displayText,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: _selectedVehicleId != null
+                      ? AppColors.onSurface
+                      : AppColors.onSurfaceVariant,
+                  fontWeight:
+                      _selectedVehicleId != null ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 24,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVehiclePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'Chọn xe',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: Icon(Icons.block, color: AppColors.onSurfaceVariant),
+                  title: const Text('Không chọn xe'),
+                  trailing: _selectedVehicleId == 'none' || _selectedVehicleId == null
+                      ? Icon(Icons.check, color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    setState(() => _selectedVehicleId = 'none');
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+                ..._vehicles.map((v) => ListTile(
+                      leading: const Icon(Icons.directions_car),
+                      title: Text('${v.brand ?? ''} ${v.model}'),
+                      subtitle: Text(v.licensePlate),
+                      trailing: _selectedVehicleId == v.id
+                          ? Icon(Icons.check, color: AppColors.primary)
+                          : null,
+                      onTap: () {
+                        setState(() => _selectedVehicleId = v.id);
+                        Navigator.of(ctx).pop();
+                      },
+                    )),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -499,6 +660,7 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
             notes: _notesController.text.trim().isNotEmpty
                 ? _notesController.text.trim()
                 : null,
+            vehicleId: _selectedVehicleId == 'none' ? null : _selectedVehicleId,
           ),
         );
   }

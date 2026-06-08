@@ -44,6 +44,7 @@ class AppointmentBloc extends Bloc<AppointmentEvent, AppointmentState> {
       scheduledAt: event.scheduledAt,
       serviceType: event.serviceType,
       notes: event.notes,
+      vehicleId: event.vehicleId,
     );
     result.fold(
       (failure) => emit(AppointmentError(failure.message)),

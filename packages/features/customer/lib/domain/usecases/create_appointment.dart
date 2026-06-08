@@ -12,11 +12,13 @@ class CreateAppointment {
     required DateTime scheduledAt,
     String? serviceType,
     String? notes,
+    String? vehicleId,
   }) {
     return repository.createAppointment(
       scheduledAt: scheduledAt,
       serviceType: serviceType,
       notes: notes,
+      vehicleId: vehicleId,
     );
   }
 }

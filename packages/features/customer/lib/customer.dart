@@ -28,6 +28,9 @@ export 'presentation/vehicles/pages/my_vehicles_page.dart';
 export 'presentation/vehicles/pages/vehicle_detail_page.dart';
 export 'presentation/vehicles/pages/customer_work_order_detail_page.dart';
 
+// Presentation - Warranty Pages
+export 'presentation/warranties/pages/customer_warranty_page.dart';
+
 // Presentation - Account Pages
 export 'presentation/account/pages/customer_account_page.dart';
 
