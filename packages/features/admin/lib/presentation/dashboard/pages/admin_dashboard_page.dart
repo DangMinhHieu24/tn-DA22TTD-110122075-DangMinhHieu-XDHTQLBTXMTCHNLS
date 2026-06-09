@@ -11,6 +11,7 @@ import '../../dashboard/bloc/dashboard_state.dart';
 import '../../../domain/entities/dashboard_stats.dart';
 import '../../vehicle_intake/pages/reception_hub_page.dart';
 import 'inventory_page.dart';
+import '../../lookup/pages/admin_lookup_page.dart';
 
 /// Admin Dashboard - 100% converted from HTML design
 /// Follows Material Design 3 color system and Tailwind spacing
@@ -105,7 +106,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     if (_selectedNavIndex == 0 || _selectedNavIndex == 3)
                       _buildTopAppBar(userInitial, userName),
                     Expanded(
-                      child: _selectedNavIndex == 2
+                      child: _selectedNavIndex == 1
+                        ? const AdminLookupPage()
+                        : _selectedNavIndex == 2
                         ? _buildVehicleIntakePage()
                         : _selectedNavIndex == 3 
                         ? _buildProfilePage(userName, userEmail, context)
@@ -1116,7 +1119,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () => Navigator.of(context).pushNamed('/admin/alerts'),
+                              onPressed: () => setState(() => _selectedNavIndex = 1),
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 minimumSize: Size.zero,
@@ -1544,7 +1547,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(Icons.home, 'HOME', 0),
-            _buildNavItem(Icons.bolt, 'ALERTS', 1),
+            _buildNavItem(Icons.search, 'TRA CỨU', 1),
             _buildNavItem(Icons.two_wheeler, 'TIẾP NHẬN XE', 2),
             _buildNavItem(Icons.person, 'PROFILE', 3),
           ],

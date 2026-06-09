@@ -23,6 +23,11 @@ import '../data/datasources/remote/revenue_report_remote_datasource.dart';
 import '../data/datasources/remote/vehicle_remote_datasource.dart';
 import '../data/datasources/remote/work_order_remote_datasource.dart';
 import '../data/datasources/remote/inventory_remote_datasource.dart';
+import '../data/datasources/remote/lookup_remote_datasource.dart';
+import '../data/repositories/lookup_repository_impl.dart';
+import '../domain/repositories/lookup_repository.dart';
+import '../domain/usecases/search_lookup.dart';
+import '../presentation/lookup/bloc/lookup_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -60,6 +65,10 @@ void setupAdminDependencies() {
     () => RevenueReportRemoteDataSourceImpl(dio: getIt<Dio>()),
   );
 
+  getIt.registerLazySingleton<LookupRemoteDataSource>(
+    () => LookupRemoteDataSourceImpl(),
+  );
+
   // Repository
   getIt.registerLazySingleton<DashboardRepository>(
     () => DashboardRepositoryImpl(
@@ -70,6 +79,12 @@ void setupAdminDependencies() {
   getIt.registerLazySingleton<RevenueReportRepository>(
     () => RevenueReportRepositoryImpl(
       remoteDataSource: getIt<RevenueReportRemoteDataSource>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<LookupRepository>(
+    () => LookupRepositoryImpl(
+      remoteDataSource: getIt<LookupRemoteDataSource>(),
     ),
   );
 
@@ -108,6 +123,10 @@ void setupAdminDependencies() {
 
   getIt.registerLazySingleton<GetRevenueReport>(
     () => GetRevenueReport(getIt<RevenueReportRepository>()),
+  );
+
+  getIt.registerLazySingleton<SearchLookupUseCase>(
+    () => SearchLookupUseCase(getIt<LookupRepository>()),
   );
 
   // Presentation - Dashboard Bloc
@@ -155,6 +174,14 @@ void setupAdminDependencies() {
   getIt.registerFactory<InventoryBloc>(
     () => InventoryBloc(
       dataSource: getIt<InventoryRemoteDataSource>(),
+    ),
+  );
+
+  // Presentation - Lookup Bloc
+  getIt.registerFactory<LookupBloc>(
+    () => LookupBloc(
+      repository: getIt<LookupRepository>(),
+      searchUseCase: getIt<SearchLookupUseCase>(),
     ),
   );
   

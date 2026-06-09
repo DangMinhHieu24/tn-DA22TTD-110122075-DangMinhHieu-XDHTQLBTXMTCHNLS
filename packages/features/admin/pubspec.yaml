@@ -24,6 +24,7 @@ dependencies:
   dartz: ^0.10.1
   get_it: ^7.6.4
   share_plus: ^10.0.0
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

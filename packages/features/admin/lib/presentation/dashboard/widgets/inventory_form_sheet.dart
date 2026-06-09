@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:core/core.dart';
 import '../../../data/models/inventory_model.dart';
 
 typedef OnFormSubmit = void Function(Map<String, dynamic> data);
@@ -47,6 +50,9 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
 
   bool get _isEdit => widget.item != null;
 
+  String? _imageUrl;
+  bool _isUploadingImage = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +63,7 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
     _unitPriceCtrl = TextEditingController(text: item?.unitPrice.toStringAsFixed(0) ?? '');
     _sellPriceCtrl = TextEditingController(text: item?.sellPrice.toStringAsFixed(0) ?? '');
     _warrantyDaysCtrl = TextEditingController(text: item?.warrantyDays.toString() ?? '0');
+    _imageUrl = item?.imageUrl;
   }
 
   @override
@@ -70,10 +77,87 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    final service = GetIt.instance<ImageUploadService>();
+    final file = source == ImageSource.camera
+        ? await service.takePhoto()
+        : await service.pickImage();
+    if (file == null) return;
+
+    setState(() => _isUploadingImage = true);
+
+    try {
+      final url = await service.uploadImage(
+        imageFile: file,
+        folder: 'inventory',
+      );
+      setState(() {
+        _imageUrl = url;
+        _isUploadingImage = false;
+      });
+    } catch (e) {
+      setState(() => _isUploadingImage = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi upload ảnh: $e'),
+            backgroundColor: const Color(0xFFBA1A1A),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Chụp ảnh'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Chọn từ thư viện'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              if (_imageUrl != null)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Color(0xFFBA1A1A)),
+                  title: const Text('Xóa ảnh',
+                      style: TextStyle(color: Color(0xFFBA1A1A))),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() => _imageUrl = null);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final data = {
       'partName': _nameCtrl.text.trim(),
+      'imageUrl': _imageUrl,
       'quantity': int.tryParse(_qtyCtrl.text) ?? 0,
       'minThreshold': int.tryParse(_thresholdCtrl.text) ?? 5,
       'unitPrice': double.tryParse(_unitPriceCtrl.text.replaceAll(',', '')) ?? 0,
@@ -123,6 +207,66 @@ class _InventoryFormSheetState extends State<InventoryFormSheet> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Image picker
+              GestureDetector(
+                onTap: _isUploadingImage ? null : _showImagePickerOptions,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2F4F6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFDBDEE0),
+                      width: 1.5,
+                      strokeAlign: BorderSide.strokeAlignOutside,
+                    ),
+                    image: _imageUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(_imageUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: _isUploadingImage
+                      ? const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Color(0xFF006E2F),
+                          ),
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _imageUrl != null
+                                  ? Icons.edit_outlined
+                                  : Icons.add_photo_alternate_outlined,
+                              size: 32,
+                              color: _imageUrl != null
+                                  ? Colors.white
+                                  : const Color(0xFF6D7B6C),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _imageUrl != null ? 'Đổi ảnh' : 'Thêm ảnh',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _imageUrl != null
+                                    ? Colors.white
+                                    : const Color(0xFF6D7B6C),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
 
               // Tên phụ tùng
               _buildLabel('Tên phụ tùng *'),
