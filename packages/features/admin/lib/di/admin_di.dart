@@ -66,7 +66,7 @@ void setupAdminDependencies() {
   );
 
   getIt.registerLazySingleton<LookupRemoteDataSource>(
-    () => LookupRemoteDataSourceImpl(),
+    () => LookupRemoteDataSourceImpl(dio: getIt<Dio>()),
   );
 
   // Repository

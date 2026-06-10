@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
  */
 export const getVehicles = async (req: Request, res: Response) => {
   try {
-    const { ownerId } = req.query;
+    const { ownerId, search } = req.query;
     const authUser = (req as any).user;
     const where: any = {};
 
@@ -19,6 +19,15 @@ export const getVehicles = async (req: Request, res: Response) => {
 
     if (authUser?.role === 'CUSTOMER') {
       where.ownerId = authUser.userId;
+    }
+
+    // Search by license plate or model (case-insensitive)
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      where.OR = [
+        { licensePlate: { contains: search.trim(), mode: 'insensitive' } },
+        { model: { contains: search.trim(), mode: 'insensitive' } },
+        { brand: { contains: search.trim(), mode: 'insensitive' } },
+      ];
     }
 
     const vehicles = await prisma.vehicle.findMany({
@@ -36,6 +45,7 @@ export const getVehicles = async (req: Request, res: Response) => {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 20, // Limit results for search
     });
 
     res.json({

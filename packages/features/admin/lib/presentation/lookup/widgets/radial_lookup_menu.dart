@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/lookup_category.dart';
 import '../bloc/lookup_bloc.dart';
-import '../bloc/lookup_event.dart';
+import '../pages/vehicle_lookup_page.dart';
+import '../pages/customer_lookup_page.dart';
 import 'connecting_line_painter.dart';
 import 'center_search_button.dart';
 
@@ -112,28 +113,58 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
     if (index < 0 || index >= widget.categories.length) return;
     HapticFeedback.mediumImpact();
     final cat = widget.categories[index];
-    
-    // Dispatch event to bloc instead of just showing snackbar locally
-    context.read<LookupBloc>().add(PerformLookupSearch(categoryId: cat.id));
 
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(cat.icon, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Text(
-              'Tra cứu ${cat.label}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+    final bloc = context.read<LookupBloc>();
+
+    Widget page;
+    switch (cat.id) {
+      case 'vehicle':
+        page = const VehicleLookupPage();
+      case 'customer':
+        page = const CustomerLookupPage();
+      default:
+        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(cat.icon, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  'Tra cứu ${cat.label} — Sắp có',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
-          ],
+            backgroundColor: cat.color,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+    }
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, animation, __) => BlocProvider.value(
+          value: bloc,
+          child: page,
         ),
-        backgroundColor: cat.color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        duration: const Duration(seconds: 2),
+        transitionsBuilder: (_, animation, __, child) {
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 320),
       ),
     );
   }

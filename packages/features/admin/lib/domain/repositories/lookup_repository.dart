@@ -13,4 +13,7 @@ abstract class LookupRepository {
     required String categoryId,
     String? query,
   });
+
+  /// Updates a user (customer or technician) by ID.
+  Future<Either<Failure, void>> updateUser(String userId, Map<String, dynamic> data);
 }

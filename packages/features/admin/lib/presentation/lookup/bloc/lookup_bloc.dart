@@ -57,6 +57,7 @@ class LookupBloc extends Bloc<LookupEvent, LookupState> {
         categories: currentCategories,
         results: results,
         selectedCategoryId: event.categoryId,
+        query: event.query,
       )),
     );
   }

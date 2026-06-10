@@ -26,10 +26,18 @@ class LookupRepositoryImpl implements LookupRepository {
     String? query,
   }) async {
     try {
-      // TODO: Implement actual search via remoteDataSource
-      // final results = await remoteDataSource.search(categoryId, query);
-      // return Right(results);
-      return const Right([]);
+      final results = await remoteDataSource.search(categoryId, query);
+      return Right(results);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateUser(String userId, Map<String, dynamic> data) async {
+    try {
+      await remoteDataSource.updateUser(userId, data);
+      return const Right(null);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

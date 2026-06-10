@@ -1,12 +1,23 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 export const getTechnicians = async (req: Request, res: Response) => {
   try {
+    const { search } = req.query;
+    const where: any = { role: 'TECHNICIAN' };
+
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const q = search.trim();
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { phoneNumber: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
     const technicians = await prisma.user.findMany({
-      where: { role: 'TECHNICIAN' },
+      where,
       select: {
         id: true,
         name: true,
@@ -50,6 +61,95 @@ export const getTechnicians = async (req: Request, res: Response) => {
  * Get customer by phone number (with their vehicles)
  * GET /api/users/by-phone?phone=...
  */
+/**
+ * Search customers by name, phone, or email
+ * GET /api/users/customers?search=...
+ */
+export const searchCustomers = async (req: Request, res: Response) => {
+  try {
+    const { search } = req.query;
+    const where: any = { role: 'CUSTOMER' };
+
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const q = search.trim();
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { phoneNumber: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const customers = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        avatarUrl: true,
+        loyaltyPoints: true,
+        createdAt: true,
+        _count: {
+          select: { ownedVehicles: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    res.json({ success: true, data: customers });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search customers',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Update user (customer or technician) by ID
+ * PUT /api/users/:id
+ */
+export const updateUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, phoneNumber, email, isActive } = req.body;
+
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (phoneNumber !== undefined) data.phoneNumber = phoneNumber;
+    if (email !== undefined) data.email = email;
+    if (isActive !== undefined) data.isActive = isActive;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        avatarUrl: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({ success: true, message: 'User updated successfully', data: user });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user',
+      error: error.message,
+    });
+  }
+};
+
 export const getCustomerByPhone = async (req: Request, res: Response) => {
   try {
     const { phone } = req.query;

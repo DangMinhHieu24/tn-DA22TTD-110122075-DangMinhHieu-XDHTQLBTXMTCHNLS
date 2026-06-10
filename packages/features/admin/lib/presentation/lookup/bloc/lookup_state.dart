@@ -44,15 +44,17 @@ class LookupSearchLoaded extends LookupState {
   final List<LookupCategory> categories;
   final List<LookupResult> results;
   final String selectedCategoryId;
+  final String? query;
 
   const LookupSearchLoaded({
     required this.categories,
     required this.results,
     required this.selectedCategoryId,
+    this.query,
   });
 
   @override
-  List<Object?> get props => [categories, results, selectedCategoryId];
+  List<Object?> get props => [categories, results, selectedCategoryId, query];
 }
 
 class LookupSearchError extends LookupState {
