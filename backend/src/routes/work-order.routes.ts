@@ -11,6 +11,8 @@ import {
   deleteWorkOrder,
   getDashboardStats,
   getRevenueReport,
+  getInvoices,
+  recordPayment,
 } from '../controllers/work-order.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -27,6 +29,12 @@ router.get('/stats/revenue-report', getRevenueReport);
 
 // GET /api/work-orders - Get all work orders (with filters)
 router.get('/', getWorkOrders);
+
+// GET /api/work-orders/invoices - Search invoices (MUST be before /:id)
+router.get('/invoices', getInvoices);
+
+// PATCH /api/work-orders/:id/payment - Record payment
+router.patch('/:id/payment', recordPayment);
 
 // GET /api/work-orders/:id - Get work order by ID
 router.get('/:id', getWorkOrderById);

@@ -1,14 +1,14 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../data/datasources/remote/inventory_remote_datasource.dart';
+import '../../../domain/repositories/inventory_repository.dart';
 import '../../../data/models/inventory_model.dart';
 import 'inventory_event.dart';
 import 'inventory_state.dart';
 
 class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
-  final InventoryRemoteDataSource _dataSource;
+  final InventoryRepository _repository;
 
-  InventoryBloc({required InventoryRemoteDataSource dataSource})
-      : _dataSource = dataSource,
+  InventoryBloc({required InventoryRepository repository})
+      : _repository = repository,
         super(const InventoryInitial()) {
     on<LoadInventory>(_onLoad);
     on<SearchInventory>(_onSearch);
@@ -22,13 +22,14 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       LoadInventory event, Emitter<InventoryState> emit) async {
     final prev = _loadedStateOrNull(state);
     emit(const InventoryLoading());
-    try {
-      final items = await _dataSource.getInventoryItems();
-      final sorted = _sortByPriority(items);
-      emit(InventoryLoaded(allItems: sorted, filteredItems: sorted));
-    } catch (e) {
-      emit(InventoryError(e.toString(), previous: prev));
-    }
+    final result = await _repository.getInventoryItems();
+    result.fold(
+      (failure) => emit(InventoryError(failure.message, previous: prev)),
+      (items) {
+        final sorted = _sortByPriority(items);
+        emit(InventoryLoaded(allItems: sorted, filteredItems: sorted));
+      },
+    );
   }
 
   void _onSearch(SearchInventory event, Emitter<InventoryState> emit) {
@@ -50,73 +51,75 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       CreateInventoryItem event, Emitter<InventoryState> emit) async {
     final prev = _loadedStateOrNull(state);
     emit(InventorySubmitting(previous: prev));
-    try {
-      final newItem = await _dataSource.createInventoryItem(event.data);
-      if (prev != null) {
-        final updated = _sortByPriority([newItem, ...prev.allItems]);
-        emit(_applySearch(prev, updated));
-      } else {
-        add(const LoadInventory());
-      }
-    } catch (e) {
-      emit(InventoryError(e.toString(), previous: prev));
-    }
+    final result = await _repository.createInventoryItem(event.data);
+    result.fold(
+      (failure) => emit(InventoryError(failure.message, previous: prev)),
+      (newItem) {
+        if (prev != null) {
+          final updated = _sortByPriority([newItem, ...prev.allItems]);
+          emit(_applySearch(prev, updated));
+        } else {
+          add(const LoadInventory());
+        }
+      },
+    );
   }
 
   Future<void> _onUpdate(
       UpdateInventoryItem event, Emitter<InventoryState> emit) async {
     final prev = _loadedStateOrNull(state);
     emit(InventorySubmitting(previous: prev));
-    try {
-      final updatedItem =
-          await _dataSource.updateInventoryItem(event.id, event.data);
-      if (prev != null) {
-        final updated = prev.allItems
-            .map((e) => e.id == event.id ? updatedItem : e)
-            .toList();
-        final sorted = _sortByPriority(updated);
-        emit(_applySearch(prev, sorted));
-      } else {
-        add(const LoadInventory());
-      }
-    } catch (e) {
-      emit(InventoryError(e.toString(), previous: prev));
-    }
+    final result = await _repository.updateInventoryItem(event.id, event.data);
+    result.fold(
+      (failure) => emit(InventoryError(failure.message, previous: prev)),
+      (updatedItem) {
+        if (prev != null) {
+          final updated = prev.allItems
+              .map((e) => e.id == event.id ? updatedItem : e)
+              .toList();
+          final sorted = _sortByPriority(updated);
+          emit(_applySearch(prev, sorted));
+        } else {
+          add(const LoadInventory());
+        }
+      },
+    );
   }
 
   Future<void> _onAdjust(
       AdjustInventoryQuantity event, Emitter<InventoryState> emit) async {
     final prev = _loadedStateOrNull(state);
     if (prev == null) return;
-    try {
-      final adjustedItem =
-          await _dataSource.adjustQuantity(event.id, event.delta);
-      final updated = prev.allItems
-          .map((e) => e.id == event.id ? adjustedItem : e)
-          .toList();
-      final sortedAll = _sortByPriority(updated);
-      emit(_applySearch(prev, sortedAll));
-    } catch (e) {
-      emit(InventoryError(e.toString(), previous: prev));
-    }
+    final result = await _repository.adjustQuantity(event.id, event.delta);
+    result.fold(
+      (failure) => emit(InventoryError(failure.message, previous: prev)),
+      (adjustedItem) {
+        final updated = prev.allItems
+            .map((e) => e.id == event.id ? adjustedItem : e)
+            .toList();
+        final sortedAll = _sortByPriority(updated);
+        emit(_applySearch(prev, sortedAll));
+      },
+    );
   }
 
   Future<void> _onDelete(
       DeleteInventoryItem event, Emitter<InventoryState> emit) async {
     final prev = _loadedStateOrNull(state);
     emit(InventorySubmitting(previous: prev));
-    try {
-      await _dataSource.deleteInventoryItem(event.id);
-      if (prev != null) {
-        final updated = prev.allItems.where((e) => e.id != event.id).toList();
-        final sorted = _sortByPriority(updated);
-        emit(_applySearch(prev, sorted));
-      } else {
-        add(const LoadInventory());
-      }
-    } catch (e) {
-      emit(InventoryError(e.toString(), previous: prev));
-    }
+    final result = await _repository.deleteInventoryItem(event.id);
+    result.fold(
+      (failure) => emit(InventoryError(failure.message, previous: prev)),
+      (_) {
+        if (prev != null) {
+          final updated = prev.allItems.where((e) => e.id != event.id).toList();
+          final sorted = _sortByPriority(updated);
+          emit(_applySearch(prev, sorted));
+        } else {
+          add(const LoadInventory());
+        }
+      },
+    );
   }
 
   InventoryLoaded? _loadedStateOrNull(InventoryState state) {

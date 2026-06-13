@@ -20,7 +20,7 @@ enum _ReportRange {
   custom,
 }
 
-enum _ReportTab {
+enum ReportTab {
   services,
   daily,
   technicians,
@@ -39,7 +39,9 @@ enum _DailyRange {
 }
 
 class AdminRevenueReportPage extends StatefulWidget {
-  const AdminRevenueReportPage({super.key});
+  final ReportTab initialTab;
+
+  const AdminRevenueReportPage({super.key, this.initialTab = ReportTab.services});
 
   @override
   State<AdminRevenueReportPage> createState() => _AdminRevenueReportPageState();
@@ -47,7 +49,7 @@ class AdminRevenueReportPage extends StatefulWidget {
 
 class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
   _ReportRange _selectedRange = _ReportRange.sevenDays;
-  _ReportTab _selectedTab = _ReportTab.services;
+  late ReportTab _selectedTab;
   _ServiceRange _serviceRange = _ServiceRange.week;
   DateTimeRange? _customRange;
   RevenueReport? _latestReport;
@@ -58,6 +60,12 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
   int _selectedServiceIndex = -1;
   /// Điểm đang chọn trên biểu đồ đường (tháng / khoảng dài).
   int? _lineChartTouchIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTab = widget.initialTab;
+  }
   bool _isServiceRangeLoading = false;
   final Map<_ServiceRange, List<ServiceBreakdown>> _serviceRangeCache = {};
   _DailyRange _dailyRange = _DailyRange.sevenDays;
@@ -228,9 +236,10 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
       });
     }
     _loadReport();
+    unawaited(_loadMonthlyTechnicianSummary());
   }
 
-  void _selectTab(_ReportTab tab) {
+  void _selectTab(ReportTab tab) {
     setState(() {
       _selectedTab = tab;
     });
@@ -1079,18 +1088,18 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
         children: [
           _tab(
             'Dịch vụ',
-            selected: _selectedTab == _ReportTab.services,
-            onTap: () => _selectTab(_ReportTab.services),
+            selected: _selectedTab == ReportTab.services,
+            onTap: () => _selectTab(ReportTab.services),
           ),
           _tab(
             'Theo ngày',
-            selected: _selectedTab == _ReportTab.daily,
-            onTap: () => _selectTab(_ReportTab.daily),
+            selected: _selectedTab == ReportTab.daily,
+            onTap: () => _selectTab(ReportTab.daily),
           ),
           _tab(
             'Kỹ thuật viên',
-            selected: _selectedTab == _ReportTab.technicians,
-            onTap: () => _selectTab(_ReportTab.technicians),
+            selected: _selectedTab == ReportTab.technicians,
+            onTap: () => _selectTab(ReportTab.technicians),
           ),
         ],
       ),
@@ -1132,11 +1141,11 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
 
   Widget _buildTabBody(RevenueReport report) {
     switch (_selectedTab) {
-      case _ReportTab.services:
+      case ReportTab.services:
         return _buildPopularServices(report.topServices);
-      case _ReportTab.daily:
+      case ReportTab.daily:
         return _buildDailyBreakdown(report.dailyRevenue, _dailyRange);
-      case _ReportTab.technicians:
+      case ReportTab.technicians:
         return _buildTechnicianBreakdown(report.technicians);
     }
   }
@@ -1484,7 +1493,12 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     Widget _chip(_DailyRange value, String label) {
       final selected = range == value;
       return GestureDetector(
-        onTap: () => setState(() => _dailyRange = value),
+        onTap: () {
+          setState(() => _dailyRange = value);
+          if (value == _DailyRange.today) {
+            _selectRange(_ReportRange.thisMonth);
+          }
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(

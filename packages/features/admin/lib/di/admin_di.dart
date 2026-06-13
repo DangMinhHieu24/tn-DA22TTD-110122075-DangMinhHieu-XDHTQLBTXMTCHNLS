@@ -25,7 +25,9 @@ import '../data/datasources/remote/work_order_remote_datasource.dart';
 import '../data/datasources/remote/inventory_remote_datasource.dart';
 import '../data/datasources/remote/lookup_remote_datasource.dart';
 import '../data/repositories/lookup_repository_impl.dart';
+import '../data/repositories/inventory_repository_impl.dart';
 import '../domain/repositories/lookup_repository.dart';
+import '../domain/repositories/inventory_repository.dart';
 import '../domain/usecases/search_lookup.dart';
 import '../presentation/lookup/bloc/lookup_bloc.dart';
 
@@ -170,10 +172,17 @@ void setupAdminDependencies() {
     rethrow;
   }
 
+  // Inventory Repository
+  getIt.registerLazySingleton<InventoryRepository>(
+    () => InventoryRepositoryImpl(
+      remoteDataSource: getIt<InventoryRemoteDataSource>(),
+    ),
+  );
+
   // Presentation - Inventory Bloc
   getIt.registerFactory<InventoryBloc>(
     () => InventoryBloc(
-      dataSource: getIt<InventoryRemoteDataSource>(),
+      repository: getIt<InventoryRepository>(),
     ),
   );
 

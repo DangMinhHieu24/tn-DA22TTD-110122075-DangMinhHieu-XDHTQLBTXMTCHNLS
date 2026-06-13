@@ -6,6 +6,8 @@ import '../../../domain/entities/lookup_category.dart';
 import '../bloc/lookup_bloc.dart';
 import '../pages/vehicle_lookup_page.dart';
 import '../pages/customer_lookup_page.dart';
+import '../pages/invoice_lookup_page.dart';
+import '../../dashboard/pages/inventory_page.dart';
 import 'connecting_line_painter.dart';
 import 'center_search_button.dart';
 
@@ -122,6 +124,14 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
         page = const VehicleLookupPage();
       case 'customer':
         page = const CustomerLookupPage();
+      case 'part':
+        // InventoryPage needs its own bloc, don't navigate with LookupBloc
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const InventoryPage()),
+        );
+        return;
+      case 'invoice':
+        page = const InvoiceLookupPage();
       default:
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(

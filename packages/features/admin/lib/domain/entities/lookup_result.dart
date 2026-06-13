@@ -90,3 +90,84 @@ class TechnicianLookupResult extends LookupResult {
     required this.updatedAt,
   });
 }
+
+/// Kết quả tra cứu hoá đơn (work order đã hoàn thành/đã thanh toán).
+class InvoiceLookupResult extends LookupResult {
+  final String orderNumber;
+  final String status;
+  final double? totalPrice;
+  final String? paymentMethod;
+  final DateTime? paidAt;
+  final DateTime? completedAt;
+  final DateTime createdAt;
+  final String? notes;
+
+  // Vehicle info
+  final String vehicleId;
+  final String? licensePlate;
+  final String? vehicleBrand;
+  final String? vehicleModel;
+
+  // Customer info
+  final String? customerName;
+  final String? customerPhone;
+
+  // Technician
+  final String? technicianName;
+
+  // Breakdown
+  final List<InvoiceServiceItem> services;
+  final List<InvoicePartItem> partsUsed;
+
+  const InvoiceLookupResult({
+    required super.id,
+    required super.categoryId,
+    required this.orderNumber,
+    required this.status,
+    this.totalPrice,
+    this.paymentMethod,
+    this.paidAt,
+    this.completedAt,
+    required this.createdAt,
+    this.notes,
+    required this.vehicleId,
+    this.licensePlate,
+    this.vehicleBrand,
+    this.vehicleModel,
+    this.customerName,
+    this.customerPhone,
+    this.technicianName,
+    this.services = const [],
+    this.partsUsed = const [],
+  });
+
+  bool get isPaid => status == 'PAID';
+}
+
+class InvoiceServiceItem {
+  final String serviceType;
+  final String? serviceName;
+  final String? description;
+  final double? price;
+
+  const InvoiceServiceItem({
+    required this.serviceType,
+    this.serviceName,
+    this.description,
+    this.price,
+  });
+}
+
+class InvoicePartItem {
+  final String partName;
+  final int quantity;
+  final double unitPrice;
+  final String? imageUrl;
+
+  const InvoicePartItem({
+    required this.partName,
+    required this.quantity,
+    required this.unitPrice,
+    this.imageUrl,
+  });
+}

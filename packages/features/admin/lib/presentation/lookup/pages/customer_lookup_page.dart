@@ -12,7 +12,9 @@ import '../widgets/customer_detail_sheet.dart';
 import '../widgets/technician_detail_sheet.dart';
 
 class CustomerLookupPage extends StatefulWidget {
-  const CustomerLookupPage({super.key});
+  final int initialTab;
+
+  const CustomerLookupPage({super.key, this.initialTab = 0});
 
   @override
   State<CustomerLookupPage> createState() => _CustomerLookupPageState();
@@ -27,7 +29,7 @@ class _CustomerLookupPageState extends State<CustomerLookupPage>
   late final AnimationController _animController;
   late final Animation<double> _fadeIn;
 
-  int _selectedTab = 0; // 0 = Khách hàng, 1 = Nhân viên
+  late int _selectedTab; // 0 = Khách hàng, 1 = Nhân viên
 
   static const _kDebounceMs = 400;
   static const _kGreen = Color(0xFF006E2F);
@@ -41,6 +43,7 @@ class _CustomerLookupPageState extends State<CustomerLookupPage>
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialTab;
 
     _animController = AnimationController(
       vsync: this,

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/entities/lookup_category.dart';
-import '../../../domain/entities/lookup_result.dart';
+import '../../../domain/entities/lookup_result.dart' show LookupResult, VehicleLookupResult, CustomerLookupResult, TechnicianLookupResult, InvoiceLookupResult, InvoiceServiceItem, InvoicePartItem;
 import '../../models/vehicle_model.dart';
 
 abstract class LookupRemoteDataSource {
@@ -76,6 +76,8 @@ class LookupRemoteDataSourceImpl implements LookupRemoteDataSource {
         return _searchCustomers(query);
       case 'technician':
         return _searchTechnicians(query);
+      case 'invoice':
+        return _searchInvoices(query);
       default:
         return [];
     }
@@ -162,6 +164,63 @@ class LookupRemoteDataSourceImpl implements LookupRemoteDataSource {
     }
 
     throw Exception('Tìm kiếm nhân viên thất bại');
+  }
+
+  Future<List<InvoiceLookupResult>> _searchInvoices(String? query) async {
+    final queryParams = <String, dynamic>{};
+    if (query != null && query.trim().isNotEmpty) {
+      queryParams['search'] = query.trim();
+    }
+
+    final response = await dio.get(
+      '/work-orders/invoices',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+
+    if (response.data['success'] == true) {
+      final List<dynamic> data = response.data['data'] as List<dynamic>;
+      return data.map((json) {
+        final vehicle = json['vehicle'] as Map<String, dynamic>?;
+        final owner = vehicle?['owner'] as Map<String, dynamic>?;
+        final tech = json['technician'] as Map<String, dynamic>?;
+        final rawServices = json['services'] as List<dynamic>? ?? [];
+        final rawParts = json['partsUsed'] as List<dynamic>? ?? [];
+
+        return InvoiceLookupResult(
+          id: json['id'] as String,
+          categoryId: 'invoice',
+          orderNumber: json['orderNumber'] as String? ?? '',
+          status: json['status'] as String? ?? '',
+          totalPrice: (json['totalPrice'] as num?)?.toDouble(),
+          paymentMethod: json['paymentMethod'] as String?,
+          paidAt: json['paidAt'] != null ? DateTime.parse(json['paidAt'] as String) : null,
+          completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt'] as String) : null,
+          createdAt: DateTime.parse(json['createdAt'] as String),
+          notes: json['notes'] as String?,
+          vehicleId: json['vehicleId'] as String? ?? '',
+          licensePlate: vehicle?['licensePlate'] as String?,
+          vehicleBrand: vehicle?['brand'] as String?,
+          vehicleModel: vehicle?['model'] as String?,
+          customerName: owner?['name'] as String?,
+          customerPhone: owner?['phoneNumber'] as String?,
+          technicianName: tech?['name'] as String?,
+          services: rawServices.map((s) => InvoiceServiceItem(
+            serviceType: s['serviceType'] as String? ?? '',
+            serviceName: s['serviceName'] as String?,
+            description: s['description'] as String?,
+            price: (s['price'] as num?)?.toDouble(),
+          )).toList(),
+          partsUsed: rawParts.map((p) => InvoicePartItem(
+            partName: p['part']?['partName'] as String? ?? 'Phụ tùng',
+            quantity: p['quantity'] as int? ?? 0,
+            unitPrice: (p['unitPrice'] as num?)?.toDouble() ?? 0,
+            imageUrl: p['part']?['imageUrl'] as String?,
+          )).toList(),
+        );
+      }).toList();
+    }
+
+    throw Exception('Tìm kiếm hoá đơn thất bại');
   }
 
   VehicleLookupResult _vehicleModelToResult(VehicleModel v) {

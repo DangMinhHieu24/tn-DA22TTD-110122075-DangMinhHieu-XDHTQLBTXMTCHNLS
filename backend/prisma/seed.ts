@@ -295,58 +295,135 @@ async function main() {
   const throttle = partByName.get('Tay ga điện (Hall)')!;
   const brakeSensor = partByName.get('Cảm biến phanh (cut-off)')!;
 
-  const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const currentMonthEnd = new Date();
-  currentMonthEnd.setHours(18, 0, 0, 0);
-  const previousMonthStart = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() - 1, 1);
-  const previousMonthEnd = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth(), 0);
-  previousMonthEnd.setHours(18, 0, 0, 0);
+  // Map vehicles to their owners
+  const ownerByVehicle = new Map([
+    [vehicle1.id, customer1],
+    [vehicle2.id, customer2],
+    [vehicle3.id, customer3],
+  ]);
 
-  // Create a spread of completed dates, with most orders landing in the current month.
-  const completedDates = [
-    ...buildSpreadDates(previousMonthStart, previousMonthEnd, 6),
-    ...buildSpreadDates(currentMonthStart, currentMonthEnd, 24),
-  ].map((d, i) =>
-    setBusinessHour(d, [8, 9, 10, 11, 13, 14, 15, 16][i % 8], [0, 15, 30, 45, 0, 20, 40, 50][i % 8])
-  );
+  // ─────────────────────────────────────────────────────────────
+  // Generate realistic completed work orders from today going back
+  // ─────────────────────────────────────────────────────────────
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const totalCompletedOrders = 30; // 30 completed orders spread over ~60 days
+
+  // Generate completion dates going back from yesterday, spread over 60 days
+  const completedDates: Date[] = [];
+  const past60Days = 60;
+  for (let i = 0; i < totalCompletedOrders; i++) {
+    const dayOffset = past60Days - Math.round((past60Days * i) / (totalCompletedOrders - 1));
+    const date = new Date(todayStart);
+    date.setDate(date.getDate() - dayOffset);
+    const hours = [8, 9, 10, 11, 13, 14, 15, 16][i % 8];
+    const minutes = [0, 15, 30, 45, 10, 25, 40, 50][i % 8];
+    date.setHours(hours, minutes, 0, 0);
+    completedDates.push(date);
+  }
 
   const vehicles = [vehicle1, vehicle2, vehicle3];
   const techs = [technician1, technician2];
   const serviceTypes = ['MAINTENANCE', 'BATTERY_CHECK', 'BRAKES_TIRES', 'OTHER_REPAIR'];
   const basePrices = [150000, 170000, 200000, 220000, 250000, 300000];
 
+  // Realistic service scenarios
+  const serviceScenarios = [
+    { type: 'MAINTENANCE', name: 'Bảo dưỡng định kỳ 5.000km', parts: [] },
+    { type: 'BATTERY_CHECK', name: 'Kiểm tra pin & BMS', parts: [] },
+    { type: 'BRAKES_TIRES', name: 'Thay má phanh trước', parts: ['brakePad'] },
+    { type: 'BRAKES_TIRES', name: 'Thay lốp không săm', parts: ['tire'] },
+    { type: 'BRAKES_TIRES', name: 'Thay má phanh + đĩa phanh', parts: ['brakePad', 'brakeDisc'] },
+    { type: 'OTHER_REPAIR', name: 'Thay pin Li-ion 60V', parts: ['batteryPack'] },
+    { type: 'OTHER_REPAIR', name: 'Thay BMS 60V 30A', parts: ['bms'] },
+    { type: 'MAINTENANCE', name: 'Bảo dưỡng + kiểm tra sạc', parts: ['charger'] },
+    { type: 'BATTERY_CHECK', name: 'Kiểm tra pin + thay BMS', parts: ['bms'] },
+    { type: 'OTHER_REPAIR', name: 'Thay bộ điều khiển 60V', parts: ['controller'] },
+    { type: 'OTHER_REPAIR', name: 'Sửa chữa hệ thống phanh', parts: ['brakePad', 'brakeSensor'] },
+    { type: 'BRAKES_TIRES', name: 'Thay lốp + má phanh', parts: ['tire', 'brakePad'] },
+    { type: 'OTHER_REPAIR', name: 'Thay tay ga điện', parts: ['throttle'] },
+    { type: 'MAINTENANCE', name: 'Bảo dưỡng tổng quát', parts: [] },
+    { type: 'OTHER_REPAIR', name: 'Thay pin + BMS + sạc', parts: ['batteryPack', 'bms', 'charger'] },
+    { type: 'BRAKES_TIRES', name: 'Thay đĩa phanh + lốp', parts: ['brakeDisc', 'tire'] },
+  ];
+
+  const partMap: Record<string, any> = {
+    brakePad, brakeDisc, tire, batteryPack, bms, charger, controller, throttle, brakeSensor,
+  };
+
   let orderIndex = 1;
 
   for (let i = 0; i < completedDates.length; i++) {
     const completedAt = completedDates[i];
-    const createdAt = new Date(completedAt.getTime() - (1 + (i % 4)) * 60 * 60 * 1000);
     const vehicle = vehicles[i % vehicles.length];
     const tech = techs[i % techs.length];
-    const svcType = serviceTypes[i % serviceTypes.length];
-    const svcName = svcType === 'MAINTENANCE' ? 'Bảo dưỡng định kỳ' : svcType === 'BATTERY_CHECK' ? 'Kiểm tra pin/BMS' : svcType === 'BRAKES_TIRES' ? 'Phanh & lốp' : 'Sửa chữa khác';
+    const scenario = serviceScenarios[i % serviceScenarios.length];
+    const svcType = scenario.type;
+    const svcName = scenario.name;
     const servicePrice = basePrices[i % basePrices.length];
 
+    // Appointment 1-3 days before the work order
+    const appointmentDate = new Date(completedAt);
+    appointmentDate.setDate(appointmentDate.getDate() - (1 + (i % 3)));
+    appointmentDate.setHours([9, 10, 11, 14, 15, 16][i % 6], [0, 30][i % 2], 0, 0);
+
+    // Work order created at check-in time (morning of completion day)
+    const createdAt = new Date(completedAt);
+    createdAt.setHours(createdAt.getHours() - 2 - (i % 3));
+
+    // Appointment notes based on service
+    const appointmentNotes = svcType === 'MAINTENANCE'
+      ? `${svcName} - Xe chạy ${(vehicle.currentKm ?? 5000) + i * 120}km`
+      : svcType === 'BATTERY_CHECK'
+        ? `${svcName} - Pin yếu, sạc không đầy`
+        : svcType === 'BRAKES_TIRES'
+          ? `${svcName} - Phanh kêu, lốp mòn`
+          : `${svcName} - Xe có tiếng lạ, cần kiểm tra`;
+
+    // Create appointment (past, so CONFIRMED)
+    const owner = ownerByVehicle.get(vehicle.id)!;
+    await prisma.appointment.create({
+      data: {
+        customerId: owner.id,
+        vehicleId: vehicle.id,
+        scheduledAt: appointmentDate,
+        serviceType: svcType,
+        notes: appointmentNotes,
+        status: 'CONFIRMED',
+      },
+    });
+
+    // Parts selection based on scenario
     const partsUsedList: any[] = [];
-    if (i % 3 === 0) partsUsedList.push({ partId: bms.id, quantity: 1, unitPrice: bms.sellPrice });
-    if (i % 4 === 0) partsUsedList.push({ partId: brakePad.id, quantity: 1, unitPrice: brakePad.sellPrice });
-    if (i % 5 === 0) partsUsedList.push({ partId: tire.id, quantity: 1, unitPrice: tire.sellPrice });
+    for (const partKey of scenario.parts) {
+      const part = partMap[partKey];
+      if (part) {
+        partsUsedList.push({ partId: part.id, quantity: 1, unitPrice: part.sellPrice });
+      }
+    }
 
     const partsTotal = partsUsedList.reduce((s, p) => s + (p.quantity * p.unitPrice), 0);
     const totalPrice = roundMoney(partsTotal + servicePrice);
+
+    // Determine status: 80% PAID, 20% COMPLETED
+    const isPaid = i % 5 !== 0; // 80% paid
+    const status = isPaid ? 'PAID' : 'COMPLETED';
+    const paidAt = isPaid ? new Date(completedAt.getTime() + (30 + (i % 4) * 15) * 60 * 1000) : null; // paid 30-75 min after completion
 
     const workOrder = await prisma.workOrder.create({
       data: {
         orderNumber: `WO-${new Date().getFullYear()}-${String(orderIndex).padStart(3, '0')}`,
         vehicleId: vehicle.id,
-        status: 'COMPLETED',
-        priority: i % 7 === 0 ? 'URGENT' : 'NORMAL',
-        notes: `${svcName} - seed order ${orderIndex}`,
+        status,
+        priority: 'NORMAL',
+        notes: `${svcName} - ${vehicle.licensePlate}`,
         technicianId: tech.id,
-        estimatedHours: 1 + (i % 3) * 0.5,
-        scheduledTime: `${8 + (i % 9)}:00`,
+        estimatedHours: 1 + (i % 4) * 0.5,
+        scheduledTime: `${createdAt.getHours()}:00`,
         totalPrice,
         createdAt,
         completedAt,
+        paidAt,
         createdById: admin.id,
         services: {
           create: [
@@ -364,45 +441,68 @@ async function main() {
     });
 
     // bump vehicle km
-    await prisma.vehicle.update({ where: { id: vehicle.id }, data: { currentKm: (vehicle.currentKm ?? 0) + (100 + i * 10) } });
+    const kmIncrease = 80 + (i % 5) * 40;
+    await prisma.vehicle.update({
+      where: { id: vehicle.id },
+      data: { currentKm: { increment: kmIncrease } },
+    });
 
     await prisma.maintenanceLog.create({
       data: {
         vehicleId: vehicle.id,
         workOrderId: workOrder.id,
-        odometerKm: (vehicle.currentKm ?? 0) + (100 + i * 10),
+        odometerKm: (vehicle.currentKm ?? 5000) + kmIncrease,
         serviceType: svcType,
         serviceSummary: svcName,
-        notes: `Auto-seeded maintenance for ${svcName}`,
+        notes: `Seed: ${svcName} - ${vehicle.licensePlate}`,
         performedAt: completedAt,
-        nextServiceKm: (vehicle.currentKm ?? 0) + (100 + i * 10) + 800,
+        nextServiceKm: (vehicle.currentKm ?? 5000) + kmIncrease + 800,
       },
     });
 
     orderIndex += 1;
-    console.log('✅ Seeded completed work order:', workOrder.orderNumber);
+    console.log(`✅ #${orderIndex - 1}: ${workOrder.orderNumber} — ${svcName} (${status})`);
   }
 
-  // create a few active orders (PENDING / IN_PROGRESS / INSPECTION)
-  const activeStatuses = ['PENDING', 'IN_PROGRESS', 'INSPECTION'];
+  // ─────────────────────────────────────────────────────────────
+  // Active orders — created today (PENDING / IN_PROGRESS / INSPECTION)
+  // ─────────────────────────────────────────────────────────────
+  const activeStatuses = ['PENDING', 'INSPECTION', 'IN_PROGRESS', 'PENDING', 'INSPECTION', 'IN_PROGRESS'];
+  const techActive = [technician1, technician2, technician1, technician2, technician1, technician2];
   for (let j = 0; j < 6; j++) {
     const vehicle = vehicles[j % vehicles.length];
-    const tech = techs[j % techs.length];
-    const status = activeStatuses[j % activeStatuses.length];
-    const createdAt = new Date();
+    const tech = techActive[j];
+    const status = activeStatuses[j];
     const svcType = serviceTypes[j % serviceTypes.length];
-    const svcName = svcType === 'MAINTENANCE' ? 'Bảo dưỡng' : svcType === 'BATTERY_CHECK' ? 'Pin' : svcType === 'BRAKES_TIRES' ? 'Phanh' : 'Sửa chữa';
+    const svcName = svcType === 'MAINTENANCE' ? 'Bảo dưỡng định kỳ' : svcType === 'BATTERY_CHECK' ? 'Kiểm tra pin/BMS' : svcType === 'BRAKES_TIRES' ? 'Thay phanh & lốp' : 'Sửa chữa khác';
+    const createdAt = new Date();
 
-    const order = await prisma.workOrder.create({
+    // Create appointment for today/tomorrow
+    const aptDate = new Date(todayStart);
+    aptDate.setDate(aptDate.getDate() + j);
+    aptDate.setHours(9 + j, 0, 0, 0);
+
+    const owner = ownerByVehicle.get(vehicle.id)!;
+    await prisma.appointment.create({
+      data: {
+        customerId: owner.id,
+        vehicleId: vehicle.id,
+        scheduledAt: aptDate,
+        serviceType: svcType,
+        notes: `${svcName} - Lịch hẹn online`,
+        status: j < 2 ? 'CONFIRMED' : 'PENDING',
+      },
+    });
+
+    const workOrder = await prisma.workOrder.create({
       data: {
         orderNumber: `WO-${new Date().getFullYear()}-${String(orderIndex).padStart(3, '0')}`,
         vehicleId: vehicle.id,
         status,
         priority: 'NORMAL',
-        notes: `Active seeded order ${orderIndex}`,
+        notes: `${svcName} - ${vehicle.licensePlate}`,
         technicianId: tech.id,
         estimatedHours: 1.5,
-        scheduledTime: `${9 + j}:30`,
         createdAt,
         createdById: admin.id,
         services: { create: [{ serviceType: svcType, serviceName: svcName, description: svcName, price: basePrices[j % basePrices.length] }] },
@@ -410,51 +510,8 @@ async function main() {
     });
 
     orderIndex += 1;
-    console.log('✅ Seeded active work order:', order.orderNumber);
-  
+    console.log(`✅ #${orderIndex - 1}: ${workOrder.orderNumber} — ${svcName} (${status})`);
   }
-
-  const maintenanceLogs = await prisma.maintenanceLog.createMany({
-    data: [
-      {
-        vehicleId: vehicle1.id,
-        odometerKm: 3800,
-        serviceType: 'MAINTENANCE',
-        serviceSummary: 'Bảo dưỡng định kỳ 5.000km',
-        notes: 'Kiểm tra tổng quát, siết lại đầu cos pin, vệ sinh dàn điện.',
-        performedAt: new Date('2025-03-12T08:30:00.000Z'),
-        nextServiceKm: 5800,
-      },
-      {
-        vehicleId: vehicle1.id,
-        odometerKm: 4950,
-        serviceType: 'BATTERY_CHECK',
-        serviceSummary: 'Kiểm tra pack pin và BMS',
-        notes: 'Đã hiệu chỉnh cấu hình BMS và kiểm tra dung lượng pin.',
-        performedAt: new Date('2025-05-10T09:00:00.000Z'),
-        nextServiceKm: 5950,
-      },
-      {
-        vehicleId: vehicle2.id,
-        odometerKm: 9800,
-        serviceType: 'BRAKES_TIRES',
-        serviceSummary: 'Thay má phanh trước, kiểm tra lốp',
-        notes: 'Thay má phanh trước và kiểm tra áp suất lốp.',
-        performedAt: new Date('2025-06-18T10:15:00.000Z'),
-        nextServiceKm: 10800,
-      },
-      {
-        vehicleId: vehicle3.id,
-        odometerKm: 14500,
-        serviceType: 'OTHER_REPAIR',
-        serviceSummary: 'Căn chỉnh đĩa phanh, kiểm tra lốp',
-        notes: 'Cân chỉnh lại hệ thống phanh và thay lốp không săm.',
-        performedAt: new Date('2025-07-22T13:45:00.000Z'),
-        nextServiceKm: 15500,
-      },
-    ],
-  });
-  console.log('✅ Maintenance logs created:', maintenanceLogs.count);
 
   console.log('🎉 Seeding completed!');
 

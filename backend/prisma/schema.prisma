@@ -13,6 +13,12 @@ enum UserRole {
   CUSTOMER
 }
 
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
 enum WorkOrderStatus {
   PENDING       // Chờ xử lý
   IN_PROGRESS   // Đang thực hiện
@@ -122,6 +128,10 @@ model WorkOrder {
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt
   completedAt       DateTime?       @map("completed_at")
+
+  // Payment info
+  paymentMethod     PaymentMethod?  @map("payment_method")
+  paidAt            DateTime?       @map("paid_at")
 
   partsUsed         PartsUsed[]
   partWarranties    PartWarranty[]

@@ -11,7 +11,12 @@ import '../../dashboard/bloc/dashboard_state.dart';
 import '../../../domain/entities/dashboard_stats.dart';
 import '../../vehicle_intake/pages/reception_hub_page.dart';
 import 'inventory_page.dart';
+import 'work_order_list_page.dart';
 import '../../lookup/pages/admin_lookup_page.dart';
+import '../../lookup/pages/customer_lookup_page.dart';
+import '../../lookup/bloc/lookup_bloc.dart';
+import '../../lookup/bloc/lookup_event.dart';
+import 'admin_alerts_page.dart';
 
 /// Admin Dashboard - 100% converted from HTML design
 /// Follows Material Design 3 color system and Tailwind spacing
@@ -668,7 +673,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   /// Bar Chart with Grid Lines and Y-axis labels
   Widget _buildBarChartWithGrid(List<double> weeklyRevenue, {bool isLive = false}) {
-    final labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    final labels = List.generate(7, (i) {
+      final d = DateTime.now().subtract(Duration(days: 6 - i));
+      return '${d.day}/${d.month}';
+    });
 
     // If no real data, fallback to sample values (VND)
     final data = weeklyRevenue.isNotEmpty
@@ -875,10 +883,29 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Row(
           children: [
             _buildShortcutButton(
-              icon: Icons.bar_chart,
-              label: 'Xem\nbáo cáo',
+              icon: Icons.receipt_long,
+              label: 'Phiếu\nSC',
               color: const Color(0xFF006E2F),
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).push(
+                  PageRouteBuilder(
+                    pageBuilder: (_, animation, __) => const WorkOrderListPage(),
+                    transitionsBuilder: (_, animation, __, child) {
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(1.0, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: child,
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 350),
+                  ),
+                );
+              },
             ),
             const SizedBox(width: 16), // gap-4
             _buildShortcutButton(
@@ -1119,7 +1146,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () => setState(() => _selectedNavIndex = 1),
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: _dashboardBloc,
+                                      child: const AdminAlertsPage(),
+                                    ),
+                                  ),
+                                );
+                              },
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 minimumSize: Size.zero,
@@ -1404,7 +1440,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (_) => GetIt.instance<LookupBloc>()..add(LoadLookupCategories()),
+                      child: const CustomerLookupPage(initialTab: 1),
+                    ),
+                  ),
+                );
+              },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 8), // py-2
                 side: BorderSide(

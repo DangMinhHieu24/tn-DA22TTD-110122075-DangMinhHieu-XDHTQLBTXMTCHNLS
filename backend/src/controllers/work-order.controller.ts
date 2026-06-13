@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, WorkOrderStatus } from '@prisma/client';
+import { PrismaClient, WorkOrderStatus, PaymentMethod } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -802,17 +802,17 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
 
-    const completedRevenueOrders = await prisma.workOrder.findMany({
+    const paidRevenueOrders = await prisma.workOrder.findMany({
       where: {
-        status: 'COMPLETED',
-        completedAt: {
+        status: 'PAID',
+        paidAt: {
           gte: sevenDaysAgo,
           lt: startOfTomorrow,
         },
       },
       select: {
         totalPrice: true,
-        completedAt: true,
+        paidAt: true,
         partsUsed: {
           select: {
             quantity: true,
@@ -822,8 +822,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       },
     });
 
-    const completedTodayRevenue = completedRevenueOrders
-      .filter((workOrder) => (workOrder.completedAt ?? new Date(0)) >= startOfToday)
+    const paidTodayRevenue = paidRevenueOrders
+      .filter((workOrder) => (workOrder.paidAt ?? new Date(0)) >= startOfToday)
       .reduce((sum, workOrder) => sum + computeWorkOrderRevenue(workOrder), 0);
 
     const weeklyRevenue = Array.from({ length: 7 }, (_, index) => {
@@ -831,10 +831,10 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
       const dayEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
 
-      return completedRevenueOrders
+      return paidRevenueOrders
         .filter((workOrder) => {
-          const completedAt = workOrder.completedAt;
-          return completedAt != null && completedAt >= dayStart && completedAt < dayEnd;
+          const paidAt = workOrder.paidAt;
+          return paidAt != null && paidAt >= dayStart && paidAt < dayEnd;
         })
         .reduce((sum, workOrder) => sum + computeWorkOrderRevenue(workOrder), 0);
     });
@@ -962,7 +962,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         inProgressWorkOrders,
         completedWorkOrders,
         completedToday,
-        revenueToday: completedTodayRevenue,
+        revenueToday: paidTodayRevenue,
         weeklyRevenue,
         totalVehicles,
         totalCustomers,
@@ -1024,8 +1024,8 @@ export const getRevenueReport = async (req: Request, res: Response) => {
 
     const workOrders = await prisma.workOrder.findMany({
       where: {
-        status: { in: [WorkOrderStatus.COMPLETED, WorkOrderStatus.PAID] },
-        completedAt: {
+        status: WorkOrderStatus.PAID,
+        paidAt: {
           gte: previousRangeStart,
           lt: rangeEndExclusive,
         },
@@ -1033,7 +1033,7 @@ export const getRevenueReport = async (req: Request, res: Response) => {
       select: {
         id: true,
         totalPrice: true,
-        completedAt: true,
+        paidAt: true,
         partsUsed: {
           select: {
             quantity: true,
@@ -1062,8 +1062,8 @@ export const getRevenueReport = async (req: Request, res: Response) => {
       return date >= startBound && date < endBound;
     };
 
-    const currentOrders = workOrders.filter((order) => isInRange(order.completedAt, rangeStart, rangeEndExclusive));
-    const previousOrders = workOrders.filter((order) => isInRange(order.completedAt, previousRangeStart, rangeStart));
+    const currentOrders = workOrders.filter((order) => isInRange(order.paidAt, rangeStart, rangeEndExclusive));
+    const previousOrders = workOrders.filter((order) => isInRange(order.paidAt, previousRangeStart, rangeStart));
 
     const totalRevenue = currentOrders.reduce((sum, order) => sum + computeWorkOrderTotalRevenue(order), 0);
     const previousTotalRevenue = previousOrders.reduce((sum, order) => sum + computeWorkOrderTotalRevenue(order), 0);
@@ -1077,7 +1077,7 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     const dailyRevenue = Array.from({ length: rangeDays }, (_, index) => {
       const dayStart = new Date(rangeStart.getTime() + index * msPerDay);
       const dayEnd = new Date(dayStart.getTime() + msPerDay);
-      const dayOrders = currentOrders.filter((order) => isInRange(order.completedAt, dayStart, dayEnd));
+      const dayOrders = currentOrders.filter((order) => isInRange(order.paidAt, dayStart, dayEnd));
       const revenue = dayOrders.reduce((sum, order) => sum + computeWorkOrderTotalRevenue(order), 0);
       return {
         // Use local date to avoid timezone offset (toISOString returns UTC)
@@ -1168,6 +1168,126 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch revenue report',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Search invoices (completed & paid work orders)
+ * GET /api/work-orders/invoices?search=...&status=...&from=...&to=...
+ */
+export const getInvoices = async (req: Request, res: Response) => {
+  try {
+    const { search, status, from, to } = req.query;
+
+    const where: any = {};
+
+    if (status) {
+      where.status = status as string;
+    } else {
+      where.status = { in: ['COMPLETED', 'PAID'] };
+    }
+
+    if (from || to) {
+      where.completedAt = {};
+      if (from) where.completedAt.gte = new Date(from as string);
+      if (to) where.completedAt.lte = new Date(to as string);
+    }
+
+    if (search && (search as string).trim()) {
+      const q = (search as string).trim();
+      where.OR = [
+        { orderNumber: { contains: q, mode: 'insensitive' } },
+        { vehicle: { licensePlate: { contains: q, mode: 'insensitive' } } },
+        { vehicle: { owner: { name: { contains: q, mode: 'insensitive' } } } },
+        { vehicle: { owner: { phoneNumber: { contains: q, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const workOrders = await prisma.workOrder.findMany({
+      where,
+      include: {
+        vehicle: {
+          include: {
+            owner: {
+              select: { id: true, name: true, phoneNumber: true, email: true },
+            },
+          },
+        },
+        technician: {
+          select: { id: true, name: true },
+        },
+        services: true,
+        partsUsed: {
+          include: { part: { select: { partName: true, imageUrl: true } } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ success: true, data: workOrders });
+  } catch (error: any) {
+    console.error('getInvoices error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch invoices',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Record payment for a work order
+ * PATCH /api/work-orders/:id/payment
+ * Body: { paymentMethod: "CASH" | "CARD" | "TRANSFER", totalPrice?: number }
+ */
+export const recordPayment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { paymentMethod, totalPrice } = req.body;
+
+    if (!paymentMethod || !['CASH', 'CARD', 'TRANSFER'].includes(paymentMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid payment method. Must be CASH, CARD, or TRANSFER',
+      });
+    }
+
+    const updateData: any = {
+      paymentMethod: paymentMethod as PaymentMethod,
+      paidAt: new Date(),
+      status: 'PAID',
+      completedAt: new Date(),
+    };
+
+    if (typeof totalPrice === 'number' && Number.isFinite(totalPrice)) {
+      updateData.totalPrice = totalPrice;
+    }
+
+    const workOrder = await prisma.workOrder.update({
+      where: { id },
+      data: updateData,
+      include: {
+        vehicle: {
+          include: {
+            owner: {
+              select: { id: true, name: true, phoneNumber: true },
+            },
+          },
+        },
+        services: true,
+        partsUsed: {
+          include: { part: { select: { partName: true } } },
+        },
+      },
+    });
+
+    res.json({ success: true, data: workOrder });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to record payment',
       error: error.message,
     });
   }
