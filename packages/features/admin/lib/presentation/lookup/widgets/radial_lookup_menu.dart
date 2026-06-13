@@ -44,7 +44,7 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
   // ───────────────────────── Layout constants ─────────────────────────
   static const double _centerRadius = 44.0;
   static const double _categoryRadius = 32.0;
-  static const double _orbitRadius = 130.0;
+  static const double _orbitRadius = 142.0;
 
   @override
   void initState() {
@@ -60,7 +60,7 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
 
     _glowController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 6000),
     )..repeat();
     _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_glowController);
 
@@ -199,10 +199,12 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
 
   Widget _buildRadialMenu() {
     const size = (_orbitRadius + _categoryRadius + 40) * 2;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: GestureDetector(
+    return Transform.translate(
+      offset: const Offset(-6, 0),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanStart: (d) {
           final center = const Offset(size / 2, size / 2);
@@ -264,30 +266,69 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
           ],
         ),
       ),
+    ),
     );
   }
 
   List<Widget> _buildGlowRings() {
+    // 2 vòng tròn tĩnh
     final rings = <Widget>[];
-    for (int i = 0; i < 3; i++) {
-      final delay = i * 0.33;
-      final progress = (_glowAnimation.value + delay) % 1.0;
-      final radius = _centerRadius + 12 + progress * (_orbitRadius - _centerRadius + 10);
-      final opacity = (1.0 - progress).clamp(0.0, 0.35);
+    final ringRadii = [
+      _centerRadius + 18,         // vòng trong
+      _centerRadius + 38,         // vòng ngoài
+    ];
+    for (final r in ringRadii) {
       rings.add(
         Container(
-          width: radius * 2,
-          height: radius * 2,
+          width: r * 2,
+          height: r * 2,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: const Color(0xFF22C55E).withValues(alpha: opacity),
-              width: 1.5,
+              color: const Color(0xFF22C55E).withValues(alpha: 0.2),
+              width: 1.2,
             ),
           ),
         ),
       );
     }
+
+    // Arc 1 — chạy vòng ngoài
+    rings.add(
+      Transform.rotate(
+        angle: _glowAnimation.value * 2 * math.pi,
+        child: SizedBox(
+          width: ringRadii[1] * 2,
+          height: ringRadii[1] * 2,
+          child: CustomPaint(
+            painter: _ArcPainter(
+              color: const Color(0xFF006E2F),
+              strokeWidth: 2.5,
+              arcSweep: math.pi * 0.4,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Arc 2 — chạy vòng trong, ngược chiều
+    rings.add(
+      Transform.rotate(
+        angle: -_glowAnimation.value * 2 * math.pi,
+        child: SizedBox(
+          width: ringRadii[0] * 2,
+          height: ringRadii[0] * 2,
+          child: CustomPaint(
+            painter: _ArcPainter(
+              color: const Color(0xFF15803D),
+              strokeWidth: 2.0,
+              arcSweep: math.pi * 0.35,
+            ),
+          ),
+        ),
+      ),
+    );
+
     return rings;
   }
 
@@ -309,6 +350,7 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
   }
 
   List<Widget> _buildCategoryIcons() {
+    const labelWidth = 80.0;
     return List.generate(widget.categories.length, (i) {
       final cat = widget.categories[i];
       final offset = _categoryOffset(i);
@@ -319,41 +361,63 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
         ((_entryController.value - entryDelay) / (1 - entryDelay)).clamp(0.0, 1.0),
       );
 
-      final scale = isHovered ? 1.25 : 1.0;
-      final iconBg = isHovered ? cat.color : cat.bgColor;
-      final iconColor = isHovered ? Colors.white : cat.color;
+      final scale = isHovered ? 1.2 : 1.0;
+      final iconSize = isHovered ? 30.0 : 26.0;
+      final halfItem = labelWidth / 2;
+      const halfIcon = _categoryRadius; // 32
 
       return Positioned(
-        left: (_orbitRadius + _categoryRadius + 40) + offset.dx - _categoryRadius,
-        top: (_orbitRadius + _categoryRadius + 40) + offset.dy - _categoryRadius,
+        left: (_orbitRadius + _categoryRadius + 40) + offset.dx - halfItem,
+        top: (_orbitRadius + _categoryRadius + 40) + offset.dy - halfIcon,
         child: Transform.scale(
           scale: entryProgress * scale,
           child: GestureDetector(
             onTap: () => _onCategorySelected(i),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+            child: SizedBox(
+              width: labelWidth,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // ─── Icon card with gradient & shadow ───
+                  AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOutCubic,
                   width: _categoryRadius * 2,
                   height: _categoryRadius * 2,
                   decoration: BoxDecoration(
-                    color: iconBg,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color.lerp(cat.bgColor, cat.color, isHovered ? 0.7 : 0.0)!,
+                        Color.lerp(cat.bgColor, cat.color, isHovered ? 1.0 : 0.15)!,
+                      ],
+                    ),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: cat.color.withValues(alpha: isHovered ? 0.6 : 0.2),
+                      width: isHovered ? 2.0 : 1.0,
+                    ),
                     boxShadow: [
                       if (isHovered)
                         BoxShadow(
-                          color: cat.color.withValues(alpha: 0.4),
+                          color: cat.color.withValues(alpha: 0.35),
                           blurRadius: 20,
-                          spreadRadius: 4,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 4),
                         )
                       else
                         BoxShadow(
-                          color: cat.color.withValues(alpha: 0.12),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          color: cat.color.withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        blurRadius: 6,
+                        offset: const Offset(-2, -2),
+                      ),
                     ],
                   ),
                   child: AnimatedSwitcher(
@@ -361,27 +425,72 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
                     child: Icon(
                       cat.icon,
                       key: ValueKey('${i}_$isHovered'),
-                      color: iconColor,
-                      size: isHovered ? 28 : 24,
+                      color: isHovered ? Colors.white : cat.color,
+                      size: iconSize,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    fontSize: isHovered ? 13 : 11,
-                    fontWeight: isHovered ? FontWeight.w700 : FontWeight.w600,
-                    color: isHovered ? cat.color : const Color(0xFF3D4A3D),
-                    letterSpacing: 0.2,
+                const SizedBox(height: 10),
+                // ─── Label (fixed width để text luôn căn giữa, không lệch) ───
+                SizedBox(
+                  width: 80,
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: isHovered ? 13 : 11.5,
+                      fontWeight: isHovered ? FontWeight.w700 : FontWeight.w600,
+                      color: isHovered ? cat.color : const Color(0xFF3D4A3D),
+                      letterSpacing: 0.2,
+                      height: 1.2,
+                      shadows: isHovered
+                          ? [Shadow(color: cat.color.withValues(alpha: 0.3), blurRadius: 6)]
+                          : null,
+                    ),
+                    child: Text(cat.label),
                   ),
-                  child: Text(cat.label),
                 ),
               ],
             ),
           ),
         ),
+      ),
       );
     });
   }
+}
+
+class _ArcPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double arcSweep;
+
+  _ArcPainter({
+    required this.color,
+    this.strokeWidth = 2.5,
+    this.arcSweep = 1.4,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - strokeWidth;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      0,
+      arcSweep,
+      false,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArcPainter old) => old.arcSweep != arcSweep || old.color != color;
 }

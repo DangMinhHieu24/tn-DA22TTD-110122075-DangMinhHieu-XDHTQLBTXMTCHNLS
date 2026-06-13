@@ -64,8 +64,10 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   static const _tabs = [
     _StatusTab('Tất cả', null),
     _StatusTab('Chờ xử lý', 'PENDING'),
+    _StatusTab('Kiểm tra', 'INSPECTION'),
     _StatusTab('Đang làm', 'IN_PROGRESS'),
     _StatusTab('Hoàn tất', 'COMPLETED'),
+    _StatusTab('Đã TT', 'PAID'),
   ];
 
   List<Map<String, dynamic>> _workOrders = [];
@@ -159,23 +161,22 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildSearchAndSort(),
-            _buildTabBar(),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+      body: Column(
+        children: [
+          _buildHeader(),
+          _buildSearchAndSort(),
+          _buildTabBar(),
+          Expanded(child: _buildBody()),
+        ],
       ),
     );
   }
 
   Widget _buildHeader() {
+    final topPad = MediaQuery.of(context).padding.top;
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      padding: EdgeInsets.fromLTRB(16, topPad + 10, 16, 12),
       child: Row(
         children: [
           GestureDetector(
@@ -458,8 +459,10 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   Future<void> _quickUpdateStatus(Map<String, dynamic> wo) async {
     final status = wo['status'] as String;
     final nextStatus = switch (status) {
-      'PENDING' => 'IN_PROGRESS',
+      'PENDING' => 'INSPECTION',
+      'INSPECTION' => 'IN_PROGRESS',
       'IN_PROGRESS' => 'COMPLETED',
+      'COMPLETED' => 'PAID',
       _ => null,
     };
     if (nextStatus == null) return;

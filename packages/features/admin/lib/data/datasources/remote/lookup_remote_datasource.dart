@@ -38,7 +38,7 @@ class LookupRemoteDataSourceImpl implements LookupRemoteDataSource {
       ),
       LookupCategory(
         id: 'customer',
-        label: 'Khách hàng',
+        label: 'Tài khoản',
         icon: Icons.person_outline,
         color: Color(0xFF7B1FA2),
         bgColor: Color(0xFFF3E5F5),

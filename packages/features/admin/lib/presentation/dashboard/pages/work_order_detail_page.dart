@@ -112,14 +112,12 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF006E2F)))
-            : _error != null
-                ? _buildError()
-                : _buildContent(),
-      ),
+      backgroundColor: const Color(0xFFF0F4F8),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF006E2F)))
+          : _error != null
+              ? _buildError()
+              : _buildContent(),
     );
   }
 
@@ -179,21 +177,22 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
   }
 
   Widget _buildHeader(Map<String, dynamic> wo, String status) {
+    final topPad = MediaQuery.of(context).padding.top;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      color: Colors.white,
+      padding: EdgeInsets.fromLTRB(16, topPad + 10, 16, 14),
+      color: const Color(0xFFF0F4F8),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 40,
-              height: 40,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.arrow_back, size: 20),
+              child: const Icon(Icons.arrow_back_ios_new, size: 16, color: Color(0xFF374151)),
             ),
           ),
           const SizedBox(width: 12),
@@ -204,17 +203,36 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
                 Text(
                   wo['orderNumber'] ?? '',
                   style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1F2937),
+                    fontSize: 17, fontWeight: FontWeight.w800,
+                    color: Color(0xFF111827), letterSpacing: -0.3,
                   ),
                 ),
-                Text(
+                const Text(
                   'Phiếu Sửa Chữa',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
                 ),
               ],
             ),
           ),
-          _StatusBadge(status: status),
+          // Badge mới có dot + refresh
+          Row(
+            children: [
+              _StatusBadge(status: status),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _fetchDetail,
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF6B7280)),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -452,7 +470,7 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF006E2F), Color(0xFF15803D)],
+          colors: [Color(0xFF15803D), Color(0xFF16A34A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -508,26 +526,40 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
           icon: const Icon(Icons.print_outlined, size: 18),
           label: const Text('Xem & In Phiếu'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF006E2F),
-            side: const BorderSide(color: Color(0xFF006E2F)),
+            foregroundColor: const Color(0xFF16A34A),
+            side: const BorderSide(color: Color(0xFF16A34A)),
             minimumSize: const Size(double.infinity, 48),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         ...actions.map((action) => Padding(
           padding: const EdgeInsets.only(top: 10),
-          child: _isUpdating
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF006E2F)))
-              : FilledButton.icon(
-                  onPressed: () => _showConfirmDialog(action.status),
-                  icon: Icon(action.icon, size: 18),
-                  label: Text(action.label),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: action.color,
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
+              child: _isUpdating
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF15803D)))
+                  : Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF006E2F), Color(0xFF15803D)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: FilledButton.icon(
+                        onPressed: () => _showConfirmDialog(action.status),
+                        icon: Icon(action.icon, size: 18),
+                        label: Text(action.label),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
         )),
         if (status != 'CANCELLED' && status != 'COMPLETED' && status != 'PAID')
           Padding(
@@ -551,10 +583,13 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
   List<_ActionItem> _getActions(String status) {
     return switch (status) {
       'PENDING' => [
+          _ActionItem('Tiếp nhận', 'INSPECTION', Icons.fact_check, const Color(0xFF6D28D9)),
+        ],
+      'INSPECTION' => [
           _ActionItem('Bắt đầu xử lý', 'IN_PROGRESS', Icons.play_arrow, const Color(0xFF0058BE)),
         ],
       'IN_PROGRESS' => [
-          _ActionItem('Xác nhận hoàn tất', 'COMPLETED', Icons.check_circle, const Color(0xFF006E2F)),
+          _ActionItem('Xác nhận hoàn tất', 'COMPLETED', Icons.check_circle, const Color(0xFF22C55E)),
         ],
       'COMPLETED' => [
           _ActionItem('Xác nhận thanh toán', 'PAID', Icons.payments, const Color(0xFF006E2F)),
@@ -565,6 +600,7 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
 
   String _statusLabel(String s) => switch (s) {
     'PENDING' => 'Chờ xử lý',
+    'INSPECTION' => 'Kiểm tra',
     'IN_PROGRESS' => 'Đang làm',
     'COMPLETED' => 'Hoàn tất',
     'PAID' => 'Đã thanh toán',
@@ -573,6 +609,7 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
   };
 
   IconData _statusIcon(String s) => switch (s) {
+    'INSPECTION' => Icons.fact_check,
     'IN_PROGRESS' => Icons.play_arrow,
     'COMPLETED' => Icons.check_circle,
     'PAID' => Icons.payments,
@@ -582,6 +619,7 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
 
   Color _statusColor(String s) => switch (s) {
     'PENDING' => const Color(0xFFB45309),
+    'INSPECTION' => const Color(0xFF6D28D9),
     'IN_PROGRESS' => const Color(0xFF0058BE),
     'COMPLETED' || 'PAID' => const Color(0xFF006E2F),
     'CANCELLED' => const Color(0xFFBA1A1A),
@@ -627,10 +665,11 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -640,19 +679,21 @@ class _Card extends StatelessWidget {
         children: [
           Row(
             children: [
+              // Icon tròn thay vì vuông
               Container(
-                padding: const EdgeInsets.all(6),
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: iconColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 16, color: iconColor),
+                child: Icon(icon, size: 17, color: iconColor),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1F2937),
                 ),
@@ -680,35 +721,41 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Label với icon
           SizedBox(
-            width: 120,
+            width: 130,
             child: Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 14, color: iconColor ?? const Color(0xFF6B7280)),
-                  const SizedBox(width: 4),
+                  Icon(icon, size: 14, color: iconColor ?? const Color(0xFF374151)),
+                  const SizedBox(width: 5),
                 ],
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          // Value
           Expanded(
             child: Text(
               value,
+              textAlign: TextAlign.right,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
-                color: const Color(0xFF1F2937),
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                color: const Color(0xFF111827),
               ),
             ),
           ),
@@ -764,14 +811,25 @@ class _StatusBadge extends StatelessWidget {
       _ => (status, const Color(0xFF6B7280)),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: const Color(0xFFF0F4FF),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: const Color(0xFFE0E7FF)),
       ),
-      child: Text(label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7, height: 7,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
+        ],
+      ),
     );
   }
 }
@@ -800,7 +858,7 @@ class _PrintPreviewSheet extends StatelessWidget {
       minChildSize: 0.5,
       builder: (_, controller) => Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+      color: const Color(0xFFF0F4F8),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
