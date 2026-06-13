@@ -168,7 +168,7 @@ class _InventoryPageState extends State<InventoryPage> {
               ),
               child: TextField(
                 controller: _searchCtrl,
-                onChanged: (q) => _bloc.add(SearchInventory(q)),
+                onChanged: (q) => _bloc.add(SearchInventory(q, categoryIndex: _selectedFilterIndex)),
                 style: const TextStyle(fontSize: 15, color: Color(0xFF191C1E)),
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search_rounded,
@@ -200,7 +200,7 @@ class _InventoryPageState extends State<InventoryPage> {
             onTap: () {
               setState(() => _selectedFilterIndex = index);
               // Re-search with current query to apply filter
-              _bloc.add(SearchInventory(_searchCtrl.text));
+              _bloc.add(SearchInventory(_searchCtrl.text, categoryIndex: index));
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),

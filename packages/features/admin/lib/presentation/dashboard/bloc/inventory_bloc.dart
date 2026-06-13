@@ -32,18 +32,36 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     );
   }
 
+  static const _categoryKeywords = <int, List<String>>{
+    0: [], // Tất cả
+    1: ['pin', 'ắc quy', 'bình'], // Pin & Điện
+    2: ['phanh', 'má phanh'], // Má phanh
+    3: ['lốp', 'vỏ'], // Lốp xe
+    4: ['động cơ', 'máy'], // Động cơ
+  };
+
   void _onSearch(SearchInventory event, Emitter<InventoryState> emit) {
     final current = _loadedStateOrNull(state);
     if (current == null) return;
 
     final q = event.query.toLowerCase().trim();
-    final filtered = q.isEmpty
-        ? current.allItems
-        : current.allItems
-            .where((e) => e.partName.toLowerCase().contains(q))
-            .toList();
-    final sorted = _sortByPriority(filtered);
+    var filtered = current.allItems;
 
+    // Apply text query filter
+    if (q.isNotEmpty) {
+      filtered = filtered.where((e) => e.partName.toLowerCase().contains(q)).toList();
+    }
+
+    // Apply category filter
+    final keywords = _categoryKeywords[event.categoryIndex] ?? [];
+    if (keywords.isNotEmpty) {
+      filtered = filtered.where((e) {
+        final name = e.partName.toLowerCase();
+        return keywords.any((k) => name.contains(k));
+      }).toList();
+    }
+
+    final sorted = _sortByPriority(filtered);
     emit(current.copyWith(filteredItems: sorted, searchQuery: event.query));
   }
 

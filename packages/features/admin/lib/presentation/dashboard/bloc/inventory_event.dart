@@ -13,10 +13,11 @@ class LoadInventory extends InventoryEvent {
 
 class SearchInventory extends InventoryEvent {
   final String query;
-  const SearchInventory(this.query);
+  final int categoryIndex;
+  const SearchInventory(this.query, {this.categoryIndex = 0});
 
   @override
-  List<Object?> get props => [query];
+  List<Object?> get props => [query, categoryIndex];
 }
 
 class CreateInventoryItem extends InventoryEvent {

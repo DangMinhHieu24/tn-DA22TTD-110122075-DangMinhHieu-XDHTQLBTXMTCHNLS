@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'work_order_detail_page.dart';
 
-/// Safely parse datetime string
 String _safeFormatDate(String? raw, {String fallback = ''}) {
   if (raw == null) return fallback;
   try {
@@ -18,10 +17,8 @@ String _safeFormatDate(String? raw, {String fallback = ''}) {
 String _formatCurrency(num? amount) {
   if (amount == null || amount == 0) return '';
   return NumberFormat.compactCurrency(
-    locale: 'vi_VN',
-    symbol: '₫',
-    decimalDigits: 0,
-  ).format(amount);
+      locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
+      .format(amount);
 }
 
 Color _statusColor(String status) => switch (status) {
@@ -43,9 +40,12 @@ String _statusLabel(String status) => switch (status) {
       _ => status,
     };
 
-// ─────────────────────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────────────────────
+Color _priorityColor(String priority) => switch (priority) {
+      'URGENT' => const Color(0xFFBA1A1A),
+      'HIGH' => const Color(0xFFB45309),
+      'NORMAL' => const Color(0xFF006E2F),
+      _ => const Color(0xFF9CA3AF),
+    };
 
 class WorkOrderListPage extends StatefulWidget {
   const WorkOrderListPage({super.key});
@@ -59,16 +59,13 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   late final TabController _tabController;
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  String _sortBy = 'newest'; // newest | oldest
+  String _sortBy = 'newest';
 
   static const _tabs = [
     _StatusTab('Tất cả', null),
     _StatusTab('Chờ xử lý', 'PENDING'),
-    _StatusTab('Kiểm tra', 'INSPECTION'),
     _StatusTab('Đang làm', 'IN_PROGRESS'),
     _StatusTab('Hoàn tất', 'COMPLETED'),
-    _StatusTab('Đã thanh toán', 'PAID'),
-    _StatusTab('Đã hủy', 'CANCELLED'),
   ];
 
   List<Map<String, dynamic>> _workOrders = [];
@@ -109,7 +106,6 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
     }
   }
 
-  // Count per status for badge
   int _countForStatus(String? status) {
     if (status == null) return _workOrders.length;
     return _workOrders.where((o) => o['status'] == status).length;
@@ -126,12 +122,18 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
       return plate.contains(q) || order.contains(q) || owner.contains(q) || phone.contains(q);
     }).toList();
 
-    // Sort
+    final priorityOrder = {'URGENT': 0, 'HIGH': 1, 'NORMAL': 2, 'LOW': 3};
     switch (_sortBy) {
       case 'newest':
         list.sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
       case 'oldest':
         list.sort((a, b) => (a['createdAt'] ?? '').compareTo(b['createdAt'] ?? ''));
+      case 'priority':
+        list.sort((a, b) {
+          final pa = priorityOrder[a['priority']] ?? 2;
+          final pb = priorityOrder[b['priority']] ?? 2;
+          return pa.compareTo(pb);
+        });
     }
     return list;
   }
@@ -205,15 +207,11 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
                 ),
                 Text(
                   '${_workOrders.length} phiếu',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF9CA3AF),
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
                 ),
               ],
             ),
           ),
-          // Refresh
           GestureDetector(
             onTap: () {
               HapticFeedback.lightImpact();
@@ -226,8 +224,7 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
                 color: const Color(0xFF006E2F),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.refresh_rounded,
-                  size: 18, color: Colors.white),
+              child: const Icon(Icons.refresh_rounded, size: 18, color: Colors.white),
             ),
           ),
         ],
@@ -235,149 +232,149 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
     );
   }
 
+  // ── Search + Bộ lọc tích hợp trong 1 pill ──────────────────
   Widget _buildSearchAndSort() {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Row(
-        children: [
-          // Search bar
-          Expanded(
-            child: Container(
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(10),
-              ),
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            // Search field
+            Expanded(
               child: TextField(
                 controller: _searchCtrl,
                 onChanged: (v) => setState(() => _searchQuery = v),
-                style: const TextStyle(fontSize: 14),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF111827)),
                 decoration: InputDecoration(
-                  hintText: 'Tìm biển số, mã phiếu, tên...',
-                  hintStyle: const TextStyle(
-                      color: Color(0xFF9CA3AF), fontSize: 13),
-                  prefixIcon: const Icon(Icons.search,
-                      color: Color(0xFF9CA3AF), size: 18),
+                  hintText: 'Tìm biển số, mã phiếu, tên KH...',
+                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 18),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? GestureDetector(
                           onTap: () {
                             _searchCtrl.clear();
                             setState(() => _searchQuery = '');
                           },
-                          child: const Icon(Icons.cancel,
-                              color: Color(0xFF9CA3AF), size: 16),
+                          child: const Icon(Icons.cancel, color: Color(0xFF9CA3AF), size: 16),
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 11),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
                   isDense: true,
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Sort button
-          GestureDetector(
-            onTap: _showSortSheet,
-            child: Container(
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: _sortBy != 'newest'
-                    ? const Color(0xFF006E2F).withValues(alpha: 0.1)
-                    : const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(10),
-                border: _sortBy != 'newest'
-                    ? Border.all(
-                        color: const Color(0xFF006E2F).withValues(alpha: 0.4))
-                    : null,
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.sort_rounded,
+            // Divider
+            Container(width: 1, height: 22, color: const Color(0xFFD1D5DB)),
+            // Bộ lọc button
+            GestureDetector(
+              onTap: _showSortSheet,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.tune_rounded,
                       size: 16,
                       color: _sortBy != 'newest'
                           ? const Color(0xFF006E2F)
-                          : const Color(0xFF6B7280)),
-                  const SizedBox(width: 4),
-                  Text(
-                    _sortBy == 'oldest'
-                        ? 'Cũ nhất'
-                        : 'Mới nhất',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: _sortBy != 'newest'
-                          ? const Color(0xFF006E2F)
-                          : const Color(0xFF6B7280),
+                          : const Color(0xFF374151),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 5),
+                    Text(
+                      _sortBy == 'priority'
+                          ? 'Ưu tiên'
+                          : _sortBy == 'oldest'
+                              ? 'Cũ nhất'
+                              : 'Bộ lọc',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _sortBy != 'newest'
+                            ? const Color(0xFF006E2F)
+                            : const Color(0xFF374151),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  // ── Tabs dạng pill ─────────────────────────────────────────
   Widget _buildTabBar() {
     return Container(
       color: Colors.white,
-      child: Column(
-        children: [
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            indicatorColor: const Color(0xFF006E2F),
-            indicatorWeight: 2.5,
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelColor: const Color(0xFF006E2F),
-            unselectedLabelColor: const Color(0xFF6B7280),
-            labelStyle: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w400),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            tabs: _tabs.asMap().entries.map((e) {
-              final count = _countForStatus(e.value.status);
-              return Tab(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _tabs.asMap().entries.map((e) {
+            final isSelected = _tabController.index == e.key;
+            final count = _countForStatus(e.value.status);
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                _tabController.animateTo(e.key);
+                _fetchWorkOrders();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF006E2F) : const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(30),
+                ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(e.value.label),
+                    Text(
+                      e.value.label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                      ),
+                    ),
                     if (count > 0) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _tabController.index == e.key
-                              ? const Color(0xFF006E2F)
+                          color: isSelected
+                              ? Colors.white.withValues(alpha: 0.3)
                               : const Color(0xFFE5E7EB),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           '$count',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: _tabController.index == e.key
-                                ? Colors.white
-                                : const Color(0xFF6B7280),
+                            color: isSelected ? Colors.white : const Color(0xFF374151),
                           ),
                         ),
                       ),
                     ],
                   ],
                 ),
-              );
-            }).toList(),
-          ),
-        ],
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -401,15 +398,11 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
                 color: const Color(0xFFBA1A1A).withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.wifi_off_rounded,
-                  size: 40, color: Color(0xFFBA1A1A)),
+              child: const Icon(Icons.wifi_off_rounded, size: 40, color: Color(0xFFBA1A1A)),
             ),
             const SizedBox(height: 16),
             const Text('Không thể tải dữ liệu',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF374151))),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
             const SizedBox(height: 4),
             Text('Kiểm tra kết nối và thử lại',
                 style: TextStyle(fontSize: 13, color: Colors.grey[500])),
@@ -418,8 +411,7 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
               onPressed: _fetchWorkOrders,
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('Thử lại'),
-              style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF006E2F)),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF006E2F)),
             ),
           ],
         ),
@@ -431,17 +423,11 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long_outlined,
-                size: 60, color: Colors.grey[200]),
+            Icon(Icons.receipt_long_outlined, size: 60, color: Colors.grey[200]),
             const SizedBox(height: 12),
             Text(
-              _searchQuery.isNotEmpty
-                  ? 'Không tìm thấy kết quả'
-                  : 'Chưa có phiếu nào',
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF9CA3AF)),
+              _searchQuery.isNotEmpty ? 'Không tìm thấy kết quả' : 'Chưa có phiếu nào',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF9CA3AF)),
             ),
           ],
         ),
@@ -458,8 +444,7 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
           onTap: () async {
             final updated = await Navigator.of(context).push<bool>(
               MaterialPageRoute(
-                builder: (_) =>
-                    WorkOrderDetailPage(workOrderId: items[i]['id']),
+                builder: (_) => WorkOrderDetailPage(workOrderId: items[i]['id']),
               ),
             );
             if (updated == true) _fetchWorkOrders();
@@ -479,22 +464,17 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
     };
     if (nextStatus == null) return;
 
-    final label = _statusLabel(nextStatus);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Xác nhận', style: TextStyle(fontSize: 17)),
-        content:
-            Text('Chuyển phiếu ${wo['orderNumber']} sang "$label"?'),
+        content: Text('Chuyển phiếu ${wo['orderNumber']} sang "${_statusLabel(nextStatus)}"?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-                backgroundColor: _statusColor(nextStatus)),
+            style: FilledButton.styleFrom(backgroundColor: _statusColor(nextStatus)),
             child: Text('Xác nhận'),
           ),
         ],
@@ -504,8 +484,7 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
 
     try {
       final dio = GetIt.instance<Dio>();
-      await dio.patch('/work-orders/${wo['id']}/status',
-          data: {'status': nextStatus});
+      await dio.patch('/work-orders/${wo['id']}/status', data: {'status': nextStatus});
       HapticFeedback.mediumImpact();
       _fetchWorkOrders();
     } catch (_) {
@@ -520,7 +499,7 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
 }
 
 // ─────────────────────────────────────────────────────────────
-// Work Order Card  (with swipe)
+// Work Order Card
 // ─────────────────────────────────────────────────────────────
 
 class _WorkOrderCard extends StatelessWidget {
@@ -537,41 +516,33 @@ class _WorkOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = (data['status'] ?? 'PENDING') as String;
+    final priority = (data['priority'] ?? 'NORMAL') as String;
     final orderNumber = data['orderNumber'] ?? '';
     final plate = data['vehicle']?['licensePlate'] ?? 'N/A';
-    final vehicleModel = data['vehicle']?['vehicleModel'] ??
-        data['vehicle']?['model'] ?? '';
+    final vehicleModel = data['vehicle']?['vehicleModel'] ?? data['vehicle']?['model'] ?? '';
     final ownerName = data['vehicle']?['owner']?['name'] ?? 'N/A';
-    final phone = data['vehicle']?['owner']?['phoneNumber'] ?? '';
-    final techName =
-        data['technician']?['name'] ?? 'Chưa phân công';
+    final techName = data['technician']?['name'] ?? 'Chưa phân công';
     final createdAt = _safeFormatDate(data['createdAt'] as String?);
-    final totalPrice = data['totalPrice'] as num?;
     final services = (data['services'] as List<dynamic>? ?? []);
     final serviceText = services
         .map((s) => s['serviceType'] ?? '')
         .where((s) => s.isNotEmpty)
         .join(' · ');
 
-    final canConfirm =
-        status == 'PENDING' || status == 'IN_PROGRESS';
+    final canConfirm = status == 'PENDING' || status == 'IN_PROGRESS';
     final nextLabel = status == 'PENDING' ? 'Bắt đầu' : 'Hoàn tất';
-    final nextColor = status == 'PENDING'
-        ? const Color(0xFF0058BE)
-        : const Color(0xFF006E2F);
+    final nextColor = status == 'PENDING' ? const Color(0xFF0058BE) : const Color(0xFF006E2F);
 
     return Dismissible(
       key: ValueKey(data['id']),
-      direction: canConfirm
-          ? DismissDirection.endToStart
-          : DismissDirection.none,
+      direction: canConfirm ? DismissDirection.endToStart : DismissDirection.none,
       confirmDismiss: (_) async {
         onQuickConfirm();
-        return false; // don't actually dismiss, just trigger action
+        return false;
       },
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: 24),
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: nextColor,
@@ -581,18 +552,13 @@ class _WorkOrderCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              status == 'PENDING'
-                  ? Icons.play_arrow_rounded
-                  : Icons.check_circle_rounded,
-              color: Colors.white,
-              size: 28,
+              status == 'PENDING' ? Icons.play_arrow_rounded : Icons.check_circle_rounded,
+              color: Colors.white, size: 28,
             ),
             const SizedBox(height: 4),
             Text(nextLabel,
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
+                    color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -605,7 +571,7 @@ class _WorkOrderCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 12,
                 offset: const Offset(0, 3),
               ),
@@ -614,170 +580,226 @@ class _WorkOrderCard extends StatelessWidget {
           child: IntrinsicHeight(
             child: Row(
               children: [
+                // ── Priority bar bên trái - theo màu STATUS ──
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: _statusColor(status),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                    ),
+                  ),
+                ),
+                // ── Nội dung ──
                 Expanded(
                   child: Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Row 1: Order number + badge
+                        // Row 1: Mã phiếu + badge trạng thái
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              orderNumber,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF111827),
-                                letterSpacing: -0.2,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    orderNumber,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF111827),
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                  if (serviceText.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      serviceText,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF6B7280),
+                                        letterSpacing: 0.3,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                            const Spacer(),
-                            _StatusBadge(status: status),
+                            const SizedBox(width: 8),
+                            _StatusBadgeNew(status: status),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        // Row 2: Vehicle info
+                        const SizedBox(height: 14),
+
+                        // Row 2: Vehicle box - theo màu STATUS
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _statusColor(status).withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              // Icon xe tròn - theo màu STATUS
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: _statusColor(status).withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.electric_moped,
+                                    size: 22, color: _statusColor(status)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      plate,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: _statusColor(status),
+                                      ),
+                                    ),
+                                    if (vehicleModel.isNotEmpty)
+                                      Text(
+                                        vehicleModel,
+                                        style: const TextStyle(
+                                            fontSize: 13, color: Color(0xFF6B7280)),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Row 3: Khách hàng | Kỹ thuật viên (2 cột)
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF006E2F)
-                                    .withValues(alpha: 0.08),
-                                borderRadius:
-                                    BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                            // Cột trái: Khách hàng
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.two_wheeler,
-                                      size: 13,
-                                      color: Color(0xFF006E2F)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    plate,
-                                    style: const TextStyle(
-                                      fontSize: 13,
+                                  const Text(
+                                    'KHÁCH HÀNG',
+                                    style: TextStyle(
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF006E2F),
+                                      color: Color(0xFF9CA3AF),
+                                      letterSpacing: 0.8,
                                     ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.person_outline,
+                                          size: 14, color: Color(0xFF374151)),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          ownerName,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF1F2937),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                            if (vehicleModel.isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  vehicleModel,
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF9CA3AF)),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                            // Cột phải: KTV
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'KỸ THUẬT VIÊN',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF9CA3AF),
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.build_outlined,
+                                          size: 14, color: Color(0xFF0058BE)),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          techName,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF0058BE),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        // Row 3: Owner + phone
-                        Row(
-                          children: [
-                            const Icon(Icons.person_outline,
-                                size: 13, color: Color(0xFF6B7280)),
-                            const SizedBox(width: 4),
-                            Text(
-                              ownerName,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF374151)),
-                            ),
-                            if (phone.isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              const Icon(Icons.phone_outlined,
-                                  size: 12,
-                                  color: Color(0xFF9CA3AF)),
-                              const SizedBox(width: 3),
-                              Text(
-                                phone,
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF9CA3AF)),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        // Row 4: Technician
-                        Row(
-                          children: [
-                            const Icon(Icons.engineering_outlined,
-                                size: 13, color: Color(0xFF0058BE)),
-                            const SizedBox(width: 4),
-                            Text(
-                              techName,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF0058BE),
-                                  fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
-                        if (serviceText.isNotEmpty) ...[
-                          const SizedBox(height: 5),
-                          Text(
-                            serviceText,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF9CA3AF)),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                        const SizedBox(height: 12),
+
+                        // Divider
+                        const Divider(height: 1, color: Color(0xFFF3F4F6)),
                         const SizedBox(height: 10),
-                        // Row 5: Time + total
+
+                        // Row 4: Thời gian + Chi tiết
                         Row(
                           children: [
                             const Icon(Icons.access_time_rounded,
-                                size: 11,
-                                color: Color(0xFFD1D5DB)),
-                            const SizedBox(width: 3),
+                                size: 13, color: Color(0xFF9CA3AF)),
+                            const SizedBox(width: 4),
                             Text(
                               createdAt,
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFFD1D5DB)),
+                                  fontSize: 12, color: Color(0xFF9CA3AF)),
                             ),
                             const Spacer(),
-                            if (totalPrice != null && totalPrice > 0)
+                            if (canConfirm)
                               Text(
-                                _formatCurrency(totalPrice),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF006E2F),
-                                ),
+                                'Vuốt để $nextLabel',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: nextColor.withValues(alpha: 0.6)),
                               )
                             else
                               Row(
                                 children: [
                                   Text(
-                                    canConfirm ? 'Vuốt để $nextLabel' : '',
+                                    'Chi tiết',
                                     style: TextStyle(
-                                      fontSize: 10,
-                                      color: nextColor
-                                          .withValues(alpha: 0.6),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF006E2F),
                                     ),
                                   ),
-                                  if (canConfirm)
-                                    Icon(Icons.chevron_right,
-                                        size: 14,
-                                        color: nextColor
-                                            .withValues(alpha: 0.6)),
+                                  const Icon(Icons.chevron_right_rounded,
+                                      size: 18, color: Color(0xFF006E2F)),
                                 ],
                               ),
                           ],
@@ -809,6 +831,7 @@ class _SortSheet extends StatelessWidget {
     final options = [
       ('newest', Icons.arrow_downward_rounded, 'Mới nhất trước'),
       ('oldest', Icons.arrow_upward_rounded, 'Cũ nhất trước'),
+      ('priority', Icons.flag_rounded, 'Theo mức ưu tiên'),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -816,11 +839,9 @@ class _SortSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle
           Center(
             child: Container(
-              width: 36,
-              height: 4,
+              width: 36, height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFFE5E7EB),
@@ -829,10 +850,7 @@ class _SortSheet extends StatelessWidget {
             ),
           ),
           const Text('Sắp xếp theo',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827))),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
           const SizedBox(height: 12),
           ...options.map((opt) {
             final isSelected = current == opt.$1;
@@ -840,43 +858,29 @@ class _SortSheet extends StatelessWidget {
               onTap: () => onSelect(opt.$1),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? const Color(0xFF006E2F).withValues(alpha: 0.08)
                       : const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(12),
                   border: isSelected
-                      ? Border.all(
-                          color: const Color(0xFF006E2F)
-                              .withValues(alpha: 0.3))
+                      ? Border.all(color: const Color(0xFF006E2F).withValues(alpha: 0.3))
                       : null,
                 ),
                 child: Row(
                   children: [
-                    Icon(opt.$2,
-                        size: 18,
-                        color: isSelected
-                            ? const Color(0xFF006E2F)
-                            : const Color(0xFF6B7280)),
+                    Icon(opt.$2, size: 18,
+                        color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF6B7280)),
                     const SizedBox(width: 12),
-                    Text(
-                      opt.$3,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: isSelected
-                            ? const Color(0xFF006E2F)
-                            : const Color(0xFF374151),
-                      ),
-                    ),
+                    Text(opt.$3,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF374151))),
                     const Spacer(),
                     if (isSelected)
-                      const Icon(Icons.check_rounded,
-                          size: 18, color: Color(0xFF006E2F)),
+                      const Icon(Icons.check_rounded, size: 18, color: Color(0xFF006E2F)),
                   ],
                 ),
               ),
@@ -889,7 +893,7 @@ class _SortSheet extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Skeleton Loading Card
+// Skeleton Loading
 // ─────────────────────────────────────────────────────────────
 
 class _SkeletonCard extends StatefulWidget {
@@ -909,8 +913,8 @@ class _SkeletonCardState extends State<_SkeletonCard>
     _ctrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200))
       ..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 0.9).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _anim = Tween<double>(begin: 0.4, end: 0.9)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -947,18 +951,58 @@ class _SkeletonCardState extends State<_SkeletonCard>
   }
 
   Widget _bar(double width, double height) => Container(
-        width: width,
-        height: height,
+        width: width, height: height,
         decoration: BoxDecoration(
-          color: Color.fromRGBO(
-              200, 200, 200, _anim.value),
+          color: Color.fromRGBO(200, 200, 200, _anim.value),
           borderRadius: BorderRadius.circular(6),
         ),
       );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Status Badge
+// Status Badge - style mới có dot
+// ─────────────────────────────────────────────────────────────
+
+class _StatusBadgeNew extends StatelessWidget {
+  final String status;
+  const _StatusBadgeNew({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _statusLabel(status);
+    final color = _statusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F4FF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE0E7FF)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Status Badge (cũ - giữ lại)
 // ─────────────────────────────────────────────────────────────
 
 class _StatusBadge extends StatelessWidget {
@@ -976,21 +1020,13 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: color,
-            letterSpacing: 0.1),
-      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w700,
+              color: color, letterSpacing: 0.1)),
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// Tab data
-// ─────────────────────────────────────────────────────────────
 
 class _StatusTab {
   final String label;

@@ -8,6 +8,7 @@ import '../pages/vehicle_lookup_page.dart';
 import '../pages/customer_lookup_page.dart';
 import '../pages/invoice_lookup_page.dart';
 import '../../dashboard/pages/inventory_page.dart';
+import '../../dashboard/pages/work_order_list_page.dart';
 import 'connecting_line_painter.dart';
 import 'center_search_button.dart';
 
@@ -132,6 +133,11 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
         return;
       case 'invoice':
         page = const InvoiceLookupPage();
+      case 'work_order':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WorkOrderListPage()),
+        );
+        return;
       default:
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
