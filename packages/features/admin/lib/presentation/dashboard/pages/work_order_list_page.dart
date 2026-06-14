@@ -5,6 +5,14 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'work_order_detail_page.dart';
 
+String _serviceLabel(String? type) => switch (type) {
+  'MAINTENANCE' => 'Bảo dưỡng định kỳ',
+  'BATTERY_CHECK' => 'Kiểm tra pin/sạc',
+  'BRAKES_TIRES' => 'Phanh & Lốp',
+  'OTHER_REPAIR' => 'Sửa chữa khác',
+  _ => type ?? '',
+};
+
 String _safeFormatDate(String? raw, {String fallback = ''}) {
   if (raw == null) return fallback;
   try {
@@ -48,7 +56,8 @@ Color _priorityColor(String priority) => switch (priority) {
     };
 
 class WorkOrderListPage extends StatefulWidget {
-  const WorkOrderListPage({super.key});
+  final int initialTabIndex;
+  const WorkOrderListPage({super.key, this.initialTabIndex = 0});
 
   @override
   State<WorkOrderListPage> createState() => _WorkOrderListPageState();
@@ -77,7 +86,7 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(length: _tabs.length, vsync: this, initialIndex: widget.initialTabIndex);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) _fetchWorkOrders();
     });
@@ -528,12 +537,12 @@ class _WorkOrderCard extends StatelessWidget {
     final createdAt = _safeFormatDate(data['createdAt'] as String?);
     final services = (data['services'] as List<dynamic>? ?? []);
     final serviceText = services
-        .map((s) => s['serviceType'] ?? '')
+        .map((s) => _serviceLabel(s['serviceType'] as String?))
         .where((s) => s.isNotEmpty)
         .join(' · ');
 
-    final canConfirm = status == 'PENDING' || status == 'IN_PROGRESS';
-    final nextLabel = status == 'PENDING' ? 'Bắt đầu' : 'Hoàn tất';
+    final canConfirm = status == 'PENDING' || status == 'IN_PROGRESS' || status == 'COMPLETED';
+    final nextLabel = status == 'PENDING' ? 'Bắt đầu' : status == 'IN_PROGRESS' ? 'Hoàn tất' : 'Đã TT';
     final nextColor = status == 'PENDING' ? const Color(0xFF0058BE) : const Color(0xFF006E2F);
 
     return Dismissible(
@@ -555,7 +564,7 @@ class _WorkOrderCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              status == 'PENDING' ? Icons.play_arrow_rounded : Icons.check_circle_rounded,
+              status == 'PENDING' ? Icons.play_arrow_rounded : status == 'COMPLETED' ? Icons.payments_rounded : Icons.check_circle_rounded,
               color: Colors.white, size: 28,
             ),
             const SizedBox(height: 4),

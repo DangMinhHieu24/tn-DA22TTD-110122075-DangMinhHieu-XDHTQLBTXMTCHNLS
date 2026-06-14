@@ -883,13 +883,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Row(
           children: [
             _buildShortcutButton(
-              icon: Icons.receipt_long,
-              label: 'Phiếu\nSC',
+              icon: Icons.check_circle,
+              label: 'Xác\nnhận',
               color: const Color(0xFF006E2F),
               onTap: () {
                 Navigator.of(context).push(
                   PageRouteBuilder(
-                    pageBuilder: (_, animation, __) => const WorkOrderListPage(),
+                    pageBuilder: (_, animation, __) => const WorkOrderListPage(initialTabIndex: 4),
                     transitionsBuilder: (_, animation, __, child) {
                       return SlideTransition(
                         position: Tween<Offset>(

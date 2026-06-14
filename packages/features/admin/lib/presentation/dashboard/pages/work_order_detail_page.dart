@@ -3,6 +3,14 @@ import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 
+String _serviceLabel(String? type) => switch (type) {
+  'MAINTENANCE' => 'Bảo dưỡng định kỳ',
+  'BATTERY_CHECK' => 'Kiểm tra pin/sạc',
+  'BRAKES_TIRES' => 'Phanh & Lốp',
+  'OTHER_REPAIR' => 'Sửa chữa khác',
+  _ => type ?? '',
+};
+
 class WorkOrderDetailPage extends StatefulWidget {
   final String workOrderId;
   const WorkOrderDetailPage({super.key, required this.workOrderId});
@@ -298,7 +306,7 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              s['serviceType'] ?? '',
+                              _serviceLabel(s['serviceType'] as String?),
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -520,18 +528,19 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
 
     return Column(
       children: [
-        // Print button always visible
-        OutlinedButton.icon(
-          onPressed: _showPrintPreview,
-          icon: const Icon(Icons.print_outlined, size: 18),
-          label: const Text('Xem & In Phiếu'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF16A34A),
-            side: const BorderSide(color: Color(0xFF16A34A)),
-            minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        // Print button only when completed or paid
+        if (status == 'COMPLETED' || status == 'PAID')
+          OutlinedButton.icon(
+            onPressed: _showPrintPreview,
+            icon: const Icon(Icons.print_outlined, size: 18),
+            label: const Text('Xem & In Phiếu'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF16A34A),
+              side: const BorderSide(color: Color(0xFF16A34A)),
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
-        ),
         ...actions.map((action) => Padding(
           padding: const EdgeInsets.only(top: 10),
               child: _isUpdating
@@ -851,39 +860,63 @@ class _PrintPreviewSheet extends StatelessWidget {
     final services = (wo['services'] as List<dynamic>? ?? []);
     final parts = (wo['partsUsed'] as List<dynamic>? ?? []);
     final total = wo['totalPrice'] as num? ?? 0;
+    final status = (wo['status'] ?? '') as String;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.85,
+      initialChildSize: 0.88,
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder: (_, controller) => Container(
         decoration: const BoxDecoration(
-      color: const Color(0xFFF0F4F8),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF0F7F2), Color(0xFFF0F4F8)],
+          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
           children: [
-            // Handle bar
+            // Handle
             Container(
               margin: const EdgeInsets.only(top: 12, bottom: 4),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB),
+                color: const Color(0xFFB0BEC5),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
               child: Row(
                 children: [
-                  const Text(
-                    'Xem trước phiếu',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF006E2F).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.receipt_long, color: Color(0xFF006E2F), size: 20),
                   ),
-                  const Spacer(),
-                  // Share/Print button
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Xem trước phiếu',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Kiểm tra trước khi in',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
                   FilledButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
@@ -894,137 +927,241 @@ class _PrintPreviewSheet extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.print, size: 16),
+                    icon: const Icon(Icons.print_rounded, size: 16),
                     label: const Text('In Phiếu'),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF006E2F),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
-            // Print content
+            // Invoice content
             Expanded(
               child: SingleChildScrollView(
                 controller: controller,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 child: Container(
-                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Top green accent bar
+                      Container(
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                          ),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                      ),
                       // Shop header
-                      const Center(
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
                         child: Column(
                           children: [
-                            Text('NĂNG LƯỢNG SẠCH',
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF006E2F))),
-                            Text('Dịch vụ bảo trì xe điện',
-                                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                            SizedBox(height: 4),
-                            Text('ĐT: 1900-xxxx | www.nanglungsach.vn',
-                                style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+                            const Text(
+                              'NĂNG LƯỢNG SẠCH',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF006E2F),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Dịch vụ bảo trì xe điện',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'ĐT: 1900-xxxx  ·  www.nanglungsach.vn',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Dashed divider
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                        child: CustomPaint(
+                          painter: _DashedLinePainter(color: const Color(0xFFE5E7EB)),
+                          child: const SizedBox(height: 1, width: double.infinity),
+                        ),
+                      ),
+                      // Order number + status
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'PHIẾU SỬA CHỮA',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF374151), letterSpacing: 0.5),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    wo['orderNumber'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF006E2F),
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _PrintStatusBadge(status: status),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Divider(),
-                      Center(
-                        child: Column(
-                          children: [
-                            const Text('PHIẾU SỬA CHỮA',
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w700)),
-                            Text(
-                              wo['orderNumber'] ?? '',
-                              style: const TextStyle(
-                                  fontSize: 13, color: Color(0xFF006E2F),
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                      // Customer info card
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F7F2),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFD1E7D9)),
+                          ),
+                          child: Column(
+                            children: [
+                              _PrintInfoRow(icon: Icons.directions_car_rounded, label: 'Biển số', value: vehicle['licensePlate'] ?? 'N/A'),
+                              const SizedBox(height: 8),
+                              _PrintInfoRow(icon: Icons.person_outline_rounded, label: 'Khách hàng', value: owner['name'] ?? 'N/A'),
+                              const SizedBox(height: 8),
+                              _PrintInfoRow(icon: Icons.phone_outlined, label: 'Điện thoại', value: owner['phoneNumber'] ?? 'N/A'),
+                              const SizedBox(height: 8),
+                              _PrintInfoRow(
+                                icon: Icons.access_time_rounded,
+                                label: 'Ngày tạo',
+                                value: wo['createdAt'] != null ? _safeFormatDate(wo['createdAt'] as String?) : 'N/A',
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      _PrintRow('Biển số:', vehicle['licensePlate'] ?? 'N/A'),
-                      _PrintRow('Khách hàng:', owner['name'] ?? 'N/A'),
-                      _PrintRow('Điện thoại:', owner['phoneNumber'] ?? 'N/A'),
-                      _PrintRow('Ngày tạo:',
-                          wo['createdAt'] != null
-                              ? _safeFormatDate(wo['createdAt'] as String?)
-                              : 'N/A'),
-                      const SizedBox(height: 12),
-                      const Text('DỊCH VỤ:',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      ...services.map((s) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
+                      // Services section
+                      if (services.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                          child: _buildSectionHeader('DỊCH VỤ', Icons.build_outlined),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+                          child: Column(
+                            children: services.map((s) => _buildItemRow(
+                              label: _serviceLabel(s['serviceType'] as String?),
+                              price: s['price'],
+                              fmt: fmt,
+                            )).toList(),
+                          ),
+                        ),
+                      ],
+                      // Parts section
+                      if (parts.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                          child: _buildSectionHeader('PHỤ TÙNG', Icons.inventory_2_outlined),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+                          child: Column(
+                            children: parts.map((p) {
+                              final part = p as Map<String, dynamic>;
+                              final partInfo = part['part'] as Map<String, dynamic>? ?? {};
+                              final qty = part['quantity'] as num? ?? 0;
+                              final unitPrice = part['unitPrice'] as num? ?? 0;
+                              return _buildItemRow(
+                                label: '${partInfo['partName'] ?? 'N/A'}  x$qty',
+                                price: qty * unitPrice,
+                                fmt: fmt,
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                      // Total
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                        child: CustomPaint(
+                          painter: _DashedLinePainter(color: const Color(0xFF006E2F).withValues(alpha: 0.3)),
+                          child: const SizedBox(height: 1, width: double.infinity),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
                         child: Row(
                           children: [
-                            const Text('• ', style: TextStyle(fontSize: 13)),
-                            Expanded(child: Text(s['serviceType'] ?? '', style: const TextStyle(fontSize: 13))),
-                            if (s['price'] != null)
-                              Text(fmt.format(s['price']),
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            const Text(
+                              'TỔNG CỘNG',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF374151),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              fmt.format(total),
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF006E2F),
+                                letterSpacing: -0.3,
+                              ),
+                            ),
                           ],
                         ),
-                      )),
-                      if (parts.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        const Text('PHỤ TÙNG:',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 6),
-                        ...parts.map((p) {
-                          final part = p as Map<String, dynamic>;
-                          final partInfo = part['part'] as Map<String, dynamic>? ?? {};
-                          final qty = part['quantity'] as num? ?? 0;
-                          final unitPrice = part['unitPrice'] as num? ?? 0;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              children: [
-                                const Text('• ', style: TextStyle(fontSize: 13)),
-                                Expanded(child: Text('${partInfo['partName'] ?? 'N/A'} x$qty',
-                                    style: const TextStyle(fontSize: 13))),
-                                Text(fmt.format(qty * unitPrice),
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          );
-                        }),
-                      ],
-                      const SizedBox(height: 12),
-                      const Divider(),
-                      Row(
-                        children: [
-                          const Text('TỔNG CỘNG:',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                          const Spacer(),
-                          Text(fmt.format(total),
-                              style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF006E2F))),
-                        ],
                       ),
-                      const SizedBox(height: 20),
-                      const Center(
-                        child: Text(
-                          'Cảm ơn quý khách đã tin tưởng sử dụng dịch vụ!',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
-                          textAlign: TextAlign.center,
+                      // Thank you
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F7F2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Cảm ơn quý khách đã tin tưởng sử dụng dịch vụ!',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF6B7280),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -1035,34 +1172,143 @@ class _PrintPreviewSheet extends StatelessWidget {
       ),
     );
   }
-}
 
-class _PrintRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _PrintRow(this.label, this.value);
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF006E2F).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon, size: 14, color: const Color(0xFF006E2F)),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF374151),
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildItemRow({required String label, num? price, required NumberFormat fmt}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 110,
-            child: Text(label,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+          Container(
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: Color(0xFF22C55E),
+              shape: BoxShape.circle,
+            ),
           ),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+            ),
           ),
+          if (price != null)
+            Text(
+              fmt.format(price),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+            ),
         ],
       ),
     );
   }
 }
+
+class _PrintStatusBadge extends StatelessWidget {
+  final String status;
+  const _PrintStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (status) {
+      'PENDING' => ('Chờ xử lý', const Color(0xFFB45309)),
+      'INSPECTION' => ('Kiểm tra', const Color(0xFF6D28D9)),
+      'IN_PROGRESS' => ('Đang làm', const Color(0xFF0058BE)),
+      'COMPLETED' => ('Hoàn tất', const Color(0xFF006E2F)),
+      'PAID' => ('Đã TT', const Color(0xFF006E2F)),
+      'CANCELLED' => ('Đã hủy', const Color(0xFFBA1A1A)),
+      _ => (status, const Color(0xFF6B7280)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+}
+
+class _PrintInfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _PrintInfoRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF006E2F)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.3)),
+              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    const dashWidth = 6.0;
+    const dashSpace = 4.0;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, 0), Offset(x + dashWidth, 0), paint);
+      x += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+
 
 // Helper
 class _ActionItem {
