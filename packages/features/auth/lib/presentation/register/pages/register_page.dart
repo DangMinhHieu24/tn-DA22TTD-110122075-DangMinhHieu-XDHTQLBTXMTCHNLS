@@ -612,7 +612,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String _getDashboardRoute(UserRole role) {
     switch (role) {
-      case UserRole.admin:
+      case UserRole.staff:
         return '/admin/dashboard';
       case UserRole.technician:
         return '/technician/dashboard';

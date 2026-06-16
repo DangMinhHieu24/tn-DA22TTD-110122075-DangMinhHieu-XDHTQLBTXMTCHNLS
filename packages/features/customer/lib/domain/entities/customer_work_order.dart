@@ -9,6 +9,7 @@ class CustomerWorkOrder extends Equatable {
   final String? scheduledTime;
   final DateTime createdAt;
   final List<CustomerWorkOrderService> services;
+  final double? totalCost;
 
   const CustomerWorkOrder({
     required this.id,
@@ -19,6 +20,7 @@ class CustomerWorkOrder extends Equatable {
     this.scheduledTime,
     required this.createdAt,
     required this.services,
+    this.totalCost,
   });
 
   @override
@@ -31,18 +33,21 @@ class CustomerWorkOrder extends Equatable {
         scheduledTime,
         createdAt,
         services,
+        totalCost,
       ];
 }
 
 class CustomerWorkOrderService extends Equatable {
   final String serviceType;
   final String? description;
+  final double? price;
 
   const CustomerWorkOrderService({
     required this.serviceType,
     this.description,
+    this.price,
   });
 
   @override
-  List<Object?> get props => [serviceType, description];
+  List<Object?> get props => [serviceType, description, price];
 }

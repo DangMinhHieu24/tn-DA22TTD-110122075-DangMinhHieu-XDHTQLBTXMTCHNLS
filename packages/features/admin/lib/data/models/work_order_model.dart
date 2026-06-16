@@ -1,5 +1,13 @@
 import 'package:core/core.dart';
 
+String _serviceLabel(String? type) => switch (type) {
+  'MAINTENANCE' => 'Bảo dưỡng định kỳ',
+  'BATTERY_CHECK' => 'Kiểm tra pin/sạc',
+  'BRAKES_TIRES' => 'Phanh & Lốp',
+  'OTHER_REPAIR' => 'Sửa chữa khác',
+  _ => type ?? 'Dịch vụ',
+};
+
 class WorkOrderModel {
   final String id;
   final String orderNumber;
@@ -13,6 +21,7 @@ class WorkOrderModel {
   final List<ServiceModel> services;
   final String createdById;
   final DateTime createdAt;
+  final double? totalCost;
 
   const WorkOrderModel({
     required this.id,
@@ -27,6 +36,7 @@ class WorkOrderModel {
     required this.services,
     required this.createdById,
     required this.createdAt,
+    this.totalCost,
   });
 
   factory WorkOrderModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +55,7 @@ class WorkOrderModel {
       services: servicesList.map((s) => ServiceModel.fromJson(s)).toList(),
       createdById: json['createdById'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
+      totalCost: (json['totalPrice'] as num?)?.toDouble(),
     );
   }
 
@@ -62,6 +73,7 @@ class WorkOrderModel {
       'services': services.map((s) => s.toJson()).toList(),
       'createdById': createdById,
       'createdAt': createdAt.toIso8601String(),
+      'totalPrice': totalCost,
     };
   }
   WorkHistoryItem toWorkHistoryItem({String? licensePlate}) {
@@ -71,7 +83,11 @@ class WorkOrderModel {
       notes: notes,
       createdAt: createdAt,
       licensePlate: licensePlate,
-      description: services.isNotEmpty ? services.map((s) => s.description ?? s.serviceType).join(', ') : notes,
+      description: services.isNotEmpty
+          ? services.map((s) => s.description ?? _serviceLabel(s.serviceType)).join(', ')
+          : notes ?? 'Phiếu sửa chữa',
+
+      totalCost: totalCost ?? services.fold<double>(0, (sum, s) => sum + (s.price ?? 0)),
     );
   }
 }
@@ -79,16 +95,19 @@ class WorkOrderModel {
 class ServiceModel {
   final String serviceType;
   final String? description;
+  final double? price;
 
   const ServiceModel({
     required this.serviceType,
     this.description,
+    this.price,
   });
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
     return ServiceModel(
       serviceType: json['serviceType'] as String,
       description: json['description'] as String?,
+      price: (json['price'] as num?)?.toDouble(),
     );
   }
 
@@ -96,6 +115,7 @@ class ServiceModel {
     return {
       'serviceType': serviceType,
       'description': description,
+      'price': price,
     };
   }
 }

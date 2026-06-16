@@ -140,10 +140,12 @@ class WorkItemModel extends WorkItem {
     return WorkHistoryItem(
       orderNumber: 'WO-${id.substring(0, 8).toUpperCase()}',
       status: _statusToString(status),
-      notes: description,
       createdAt: createdAt,
       licensePlate: licensePlate,
-      description: description,
+      description: services.isNotEmpty
+          ? services.map((s) => s.description ?? s.serviceName ?? 'Dịch vụ').join(', ')
+          : description.isNotEmpty ? description : 'Phiếu sửa chữa',
+      totalCost: services.fold<double>(0, (sum, s) => sum + (s.price ?? 0)),
     );
   }
 

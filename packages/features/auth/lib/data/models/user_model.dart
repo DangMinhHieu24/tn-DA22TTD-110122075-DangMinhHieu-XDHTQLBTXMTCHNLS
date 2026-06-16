@@ -33,12 +33,13 @@ class UserModel extends User {
   }
 
   static UserRole _roleFromString(String role) {
-    switch (role.toLowerCase()) {
-      case 'admin':
-        return UserRole.admin;
-      case 'technician':
+    switch (role.toUpperCase()) {
+      case 'STAFF':
+      case 'ADMIN':
+        return UserRole.staff;
+      case 'TECHNICIAN':
         return UserRole.technician;
-      case 'customer':
+      case 'CUSTOMER':
         return UserRole.customer;
       default:
         return UserRole.customer;
@@ -47,12 +48,12 @@ class UserModel extends User {
 
   static String _roleToString(UserRole role) {
     switch (role) {
-      case UserRole.admin:
-        return 'admin';
+      case UserRole.staff:
+        return 'STAFF';
       case UserRole.technician:
-        return 'technician';
+        return 'TECHNICIAN';
       case UserRole.customer:
-        return 'customer';
+        return 'CUSTOMER';
     }
   }
 }

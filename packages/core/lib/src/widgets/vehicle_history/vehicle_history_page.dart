@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
 import 'package:core/core.dart';
 
 class VehicleHistoryPage extends StatefulWidget {
   final String licensePlate;
   final String? vehicleModel;
   final String? vehicleColor;
+  final String? ownerName;
+  final String? ownerPhone;
   final List<WorkHistoryItem> historyItems;
 
   const VehicleHistoryPage({
@@ -12,6 +16,8 @@ class VehicleHistoryPage extends StatefulWidget {
     required this.licensePlate,
     this.vehicleModel,
     this.vehicleColor,
+    this.ownerName,
+    this.ownerPhone,
     required this.historyItems,
   });
 
@@ -151,9 +157,17 @@ class _VehicleHistoryPageState extends State<VehicleHistoryPage> {
   }
 
   void _showExportDialog() {
+    final items = _displayedItems;
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có dữ liệu để xuất báo cáo.')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
@@ -163,15 +177,92 @@ class _VehicleHistoryPageState extends State<VehicleHistoryPage> {
           ],
         ),
         content: const Text(
-          'Tính năng xuất báo cáo (Sao kê) đang được phát triển.\nVui lòng quay lại sau.',
+          'Chọn hình thức xuất báo cáo sao kê lịch sử sửa chữa.',
           style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng', style: TextStyle(color: _kGreen)),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _generateAndPreview(items);
+            },
+            child: const Text('Xem trước & In', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w600)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _generateAndShare(items);
+            },
+            child: const Text('Chia sẻ file PDF', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w600)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Đóng', style: TextStyle(color: Color(0xFF9CA3AF))),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<Uint8List?> _loadFont() async {
+    try {
+      return (await rootBundle.load('assets/fonts/Roboto-Variable.ttf'))
+          .buffer
+          .asUint8List();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _generateAndPreview(List<WorkHistoryItem> items) async {
+    try {
+      final fontBytes = await _loadFont();
+      await Printing.layoutPdf(
+        onLayout: (format) => PdfReportGenerator.generateVehicleHistoryReport(
+          licensePlate: widget.licensePlate,
+          vehicleModel: widget.vehicleModel,
+          vehicleColor: widget.vehicleColor,
+          ownerName: widget.ownerName,
+          ownerPhone: widget.ownerPhone,
+          items: items,
+          startDate: _startDate,
+          endDate: _endDate,
+          fontBytes: fontBytes,
+        ),
+      );
+    } catch (e) {
+      _showExportError(e);
+    }
+  }
+
+  Future<void> _generateAndShare(List<WorkHistoryItem> items) async {
+    try {
+      final fontBytes = await _loadFont();
+      final pdf = await PdfReportGenerator.generateVehicleHistoryReport(
+        licensePlate: widget.licensePlate,
+        vehicleModel: widget.vehicleModel,
+        vehicleColor: widget.vehicleColor,
+        ownerName: widget.ownerName,
+        ownerPhone: widget.ownerPhone,
+        items: items,
+        startDate: _startDate,
+        endDate: _endDate,
+        fontBytes: fontBytes,
+      );
+      await Printing.sharePdf(
+        bytes: pdf,
+        filename: 'SaoKe_${widget.licensePlate.replaceAll(RegExp(r'\s+'), '_')}.pdf',
+      );
+    } catch (e) {
+      _showExportError(e);
+    }
+  }
+
+  void _showExportError(Object e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Lỗi xuất báo cáo: ${e.toString()}'),
+        backgroundColor: Colors.red,
       ),
     );
   }

@@ -1042,6 +1042,8 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                                             licensePlate: state.licensePlate,
                                             vehicleModel: state.vehicleModel,
                                             vehicleColor: state.vehicleColor,
+                                            ownerName: state.ownerName,
+                                            ownerPhone: state.ownerPhone,
                                             historyItems: state.vehicleHistory
                                                 .map((wo) => wo.toWorkHistoryItem(licensePlate: state.licensePlate))
                                                 .toList(),

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:design_system/design_system.dart';
+import 'package:get_it/get_it.dart';
+import 'package:auth/auth.dart';
 import '../../../domain/entities/work_item.dart';
+import '../../../domain/repositories/work_repository.dart';
 import '../../work_detail/pages/work_detail_page.dart';
 import '../widgets/work_card.dart';
 
 class TechnicianWorkListPage extends StatefulWidget {
-  final List<WorkItem> workItems;
-
-  const TechnicianWorkListPage({super.key, required this.workItems});
+  const TechnicianWorkListPage({super.key});
 
   @override
   State<TechnicianWorkListPage> createState() => _TechnicianWorkListPageState();
@@ -16,11 +16,15 @@ class TechnicianWorkListPage extends StatefulWidget {
 class _TechnicianWorkListPageState extends State<TechnicianWorkListPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  final WorkRepository _workRepository = GetIt.instance<WorkRepository>();
+  List<WorkItem> _workItems = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadWorkItems();
   }
 
   @override
@@ -29,12 +33,32 @@ class _TechnicianWorkListPageState extends State<TechnicianWorkListPage>
     super.dispose();
   }
 
+  Future<void> _loadWorkItems() async {
+    final authState = GetIt.instance<AuthBloc>().state;
+    final userId = authState is AuthAuthenticated ? authState.user.id : null;
+
+    final result = await _workRepository.getWorkItems(technicianId: userId);
+    result.fold(
+      (failure) {
+        if (mounted) setState(() => _isLoading = false);
+      },
+      (items) {
+        if (mounted) {
+          setState(() {
+            _workItems = items;
+            _isLoading = false;
+          });
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final activeItems = widget.workItems
+    final activeItems = _workItems
         .where((item) => item.status != WorkStatus.completed && item.status != WorkStatus.cancelled)
         .toList();
-    final cancelledItems = widget.workItems
+    final cancelledItems = _workItems
         .where((item) => item.status == WorkStatus.cancelled)
         .toList();
 
@@ -57,13 +81,15 @@ class _TechnicianWorkListPageState extends State<TechnicianWorkListPage>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildList(activeItems, 'Không có công việc nào'),
-          _buildList(cancelledItems, 'Không có đơn bị hủy'),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF006E2F)))
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildList(activeItems, 'Không có công việc nào'),
+                _buildList(cancelledItems, 'Không có đơn bị hủy'),
+              ],
+            ),
     );
   }
 
@@ -95,10 +121,13 @@ class _TechnicianWorkListPageState extends State<TechnicianWorkListPage>
           status: _statusLabel(item.status),
           statusColor: _statusColor(item.status),
           isInProgress: item.status == WorkStatus.inProgress,
-          onDetailTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => WorkDetailPage(workItem: item)),
-          ),
+          onDetailTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => WorkDetailPage(workItem: item)),
+            );
+            if (mounted) _loadWorkItems();
+          },
         );
       },
     );

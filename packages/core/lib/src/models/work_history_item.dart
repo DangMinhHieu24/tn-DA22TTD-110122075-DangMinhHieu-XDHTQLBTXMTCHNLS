@@ -5,6 +5,7 @@ class WorkHistoryItem {
   final DateTime? createdAt;
   final String? licensePlate;
   final String? description;
+  final double? totalCost;
 
   const WorkHistoryItem({
     required this.orderNumber,
@@ -13,5 +14,6 @@ class WorkHistoryItem {
     this.createdAt,
     this.licensePlate,
     this.description,
+    this.totalCost,
   });
 }

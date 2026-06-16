@@ -476,7 +476,7 @@ class _LoginPageState extends State<LoginPage> {
 
   String _getDashboardRoute(UserRole role) {
     switch (role) {
-      case UserRole.admin:
+      case UserRole.staff:
         return '/admin/dashboard';
       case UserRole.technician:
         return '/technician/dashboard';

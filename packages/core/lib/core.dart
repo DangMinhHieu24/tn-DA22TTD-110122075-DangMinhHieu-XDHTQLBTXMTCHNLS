@@ -7,7 +7,7 @@ export 'services/qr_scanner_service.dart';
 export 'services/work_order_realtime_service.dart';
 export 'services/warranty_service.dart';
 
-// Warranty models and widgets
+export 'src/utils/pdf_report_generator.dart';
 export 'src/models/warranty_model.dart';
 export 'src/models/work_history_item.dart';
 export 'src/widgets/vehicle_history/vehicle_history_page.dart';

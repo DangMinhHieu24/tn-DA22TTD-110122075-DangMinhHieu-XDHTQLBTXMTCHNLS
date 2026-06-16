@@ -45,7 +45,7 @@ const buildPhotos = (label: string, index: number) => {
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Clear old work orders and vehicles so seed is deterministic
+  // Clear old data so seed is deterministic
   await prisma.maintenanceLog.deleteMany();
   await prisma.warranty.deleteMany();
   await prisma.partsUsed.deleteMany();
@@ -53,21 +53,22 @@ async function main() {
   await prisma.workOrder.deleteMany();
   await prisma.vehicle.deleteMany();
   await prisma.appointment.deleteMany();
+  await prisma.user.deleteMany();
 
   // Create admin user
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  const adminPassword = await bcrypt.hash('staff123', 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@gmail.com' },
+    where: { email: 'staff' },
     update: {},
     create: {
-      email: 'admin@gmail.com',
-      name: 'Admin User',
+      email: 'staff',
+      name: 'Nhân viên',
       password: adminPassword,
-      role: 'ADMIN',
+      role: 'STAFF',
       phoneNumber: '0901234567'
     }
   });
-  console.log('✅ Admin user created:', admin.email);
+  console.log('✅ Staff user created:', admin.email);
 
   // Create technician users
   const techPassword = await bcrypt.hash('tech123', 10);

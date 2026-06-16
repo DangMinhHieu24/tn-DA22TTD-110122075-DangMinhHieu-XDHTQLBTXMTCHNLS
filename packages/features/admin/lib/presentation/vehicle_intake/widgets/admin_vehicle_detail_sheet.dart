@@ -367,6 +367,8 @@ class _AdminVehicleDetailSheetState extends State<AdminVehicleDetailSheet> {
                           licensePlate: v.licensePlate,
                           vehicleModel: v.model,
                           vehicleColor: v.color,
+                          ownerName: v.ownerName,
+                          ownerPhone: v.ownerPhone,
                           historyItems: _history
                               .map((wo) => wo.toWorkHistoryItem(licensePlate: v.licensePlate))
                               .toList(),

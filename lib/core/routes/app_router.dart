@@ -53,10 +53,8 @@ class AppRouter {
         );
 
       case technicianWorkList:
-        final args = settings.arguments;
-        final items = (args is List) ? args.cast<tech.WorkItem>() : <tech.WorkItem>[];
         return MaterialPageRoute(
-          builder: (_) => tech.TechnicianWorkListPage(workItems: items),
+          builder: (_) => const tech.TechnicianWorkListPage(),
         );
 
       case adminDashboard:
@@ -148,7 +146,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   String _getDashboardRoute(UserRole role) {
     switch (role) {
-      case UserRole.admin:
+      case UserRole.staff:
         return AppRouter.adminDashboard;
       case UserRole.technician:
         return AppRouter.technicianDashboard;

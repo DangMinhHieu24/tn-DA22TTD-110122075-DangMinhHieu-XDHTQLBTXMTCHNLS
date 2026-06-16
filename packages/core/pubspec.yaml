@@ -22,3 +22,9 @@ dependencies:
   
   # QR Scanner
   mobile_scanner: ^5.2.3
+  
+  # PDF generation & printing
+  printing: ^5.13.4
+
+  # Internationalization
+  intl: ^0.20.2

@@ -18,19 +18,19 @@ router.use(authenticate);
 // Accessible by all authenticated users (permission checked in controller)
 router.get('/vehicles/:vehicleId/warranties', getVehicleWarranties);
 
-// GET /api/warranties - Get all warranties (Admin only)
-router.get('/', requireRole('ADMIN'), getAllWarranties);
+// GET /api/warranties - Get all warranties (Staff only)
+router.get('/', requireRole('STAFF'), getAllWarranties);
 
 // GET /api/warranties/:id - Get warranty by ID
 router.get('/:id', getWarrantyById);
 
-// POST /api/warranties - Create new warranty (Admin only)
-router.post('/', requireRole('ADMIN'), createWarranty);
+// POST /api/warranties - Create new warranty (Staff only)
+router.post('/', requireRole('STAFF'), createWarranty);
 
-// PUT /api/warranties/:id - Update warranty (Admin only)
-router.put('/:id', requireRole('ADMIN'), updateWarranty);
+// PUT /api/warranties/:id - Update warranty (Staff only)
+router.put('/:id', requireRole('STAFF'), updateWarranty);
 
-// DELETE /api/warranties/:id - Delete warranty (Admin only)
-router.delete('/:id', requireRole('ADMIN'), deleteWarranty);
+// DELETE /api/warranties/:id - Delete warranty (Staff only)
+router.delete('/:id', requireRole('STAFF'), deleteWarranty);
 
 export default router;

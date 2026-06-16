@@ -15,10 +15,10 @@ export const getAllAppointments = async (req: Request, res: Response) => {
   try {
     const authUser = (req as any).user;
 
-    if (authUser.role !== 'ADMIN') {
+    if (authUser.role !== 'STAFF') {
       return res.status(403).json({
         success: false,
-        message: 'Chỉ admin mới có quyền xem tất cả lịch hẹn',
+        message: 'Chỉ nhân viên mới có quyền xem tất cả lịch hẹn',
       });
     }
 
@@ -186,10 +186,10 @@ export const deleteAppointment = async (req: Request, res: Response) => {
   try {
     const authUser = (req as any).user;
 
-    if (authUser.role !== 'ADMIN') {
+    if (authUser.role !== 'STAFF') {
       return res.status(403).json({
         success: false,
-        message: 'Chỉ admin mới có quyền xóa lịch hẹn',
+        message: 'Chỉ nhân viên mới có quyền xóa lịch hẹn',
       });
     }
 
