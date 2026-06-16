@@ -11,9 +11,12 @@ class AppRouter {
   static const String login = '/login';
   static const String register = '/register';
   static const String adminDashboard = '/admin/dashboard';
+  static const String adminWorkOrderList = '/admin/work-order-list';
+  static const String adminVehicleIntake = '/admin/vehicle-intake';
   static const String adminRevenueReport = '/admin/revenue-report';
   static const String adminLookup = '/admin/lookup';
   static const String technicianDashboard = '/technician/dashboard';
+  static const String technicianWorkList = '/technician/work-list';
   static const String customerDashboard = '/customer/dashboard';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -49,9 +52,32 @@ class AppRouter {
           builder: (_) => const tech.TechnicianDashboardPage(),
         );
 
+      case technicianWorkList:
+        final args = settings.arguments;
+        final items = (args is List) ? args.cast<tech.WorkItem>() : <tech.WorkItem>[];
+        return MaterialPageRoute(
+          builder: (_) => tech.TechnicianWorkListPage(workItems: items),
+        );
+
       case adminDashboard:
         return MaterialPageRoute(
           builder: (_) => const admin.AdminDashboardPage(),
+        );
+
+      case adminWorkOrderList:
+        final model = settings.arguments as Map<String, dynamic>? ?? {};
+        return MaterialPageRoute(
+          builder: (_) => admin.WorkOrderListPage(
+            initialTabIndex: model['initialTabIndex'] as int? ?? 0,
+          ),
+        );
+
+      case adminVehicleIntake:
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        return MaterialPageRoute(
+          builder: (_) => admin.VehicleIntakePage(
+            initialLicensePlate: args['licensePlate'] as String?,
+          ),
         );
 
       case adminRevenueReport:

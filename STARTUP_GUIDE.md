@@ -4,21 +4,7 @@
 
 ---
 
-## BƯỚC 1: Khởi động PostgreSQL (nếu chưa chạy)
-
-PostgreSQL thường tự chạy cùng Windows. Kiểm tra bằng cách mở **Services**:
-```
-Windows + R → services.msc → tìm "postgresql-x64-18" → Start (nếu chưa chạy)
-```
-
-Hoặc dùng PowerShell (chạy với quyền Admin):
-```powershell
-Start-Service -Name "postgresql-x64-18"
-```
-
----
-
-## BƯỚC 2: Khởi động Backend API
+## BƯỚC 1: Khởi động Backend API
 
 Mở terminal, chạy:
 ```bash
@@ -32,32 +18,32 @@ npm run dev
 📱 Android Emulator: http://10.0.2.2:3000
 ```
 
+> Database tự kết nối Supabase cloud - **không cần bật PostgreSQL local**.
+
 ---
 
-## BƯỚC 3: Khởi động Prisma Studio (xem/quản lý database - tuỳ chọn)
+## BƯỚC 2: Chạy Flutter App
 
 Mở terminal mới, chạy:
+```bash
+cd D:\DoAn\Du_An
+flutter run
+```
+
+Hoặc nhấn **F5** trong VS Code / Kiro.
+
+---
+
+## BƯỚC 3: Prisma Studio (tuỳ chọn - xem/sửa data)
+
 ```bash
 cd D:\DoAn\Du_An\backend
 npx prisma studio --port 5556 --browser none
 ```
 
-✅ Mở trình duyệt vào: **http://localhost:5556**
+✅ Mở trình duyệt: **http://localhost:5556**
 
-> ⚠️ Prisma Studio sẽ tự tắt sau một lúc không dùng.  
-> Nếu vào localhost:5556 thấy lỗi → chạy lại lệnh trên là được.
-
----
-
-## BƯỚC 4: Khởi động Flutter App
-
-Mở terminal mới, chạy:
-```bash
-cd D:\DoAn\Du_An
-flutter run -d emulator-5554
-```
-
-Hoặc nhấn **F5** trong VS Code / Kiro.
+> ⚠️ Prisma Studio tự tắt sau một lúc. Chạy lại lệnh trên nếu mất kết nối.
 
 ---
 
@@ -74,16 +60,16 @@ Hoặc nhấn **F5** trong VS Code / Kiro.
 
 ## 🔄 Chuyển đổi Database
 
-### Dùng Local (nhanh, offline):
-File `backend/.env`:
-```
-DATABASE_URL="postgresql://postgres:Dangminhhi3u%40113@localhost:5432/nanglungsach?schema=public"
-```
-
-### Dùng Supabase (có data thật, online):
+### Dùng Supabase cloud (mặc định - demo/bảo vệ):
 File `backend/.env`:
 ```
 DATABASE_URL="postgresql://postgres.fvagqenqcsmoaaiuubvx:Dangminhhi3u%40113@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres"
+```
+
+### Dùng Local (dev nhanh hơn, offline):
+File `backend/.env`:
+```
+DATABASE_URL="postgresql://postgres:Dangminhhi3u%40113@localhost:5432/nanglungsach?schema=public"
 ```
 
 Sau khi đổi DATABASE_URL, restart backend (`Ctrl+C` rồi `npm run dev` lại).

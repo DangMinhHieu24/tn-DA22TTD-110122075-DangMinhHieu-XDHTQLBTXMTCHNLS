@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'work_item_service.dart';
 
-enum WorkStatus { pending, inspection, inProgress, completed }
+enum WorkStatus { pending, inspection, inProgress, completed, cancelled }
 
 enum WorkPriority { normal, urgent }
 

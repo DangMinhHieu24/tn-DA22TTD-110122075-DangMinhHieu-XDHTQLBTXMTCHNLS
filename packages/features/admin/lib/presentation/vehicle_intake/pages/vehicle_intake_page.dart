@@ -909,103 +909,160 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'LỊCH SỬ SỬA CHỮA',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF3D4A3D),
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                if (state.isLoadingHistory)
-                                  const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            if (state.vehicleHistory.isEmpty && !state.isLoadingHistory)
-                              const Text(
-                                'Chưa có lịch sử sửa chữa',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF3D4A3D),
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              )
-                            else
-                              ...state.vehicleHistory.take(3).map((WorkOrderModel workOrder) {
-                                final wo = workOrder;
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFFFFF),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            wo.orderNumber,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF006E2F),
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: _getStatusColor(wo.status),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              _getStatusText(wo.status),
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFFFFFFFF),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                            InkWell(
+                              onTap: () {
+                                context.read<VehicleIntakeBloc>().add(
+                                  ToggleHistoryExpanded(!state.historyExpanded),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  children: [
+                                    const Text(
+                                      'LỊCH SỬ SỬA CHỮA',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF3D4A3D),
+                                        letterSpacing: 0.5,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        wo.notes ?? 'Không có ghi chú',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF3D4A3D),
+                                    ),
+                                    if (state.vehicleHistory.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF006E2F).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(4),
                                         ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                        child: Text(
+                                          '${state.vehicleHistory.length}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF006E2F),
+                                          ),
+                                        ),
                                       ),
                                     ],
-                                  ),
-                                );
-                              }),
-                            if (state.vehicleHistory.length > 3)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  '+ ${state.vehicleHistory.length - 3} lần sửa chữa khác',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF006E2F),
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                    const Spacer(),
+                                    if (state.isLoadingHistory)
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    else if (state.vehicleHistory.isNotEmpty)
+                                      Icon(
+                                        state.historyExpanded
+                                            ? Icons.keyboard_arrow_up
+                                            : Icons.keyboard_arrow_down,
+                                        size: 20,
+                                        color: const Color(0xFF3D4A3D),
+                                      ),
+                                  ],
                                 ),
                               ),
+                            ),
+                            if (state.historyExpanded) ...[
+                              const SizedBox(height: 8),
+                              if (state.vehicleHistory.isEmpty && !state.isLoadingHistory)
+                                const Text(
+                                  'Chưa có lịch sử sửa chữa',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF3D4A3D),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                )
+                              else ...[
+                                ...state.vehicleHistory.take(3).map((WorkOrderModel workOrder) {
+                                  final wo = workOrder;
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFFFFF),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              wo.orderNumber,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF006E2F),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: _getStatusColor(wo.status),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                _getStatusText(wo.status),
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFFFFFFFF),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          wo.notes ?? 'Không có ghi chú',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF3D4A3D),
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                                if (state.vehicleHistory.length > 3)
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => VehicleHistoryPage(
+                                            licensePlate: state.licensePlate,
+                                            vehicleModel: state.vehicleModel,
+                                            vehicleColor: state.vehicleColor,
+                                            historyItems: state.vehicleHistory
+                                                .map((wo) => wo.toWorkHistoryItem(licensePlate: state.licensePlate))
+                                                .toList(),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 4, bottom: 4),
+                                      child: Text(
+                                        'Xem tất cả (${state.vehicleHistory.length} lần sửa chữa)',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF006E2F),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ],
                           ],
                         ),
                       ),
@@ -1661,8 +1718,12 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
         return const Color(0xFFFF9800); // Orange
       case 'IN_PROGRESS':
         return const Color(0xFF2196F3); // Blue
+      case 'INSPECTION':
+        return const Color(0xFF9C27B0); // Purple
       case 'COMPLETED':
         return const Color(0xFF4CAF50); // Green
+      case 'PAID':
+        return const Color(0xFF006E2F); // Dark Green
       case 'CANCELLED':
         return const Color(0xFFF44336); // Red
       default:
@@ -1676,9 +1737,13 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
       case 'PENDING':
         return 'CHỜ XỬ LÝ';
       case 'IN_PROGRESS':
-        return 'ĐANG SỬA';
+        return 'ĐANG THỰC HIỆN';
+      case 'INSPECTION':
+        return 'KIỂM TRA';
       case 'COMPLETED':
         return 'HOÀN THÀNH';
+      case 'PAID':
+        return 'ĐÃ THANH TOÁN';
       case 'CANCELLED':
         return 'ĐÃ HỦY';
       default:

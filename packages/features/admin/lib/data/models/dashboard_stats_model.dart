@@ -19,8 +19,8 @@ class DashboardStatsModel extends DashboardStats {
       vehiclesInService: (payload['inProgressWorkOrders'] as num?)?.toInt() ??
         (payload['vehiclesInService'] as num?)?.toInt() ??
         0,
-      completedToday: (payload['completedWorkOrders'] as num?)?.toInt() ??
-        (payload['completedToday'] as num?)?.toInt() ??
+      completedToday: (payload['completedToday'] as num?)?.toInt() ??
+        (payload['completedWorkOrders'] as num?)?.toInt() ??
         0,
       revenueToday: (payload['revenueToday'] as num?)?.toDouble() ?? 0,
       weeklyRevenue: (payload['weeklyRevenue'] as List?)

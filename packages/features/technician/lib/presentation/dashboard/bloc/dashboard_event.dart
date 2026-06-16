@@ -42,12 +42,4 @@ class UpdateWorkStatus extends DashboardEvent {
   List<Object?> get props => [workItemId, newStatus];
 }
 
-class SearchWorkItems extends DashboardEvent {
-  final String query;
-  final String? technicianId;
 
-  const SearchWorkItems(this.query, {this.technicianId});
-
-  @override
-  List<Object?> get props => [query, technicianId];
-}

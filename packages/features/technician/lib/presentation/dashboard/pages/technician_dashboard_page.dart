@@ -38,14 +38,12 @@ class _DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<_DashboardView> {
   int _selectedIndex = 0;
-  final _searchController = TextEditingController();
   String? _technicianId;
   bool _hasLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_onSearchChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthAuthenticated) {
@@ -58,22 +56,6 @@ class _DashboardViewState extends State<_DashboardView> {
         }
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged() {
-    context.read<DashboardBloc>().add(
-      SearchWorkItems(
-        _searchController.text,
-        technicianId: _technicianId,
-      ),
-    );
   }
 
   @override
@@ -128,9 +110,10 @@ class _DashboardViewState extends State<_DashboardView> {
 
                     // Floating Action Button
                     DraggableFab(
-                      onTap: () {
-                        // TODO: Handle accept vehicle tap
-                      },
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/admin/vehicle-intake',
+                      ),
                     ),
 
                     // Bottom Navigation
@@ -229,7 +212,6 @@ class _DashboardViewState extends State<_DashboardView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               GreetingSection(
-                searchController: _searchController,
                 userName: userName,
               ),
               const SizedBox(height: 32),
@@ -308,7 +290,11 @@ class _DashboardViewState extends State<_DashboardView> {
             ),
             TextButton(
               onPressed: () {
-                // TODO: Navigate to all work items
+                Navigator.pushNamed(
+                  context,
+                  '/technician/work-list',
+                  arguments: state.workItems,
+                );
               },
               child: Text(
                 'Xem tất cả',
@@ -381,6 +367,8 @@ class _DashboardViewState extends State<_DashboardView> {
         return 'Kiểm tra';
       case WorkStatus.completed:
         return 'Hoàn thành';
+      case WorkStatus.cancelled:
+        return 'Đã hủy';
     }
   }
 
@@ -394,6 +382,8 @@ class _DashboardViewState extends State<_DashboardView> {
         return AppColors.tertiary;
       case WorkStatus.completed:
         return AppColors.secondary;
+      case WorkStatus.cancelled:
+        return const Color(0xFFBA1A1A);
     }
   }
 }

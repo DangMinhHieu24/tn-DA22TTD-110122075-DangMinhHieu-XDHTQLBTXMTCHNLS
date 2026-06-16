@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'dart:ui' as ui;
 
 String _serviceLabel(String? type) => switch (type) {
   'MAINTENANCE' => 'Bảo dưỡng định kỳ',
@@ -943,42 +944,44 @@ class _PrintPreviewSheet extends StatelessWidget {
               child: SingleChildScrollView(
                 controller: controller,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Top green accent bar
-                      Container(
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      // Shop header
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'NĂNG LƯỢNG SẠCH',
+                      child: Column(
+                        children: [
+                          // Top green accent bar
+                          Container(
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                              ),
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                          ),
+                          // Shop header
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'NĂNG LƯỢNG SẠCH',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
@@ -1165,13 +1168,24 @@ class _PrintPreviewSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
+                // Watermark overlay
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: _WatermarkPainter(),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  ),
+);
+}
+
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
@@ -1302,6 +1316,70 @@ class _DashedLinePainter extends CustomPainter {
       canvas.drawLine(Offset(x, 0), Offset(x + dashWidth, 0), paint);
       x += dashWidth + dashSpace;
     }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _WatermarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final smallText = TextPainter(
+      text: TextSpan(
+        text: 'nangluongsach',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF006E2F).withValues(alpha: 0.035),
+          letterSpacing: 1.5,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    smallText.layout();
+
+    final largeText = TextPainter(
+      text: TextSpan(
+        text: 'NLS',
+        style: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w900,
+          color: const Color(0xFF006E2F).withValues(alpha: 0.07),
+          letterSpacing: 4,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    largeText.layout();
+
+    const angle = -0.4;
+    const smallSpacing = 140.0;
+    const largeSpacing = 200.0;
+
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(angle);
+
+    // Large "NLS" watermark across the sheet
+    for (double y = -size.height; y < size.height * 1.5; y += largeSpacing) {
+      for (double x = -size.width; x < size.width * 1.5; x += largeSpacing) {
+        largeText.paint(canvas, Offset(x, y));
+      }
+    }
+
+    // Small "nangluongsach" watermark between large ones
+    for (double y = -size.height + smallSpacing / 2;
+        y < size.height * 1.5;
+        y += smallSpacing) {
+      for (double x = -size.width + smallSpacing / 2;
+          x < size.width * 1.5;
+          x += smallSpacing) {
+        smallText.paint(canvas, Offset(x, y));
+      }
+    }
+
+    canvas.restore();
   }
 
   @override

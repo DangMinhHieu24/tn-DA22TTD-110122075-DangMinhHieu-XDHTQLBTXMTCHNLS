@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../domain/repositories/work_repository.dart';
 import '../domain/usecases/get_work_items_usecase.dart';
-import '../domain/usecases/search_work_items_usecase.dart';
 import '../domain/usecases/update_work_status_usecase.dart';
 import '../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../data/repositories/work_repository_impl.dart';
@@ -35,10 +34,6 @@ void setupTechnicianDependencies() {
     () => GetWorkItemsUseCase(getIt<WorkRepository>()),
   );
 
-  getIt.registerLazySingleton<SearchWorkItemsUseCase>(
-    () => SearchWorkItemsUseCase(getIt<WorkRepository>()),
-  );
-
   getIt.registerLazySingleton<UpdateWorkStatusUseCase>(
     () => UpdateWorkStatusUseCase(getIt<WorkRepository>()),
   );
@@ -47,7 +42,6 @@ void setupTechnicianDependencies() {
   getIt.registerFactory<DashboardBloc>(
     () => DashboardBloc(
       getWorkItemsUseCase: getIt<GetWorkItemsUseCase>(),
-      searchWorkItemsUseCase: getIt<SearchWorkItemsUseCase>(),
       updateWorkStatusUseCase: getIt<UpdateWorkStatusUseCase>(),
     ),
   );

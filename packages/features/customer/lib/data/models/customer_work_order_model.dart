@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import '../../domain/entities/customer_work_order.dart';
 
 class CustomerWorkOrderModel extends CustomerWorkOrder {
@@ -26,6 +27,15 @@ class CustomerWorkOrderModel extends CustomerWorkOrder {
       services: servicesList
           .map((service) => CustomerWorkOrderServiceModel.fromJson(service))
           .toList(),
+    );
+  }
+  WorkHistoryItem toWorkHistoryItem() {
+    return WorkHistoryItem(
+      orderNumber: orderNumber,
+      status: status,
+      notes: notes,
+      createdAt: createdAt,
+      description: services.isNotEmpty ? services.map((s) => s.description ?? s.serviceType).join(', ') : notes,
     );
   }
 }

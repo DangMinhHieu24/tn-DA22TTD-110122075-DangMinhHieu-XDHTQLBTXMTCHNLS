@@ -718,6 +718,35 @@ export const assignTechnician = async (req: Request, res: Response) => {
   }
 };
 
+export const addWorkOrderService = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { serviceType, description, price, serviceName } = req.body;
+
+    const service = await prisma.workOrderService.create({
+      data: {
+        workOrderId: id,
+        serviceType,
+        description,
+        price,
+        serviceName,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Service added successfully',
+      data: service,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add service',
+      error: error.message,
+    });
+  }
+};
+
 /**
  * Update work order
  * PUT /api/work-orders/:id
@@ -819,12 +848,17 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             unitPrice: true,
           },
         },
+        services: {
+          select: {
+            price: true,
+          },
+        },
       },
     });
 
     const paidTodayRevenue = paidRevenueOrders
       .filter((workOrder) => (workOrder.paidAt ?? new Date(0)) >= startOfToday)
-      .reduce((sum, workOrder) => sum + computeWorkOrderRevenue(workOrder), 0);
+      .reduce((sum, workOrder) => sum + computeWorkOrderTotalRevenue(workOrder), 0);
 
     const weeklyRevenue = Array.from({ length: 7 }, (_, index) => {
       const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - index));
@@ -836,7 +870,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
           const paidAt = workOrder.paidAt;
           return paidAt != null && paidAt >= dayStart && paidAt < dayEnd;
         })
-        .reduce((sum, workOrder) => sum + computeWorkOrderRevenue(workOrder), 0);
+        .reduce((sum, workOrder) => sum + computeWorkOrderTotalRevenue(workOrder), 0);
     });
 
     const totalWorkOrders = await prisma.workOrder.count();

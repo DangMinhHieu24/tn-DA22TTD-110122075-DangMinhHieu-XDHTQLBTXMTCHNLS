@@ -12,7 +12,6 @@ export 'domain/repositories/work_repository.dart';
 // Domain - UseCases
 export 'domain/usecases/get_work_items_usecase.dart';
 export 'domain/usecases/update_work_status_usecase.dart';
-export 'domain/usecases/search_work_items_usecase.dart';
 
 // Data - Models
 export 'data/models/work_item_model.dart';
@@ -31,6 +30,7 @@ export 'presentation/dashboard/bloc/dashboard_state.dart';
 
 // Presentation - Dashboard Pages
 export 'presentation/dashboard/pages/technician_dashboard_page.dart';
+export 'presentation/dashboard/pages/technician_work_list_page.dart';
 
 // Presentation - Work Detail Pages
 export 'presentation/work_detail/pages/work_detail_page.dart';

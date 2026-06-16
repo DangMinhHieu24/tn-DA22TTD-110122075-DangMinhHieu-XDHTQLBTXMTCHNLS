@@ -296,7 +296,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             const SizedBox(height: 16), // gap-4
             // Revenue card - full width on mobile, 1/3 on desktop
-            _buildRevenueCard(),
+            _buildRevenueCard(state),
           ],
         );
       },
@@ -311,6 +311,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       return '...';
     }
     return '--';
+  }
+
+  String _revenueValue(DashboardState state) {
+    if (state is DashboardLoading) return '...';
+    if (state is! DashboardLoaded) return '--';
+    final revenue = state.stats.revenueToday;
+    if (revenue <= 0) return '0';
+    final whole = revenue.floor();
+    final parts = <String>[];
+    var s = whole.toString();
+    while (s.length > 3) {
+      parts.add(s.substring(s.length - 3));
+      s = s.substring(0, s.length - 3);
+    }
+    parts.add(s);
+    return parts.reversed.join('.');
   }
 
   /// Individual Stat Card
@@ -431,7 +447,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   /// Revenue Card - col-span-2 md:col-span-1
-  Widget _buildRevenueCard() {
+  Widget _buildRevenueCard(DashboardState state) {
+    final revenueValue = _revenueValue(state);
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Material(
@@ -523,12 +540,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ],
                   ),
                   const Spacer(),
-                  const Row(
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '8.5tr',
-                        style: TextStyle(
+                        revenueValue,
+                        style: const TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF191C1E),
@@ -536,8 +553,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           letterSpacing: -0.3,
                         ),
                       ),
-                      SizedBox(width: 4),
-                      Padding(
+                      const SizedBox(width: 4),
+                      const Padding(
                         padding: EdgeInsets.only(bottom: 2),
                         child: Text(
                           'VND',

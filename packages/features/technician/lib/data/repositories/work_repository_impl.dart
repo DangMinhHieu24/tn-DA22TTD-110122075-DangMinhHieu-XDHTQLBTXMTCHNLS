@@ -138,6 +138,54 @@ class WorkRepositoryImpl implements WorkRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, WorkItemService>> addService(
+    String workOrderId,
+    String serviceType,
+    String description, {
+    String? serviceName,
+    double? price,
+  }) async {
+    try {
+      final service = await remoteDataSource.addService(
+        workOrderId,
+        serviceType,
+        description,
+        serviceName: serviceName,
+        price: price,
+      );
+      return Right(service.toEntity());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> addParts(
+    String workOrderId,
+    List<Map<String, dynamic>> parts,
+  ) async {
+    try {
+      await remoteDataSource.addParts(workOrderId, parts);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateNotes(
+    String workOrderId,
+    String notes,
+  ) async {
+    try {
+      await remoteDataSource.updateNotes(workOrderId, notes);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   String _statusToString(WorkStatus status) {
     switch (status) {
       case WorkStatus.pending:
@@ -148,6 +196,8 @@ class WorkRepositoryImpl implements WorkRepository {
         return 'inspection';
       case WorkStatus.completed:
         return 'completed';
+      case WorkStatus.cancelled:
+        return 'cancelled';
     }
   }
 }

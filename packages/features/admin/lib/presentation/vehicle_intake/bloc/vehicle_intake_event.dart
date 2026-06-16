@@ -165,3 +165,12 @@ class VehicleIntakeSubmitted extends VehicleIntakeEvent {
   @override
   List<Object?> get props => [];
 }
+
+class ToggleHistoryExpanded extends VehicleIntakeEvent {
+  final bool expanded;
+
+  const ToggleHistoryExpanded(this.expanded);
+
+  @override
+  List<Object?> get props => [expanded];
+}

@@ -3,12 +3,10 @@ import 'package:design_system/design_system.dart';
 import 'package:intl/intl.dart';
 
 class GreetingSection extends StatelessWidget {
-  final TextEditingController searchController;
   final String userName;
 
   const GreetingSection({
     super.key,
-    required this.searchController,
     this.userName = 'Tuấn Anh',
   });
 
@@ -44,41 +42,7 @@ class GreetingSection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        TextField(
-          controller: searchController,
-          decoration: InputDecoration(
-            hintText: 'Tìm biển số, khách hàng...',
-            hintStyle: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.onSurfaceVariant.withOpacity(0.6),
-            ),
-            prefixIcon: const Icon(
-              Icons.search,
-              color: AppColors.onSurfaceVariant,
-            ),
-            filled: true,
-            fillColor: AppColors.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: AppColors.primary.withOpacity(0.4),
-                width: 2,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-        ),
+
       ],
     );
   }

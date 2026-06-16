@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import '../../domain/entities/work_item.dart';
 import '../../domain/entities/work_item_service.dart';
 import 'work_item_service_model.dart';
@@ -20,9 +21,9 @@ class WorkItemModel extends WorkItem {
 
   factory WorkItemModel.fromJson(Map<String, dynamic> json) {
     return WorkItemModel(
-      id: json['id'] as String,
-      licensePlate: json['licensePlate'] as String,
-      vehicleModel: json['vehicleModel'] as String,
+      id: json['id'] as String? ?? '',
+      licensePlate: json['licensePlate'] as String? ?? '',
+      vehicleModel: json['vehicleModel'] as String? ?? '',
       imageUrl: json['imageUrl'] as String?,
       photoUrls: (json['photoUrls'] as List<dynamic>?)
           ?.map((item) => item.toString())
@@ -32,12 +33,12 @@ class WorkItemModel extends WorkItem {
           ?.map((item) => WorkItemServiceModel.fromApiJson(item as Map<String, dynamic>).toEntity())
           .toList() ??
           const [],
-      customerName: json['customerName'] as String,
-      description: json['description'] as String,
-      status: _statusFromString(json['status'] as String),
-      priority: _priorityFromString(json['priority'] as String),
+      customerName: json['customerName'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      status: _statusFromString(json['status'] as String? ?? ''),
+      priority: _priorityFromString(json['priority'] as String? ?? ''),
       scheduledTime: json['scheduledTime'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     );
   }
 
@@ -52,10 +53,10 @@ class WorkItemModel extends WorkItem {
     // Build description from services
     final description = services.isNotEmpty
         ? services.map((s) => s['description'] ?? '').join(', ')
-        : json['notes'] ?? 'No description';
+        : json['notes'] as String? ?? 'No description';
 
     return WorkItemModel(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? '',
       licensePlate: vehicle?['licensePlate'] as String? ?? 'N/A',
       vehicleModel: vehicle?['model'] as String? ?? 'Unknown',
       imageUrl: vehicle?['imageUrl'] as String?,
@@ -68,10 +69,10 @@ class WorkItemModel extends WorkItem {
           .toList(),
       customerName: owner?['name'] as String? ?? 'Unknown',
       description: description,
-      status: _statusFromString(json['status'] as String),
-      priority: _priorityFromString(json['priority'] as String),
+      status: _statusFromString(json['status'] as String? ?? ''),
+      priority: _priorityFromString(json['priority'] as String? ?? ''),
       scheduledTime: json['scheduledTime'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     );
   }
 
@@ -135,6 +136,17 @@ class WorkItemModel extends WorkItem {
     );
   }
 
+  WorkHistoryItem toWorkHistoryItem() {
+    return WorkHistoryItem(
+      orderNumber: 'WO-${id.substring(0, 8).toUpperCase()}',
+      status: _statusToString(status),
+      notes: description,
+      createdAt: createdAt,
+      licensePlate: licensePlate,
+      description: description,
+    );
+  }
+
   // Helper methods for enum conversion
   static WorkStatus _statusFromString(String status) {
     switch (status.toUpperCase()) {
@@ -146,7 +158,11 @@ class WorkItemModel extends WorkItem {
       case 'INSPECTION':
         return WorkStatus.inspection;
       case 'COMPLETED':
+      case 'PAID':
         return WorkStatus.completed;
+      case 'CANCELLED':
+      case 'CANCELED':
+        return WorkStatus.cancelled;
       default:
         return WorkStatus.pending;
     }
@@ -162,6 +178,8 @@ class WorkItemModel extends WorkItem {
         return 'INSPECTION';
       case WorkStatus.completed:
         return 'COMPLETED';
+      case WorkStatus.cancelled:
+        return 'CANCELLED';
     }
   }
 

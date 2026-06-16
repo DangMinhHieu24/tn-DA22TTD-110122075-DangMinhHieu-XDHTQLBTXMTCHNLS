@@ -7,6 +7,7 @@ import {
   assignTechnician,
   addPartsToWorkOrder,
   updateWorkOrderServiceStatus,
+  addWorkOrderService,
   updateWorkOrder,
   deleteWorkOrder,
   getDashboardStats,
@@ -53,6 +54,9 @@ router.patch('/:id/parts', addPartsToWorkOrder);
 
 // PATCH /api/work-orders/:id/services/:serviceId - Update a service checkbox
 router.patch('/:id/services/:serviceId', updateWorkOrderServiceStatus);
+
+// POST /api/work-orders/:id/services - Add a new service
+router.post('/:id/services', addWorkOrderService);
 
 // PUT /api/work-orders/:id - Update work order
 router.put('/:id', updateWorkOrder);

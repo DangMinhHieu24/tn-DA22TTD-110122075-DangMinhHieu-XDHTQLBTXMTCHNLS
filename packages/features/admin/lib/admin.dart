@@ -41,6 +41,7 @@ export 'presentation/dashboard/bloc/revenue_report_bloc.dart';
 export 'presentation/dashboard/bloc/revenue_report_event.dart';
 export 'presentation/dashboard/bloc/revenue_report_state.dart';
 export 'presentation/dashboard/pages/admin_dashboard_page.dart';
+export 'presentation/dashboard/pages/work_order_list_page.dart';
 export 'presentation/dashboard/pages/admin_revenue_report_page.dart';
 export 'presentation/lookup/pages/admin_lookup_page.dart';
 export 'presentation/lookup/pages/vehicle_lookup_page.dart';

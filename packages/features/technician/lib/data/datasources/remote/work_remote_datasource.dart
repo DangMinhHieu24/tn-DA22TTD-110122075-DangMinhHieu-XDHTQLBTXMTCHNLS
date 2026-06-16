@@ -11,6 +11,15 @@ abstract class WorkRemoteDataSource {
     String serviceId,
     bool isDone,
   );
+  Future<WorkItemServiceModel> addService(
+    String workOrderId,
+    String serviceType,
+    String description, {
+    String? serviceName,
+    double? price,
+  });
+  Future<void> addParts(String workOrderId, List<Map<String, dynamic>> parts);
+  Future<void> updateNotes(String workOrderId, String notes);
   Future<List<WorkItemModel>> searchWorkItems(String query, {String? technicianId});
 }
 
@@ -91,6 +100,70 @@ class WorkRemoteDataSourceImpl implements WorkRemoteDataSource {
       }
 
       throw Exception('Failed to update service status');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<WorkItemServiceModel> addService(
+    String workOrderId,
+    String serviceType,
+    String description, {
+    String? serviceName,
+    double? price,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/work-orders/$workOrderId/services',
+        data: {
+          'serviceType': serviceType,
+          'description': description,
+          'serviceName': serviceName,
+          'price': price,
+        },
+      );
+
+      if (response.data['success'] == true) {
+        return WorkItemServiceModel.fromApiJson(response.data['data']);
+      }
+
+      throw Exception('Failed to add service');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> addParts(String workOrderId, List<Map<String, dynamic>> parts) async {
+    try {
+      final normalizedParts = parts
+          .where((p) => (p['quantity'] as int? ?? 0) > 0)
+          .map((p) => {
+            'partId': p['id'],
+            'quantity': p['quantity'],
+            'unitPrice': p['price'],
+          })
+          .toList();
+
+      if (normalizedParts.isEmpty) return;
+
+      await dio.patch(
+        '/work-orders/$workOrderId/parts',
+        data: {'partsUsed': normalizedParts},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updateNotes(String workOrderId, String notes) async {
+    try {
+      await dio.put(
+        '/work-orders/$workOrderId',
+        data: {'notes': notes},
+      );
     } catch (e) {
       rethrow;
     }

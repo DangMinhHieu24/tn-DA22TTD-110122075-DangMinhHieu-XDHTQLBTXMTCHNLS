@@ -9,6 +9,8 @@ export 'services/warranty_service.dart';
 
 // Warranty models and widgets
 export 'src/models/warranty_model.dart';
+export 'src/models/work_history_item.dart';
+export 'src/widgets/vehicle_history/vehicle_history_page.dart';
 export 'src/widgets/warranty/warranty_status_badge.dart';
 export 'src/widgets/warranty/warranty_card.dart';
 export 'src/widgets/warranty/warranty_info_widget.dart';

@@ -14,14 +14,14 @@ class WorkItemServiceModel extends WorkItemService {
 
   factory WorkItemServiceModel.fromApiJson(Map<String, dynamic> json) {
     return WorkItemServiceModel(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? '',
       serviceType: json['serviceType'] as String? ?? json['service_type'] as String? ?? 'OTHER',
       serviceName: json['serviceName'] as String? ?? json['service_name'] as String?,
       description: json['description'] as String?,
       price: (json['price'] != null) ? (json['price'] as num).toDouble() : null,
       isDone: json['isDone'] as bool? ?? json['is_done'] as bool? ?? false,
       note: json['note'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String? ?? json['created_at'] as String? ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? json['created_at'] as String? ?? '') ?? DateTime.now(),
     );
   }
 

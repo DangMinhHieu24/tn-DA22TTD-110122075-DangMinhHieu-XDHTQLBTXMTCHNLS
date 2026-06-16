@@ -57,16 +57,29 @@ class DashboardLoaded extends DashboardState {
   }
 
   // Helper getters
+  bool _isToday(String? scheduledTime, DateTime createdAt) {
+    final now = DateTime.now();
+    DateTime dt;
+    if (scheduledTime != null) {
+      dt = DateTime.tryParse(scheduledTime) ?? createdAt;
+    } else {
+      dt = createdAt;
+    }
+    return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+  }
+
   List<WorkItem> get urgentWorkItems =>
       workItems
         .where((item) => item.priority == WorkPriority.urgent)
-        .where((item) => item.status != WorkStatus.completed)
+        .where((item) => item.status != WorkStatus.completed && item.status != WorkStatus.cancelled)
+        .where((item) => _isToday(item.scheduledTime, item.createdAt))
         .toList();
 
   List<WorkItem> get normalWorkItems =>
       workItems
         .where((item) => item.priority == WorkPriority.normal)
-        .where((item) => item.status != WorkStatus.completed)
+        .where((item) => item.status != WorkStatus.completed && item.status != WorkStatus.cancelled)
+        .where((item) => _isToday(item.scheduledTime, item.createdAt))
         .toList();
 }
 

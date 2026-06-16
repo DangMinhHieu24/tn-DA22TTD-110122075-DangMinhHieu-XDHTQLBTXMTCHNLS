@@ -19,4 +19,19 @@ abstract class WorkRepository {
     String query, {
     String? technicianId,
   });
+  Future<Either<Failure, WorkItemService>> addService(
+    String workOrderId,
+    String serviceType,
+    String description, {
+    String? serviceName,
+    double? price,
+  });
+  Future<Either<Failure, void>> addParts(
+    String workOrderId,
+    List<Map<String, dynamic>> parts,
+  );
+  Future<Either<Failure, void>> updateNotes(
+    String workOrderId,
+    String notes,
+  );
 }

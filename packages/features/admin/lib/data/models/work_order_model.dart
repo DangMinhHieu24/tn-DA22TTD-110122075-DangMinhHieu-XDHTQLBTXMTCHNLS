@@ -1,3 +1,5 @@
+import 'package:core/core.dart';
+
 class WorkOrderModel {
   final String id;
   final String orderNumber;
@@ -61,6 +63,16 @@ class WorkOrderModel {
       'createdById': createdById,
       'createdAt': createdAt.toIso8601String(),
     };
+  }
+  WorkHistoryItem toWorkHistoryItem({String? licensePlate}) {
+    return WorkHistoryItem(
+      orderNumber: orderNumber,
+      status: status,
+      notes: notes,
+      createdAt: createdAt,
+      licensePlate: licensePlate,
+      description: services.isNotEmpty ? services.map((s) => s.description ?? s.serviceType).join(', ') : notes,
+    );
   }
 }
 

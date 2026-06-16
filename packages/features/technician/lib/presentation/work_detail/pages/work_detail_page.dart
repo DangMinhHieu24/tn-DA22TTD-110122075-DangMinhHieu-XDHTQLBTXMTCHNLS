@@ -1,11 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 import '../../../domain/repositories/work_repository.dart';
 import '../../../domain/entities/work_item.dart';
 import '../../../domain/entities/work_item_service.dart';
+
+String _serviceLabel(String? type) => switch (type) {
+  'MAINTENANCE' => 'Bảo dưỡng định kỳ',
+  'BATTERY_CHECK' => 'Kiểm tra pin/sạc',
+  'BRAKES_TIRES' => 'Phanh & Lốp',
+  'OTHER_REPAIR' => 'Sửa chữa khác',
+  _ => type ?? '',
+};
 
 /// Chi tiết phiếu sửa chữa - 100% converted from UX design
 /// Follows "Kinetic Sanctuary" design philosophy
@@ -33,25 +42,18 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
   List<WorkItemService> _serviceItems = const [];
   
   // Parts inventory
-  final List<Map<String, dynamic>> _parts = [
-    {
-      'name': 'Má phanh đĩa trước Klara',
-      'code': 'PT-0921',
-      'stock': 14,
-      'quantity': 1,
-    },
-    {
-      'name': 'Chai xịt dưỡng xích 150ml',
-      'code': 'CH-0112',
-      'stock': 45,
-      'quantity': 1,
-    },
-  ];
+  List<Map<String, dynamic>> _parts = [];
+  List<Map<String, dynamic>> _allParts = [];
+  bool _loadingParts = false;
+  final TextEditingController _notesController = TextEditingController();
+  bool _savingParts = false;
+  bool _savingNotes = false;
 
   @override
   void dispose() {
     _realtimeService.unsubscribe();
     _photoController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -518,7 +520,6 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     _workRepository = GetIt.instance<WorkRepository>();
     _realtimeService = WorkOrderRealtimeService();
     _serviceItems = List<WorkItemService>.from(widget.workItem.services);
-    // Initialize editable local photo list for retry UX
     _photoUrls = widget.workItem.photoUrls.isNotEmpty
         ? List<String>.from(widget.workItem.photoUrls)
         : (widget.workItem.imageUrl != null && widget.workItem.imageUrl!.isNotEmpty
@@ -526,6 +527,92 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             : <String>[]);
     _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
     _startRealtime();
+    _fetchInventory();
+  }
+
+  Future<void> _fetchInventory() async {
+    setState(() => _loadingParts = true);
+    try {
+      final dio = GetIt.instance<Dio>();
+      final response = await dio.get('/inventory');
+      final data = response.data['data'] as List<dynamic>;
+      _allParts = data.map((e) {
+        final m = e as Map<String, dynamic>;
+        return {
+          'id': m['id'],
+          'partName': m['partName'] ?? '',
+          'partCode': m['partCode'] ?? '',
+          'stock': m['quantity'] ?? 0,
+          'price': m['price'] ?? 0,
+          'quantity': 0,
+        };
+      }).toList();
+      _parts = List.from(_allParts);
+    } catch (_) {}
+    if (mounted) setState(() => _loadingParts = false);
+  }
+
+  Future<void> _saveParts() async {
+    setState(() => _savingParts = true);
+    try {
+      final result = await _workRepository.addParts(_currentItem.id, _parts);
+      result.fold(
+        (l) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Xuất kho thất bại')),
+            );
+          }
+        },
+        (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã xuất kho thành công')),
+            );
+          }
+        },
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi kết nối')),
+        );
+      }
+    }
+    if (mounted) setState(() => _savingParts = false);
+  }
+
+  Future<void> _saveNotes() async {
+    setState(() => _savingNotes = true);
+    try {
+      final result = await _workRepository.updateNotes(
+        _currentItem.id,
+        _notesController.text,
+      );
+      result.fold(
+        (l) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Lưu ghi chú thất bại')),
+            );
+          }
+        },
+        (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã lưu ghi chú')),
+            );
+          }
+        },
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi kết nối')),
+        );
+      }
+    }
+    if (mounted) setState(() => _savingNotes = false);
   }
 
   void _startRealtime() {
@@ -716,7 +803,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                   ),
                 ],
               ),
-              child: const Row(
+            child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
@@ -866,8 +953,103 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     return chunks.map((chunk) => chunk.split('').reversed.join()).toList().reversed.join(',');
   }
 
+  Future<void> _showAddServiceDialog(BuildContext context) async {
+    final typeCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    String selectedType = 'MAINTENANCE';
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('Thêm hạng mục'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedType,
+                    decoration: const InputDecoration(
+                      labelText: 'Loại dịch vụ',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'MAINTENANCE', child: Text('Bảo dưỡng định kỳ')),
+                      DropdownMenuItem(value: 'BATTERY_CHECK', child: Text('Kiểm tra pin/sạc')),
+                      DropdownMenuItem(value: 'BRAKES_TIRES', child: Text('Phanh & Lốp')),
+                      DropdownMenuItem(value: 'OTHER_REPAIR', child: Text('Sửa chữa khác')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => selectedType = v);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Mô tả',
+                      hintText: 'Nhập mô tả hạng mục...',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (descCtrl.text.trim().isEmpty) return;
+                    Navigator.of(ctx).pop({
+                      'serviceType': selectedType,
+                      'description': descCtrl.text.trim(),
+                    });
+                  },
+                  child: const Text('Thêm'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null) return;
+
+    try {
+      final service = await _workRepository.addService(
+        _currentItem.id,
+        result['serviceType']!,
+        result['description']!,
+      );
+      service.fold(
+        (l) => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thêm hạng mục thất bại')),
+        ),
+        (r) {
+          setState(() => _serviceItems.add(r));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã thêm hạng mục')),
+          );
+        },
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi kết nối')),
+        );
+      }
+    }
+  }
+
   /// Parts Inventory Section
   Widget _buildPartsInventorySection() {
+    final selectedParts = _parts.where((p) => (p['quantity'] as int? ?? 0) > 0).toList();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -886,11 +1068,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.inventory_2,
-                size: 20,
-                color: Color(0xFF0058BE),
-              ),
+              Icon(Icons.inventory_2, size: 20, color: Color(0xFF0058BE)),
               SizedBox(width: 8),
               Text(
                 'Xuất kho phụ tùng',
@@ -903,32 +1081,241 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ],
           ),
           const SizedBox(height: 16),
-          ..._parts.map((part) => _buildPartItem(part)),
-          const SizedBox(height: 16),
-          // Search Field
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'Tìm kiếm mã hoặc tên phụ tùng...',
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: const Color(0xFF3D4A3D).withOpacity(0.6),
+          if (_loadingParts)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else ...[
+            if (selectedParts.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F9FB),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Chưa chọn phụ tùng',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Color(0xFF3D4A3D)),
+                ),
+              )
+            else
+              ...selectedParts.map((part) => _buildPartItem(part)),
+            const SizedBox(height: 12),
+            // Add Parts Button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _showAddPartsSheet,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Thêm phụ tùng'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF006E2F),
+                  side: const BorderSide(color: Color(0xFF006E2F)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-              prefixIcon: const Icon(
-                Icons.search,
-                size: 20,
-                color: Color(0xFF3D4A3D),
-              ),
-              filled: true,
-              fillColor: const Color(0xFFE0E3E5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-          ),
+            const SizedBox(height: 12),
+            // Save Parts Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _savingParts || selectedParts.isEmpty
+                    ? null
+                    : () => _saveParts(),
+                icon: _savingParts
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.inventory_2, size: 18),
+                label: Text(_savingParts ? 'Đang lưu...' : 'Xác nhận xuất kho'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF006E2F),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  void _showAddPartsSheet() {
+    final searchCtrl = TextEditingController();
+    var filteredParts = List<Map<String, dynamic>>.from(_allParts);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              minChildSize: 0.5,
+              maxChildSize: 0.9,
+              builder: (ctx, scrollCtrl) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 64),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40, height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBFC7C2),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: searchCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'Tìm kiếm mã hoặc tên phụ tùng...',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          filled: true,
+                          fillColor: const Color(0xFFE0E3E5),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        onChanged: (v) {
+                          setDialogState(() {
+                            final q = v.toLowerCase();
+                            filteredParts = _allParts.where((p) =>
+                              (p['partName'] as String? ?? '').toLowerCase().contains(q) ||
+                              (p['partCode'] as String? ?? '').toLowerCase().contains(q)
+                            ).toList();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollCtrl,
+                          itemCount: filteredParts.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            final part = filteredParts[i];
+                            final selectedQty = _parts.firstWhere(
+                              (p) => p['id'] == part['id'],
+                              orElse: () => <String, dynamic>{},
+                            )['quantity'] as int? ?? 0;
+                            return ListTile(
+                              title: Text(
+                                part['partName'] as String? ?? '',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                              ),
+                              subtitle: Text(
+                                'Mã: ${part['partCode']} | Tồn: ${part['stock']}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.remove, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: selectedQty <= 0 ? null : () {
+                                      setDialogState(() {
+                                        final idx = _parts.indexWhere((p) => p['id'] == part['id']);
+                                        if (idx >= 0) _parts[idx]['quantity'] = selectedQty - 1;
+                                      });
+                                      setState(() {});
+                                    },
+                                  ),
+                                  SizedBox(
+                                    width: 28,
+                                    child: Text(
+                                      '$selectedQty',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () {
+                                      setDialogState(() {
+                                        final idx = _parts.indexWhere((p) => p['id'] == part['id']);
+                                        if (idx >= 0) {
+                                          _parts[idx]['quantity'] = selectedQty + 1;
+                                        } else {
+                                          _parts.add({...part, 'quantity': 1});
+                                        }
+                                      });
+                                      setState(() {});
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF006E2F).withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'Xong',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -947,7 +1334,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  part['name'] as String,
+                  part['partName'] as String? ?? '',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -956,7 +1343,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Mã: ${part['code']} | Tồn: ${part['stock']}',
+                  'Mã: ${part['partCode']} | Tồn: ${part['stock']}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF3D4A3D),
@@ -1012,7 +1399,11 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
           ),
           const SizedBox(width: 8),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              setState(() {
+                part['quantity'] = 0;
+              });
+            },
             icon: const Icon(
               Icons.delete,
               size: 18,
@@ -1062,6 +1453,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
           ),
           const SizedBox(height: 12),
           TextField(
+            controller: _notesController,
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Ghi chú thêm về tình trạng xe, khuyến nghị cho lần bảo dưỡng sau...',
@@ -1175,7 +1567,11 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                     top: 4,
                     right: 4,
                     child: InkWell(
-                      onTap: () {},
+                      onTap: () {
+                        setState(() {
+                          _thumbnailUrl = null;
+                        });
+                      },
                       child: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
@@ -1194,12 +1590,63 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _savingNotes ? null : () => _saveNotes(),
+              icon: _savingNotes
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.save, size: 18),
+              label: Text(_savingNotes ? 'Đang lưu...' : 'Lưu ghi chú'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF006E2F),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   /// Cost Summary Section
+  double _totalServiceCost() =>
+      _serviceItems.fold<double>(0, (sum, s) => sum + (s.price ?? 0));
+
+  double _totalPartsCost() => _parts.fold<double>(0, (sum, p) {
+        final qty = p['quantity'] as int? ?? 0;
+        final price = p['price'] as num? ?? 0;
+        return sum + qty * price.toDouble();
+      });
+
+  double _subtotal() => _totalServiceCost() + _totalPartsCost();
+
+  double _vat() => _subtotal() * 0.08;
+
+  double _grandTotal() => _subtotal() + _vat();
+
+  int _selectedPartsCount() =>
+      _parts.fold<int>(0, (sum, p) => sum + (p['quantity'] as int? ?? 0));
+
+  String _formatPrice(double amount) {
+    if (amount <= 0) return '0₫';
+    final whole = amount.floor();
+    final parts = <String>[];
+    var s = whole.toString();
+    while (s.length > 3) {
+      parts.add(s.substring(s.length - 3));
+      s = s.substring(0, s.length - 3);
+    }
+    parts.add(s);
+    return '${parts.reversed.join('.')}₫';
+  }
+
   Widget _buildCostSummarySection() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1229,11 +1676,17 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildCostRow('Phí dịch vụ (3 hạng mục)', '280,000đ'),
+          _buildCostRow(
+            'Phí dịch vụ (${_serviceItems.length} hạng mục)',
+            _formatPrice(_totalServiceCost()),
+          ),
           const SizedBox(height: 8),
-          _buildCostRow('Phụ tùng xuất kho (2 món)', '320,000đ'),
+          _buildCostRow(
+            'Phụ tùng xuất kho (${_selectedPartsCount()} món)',
+            _formatPrice(_totalPartsCost()),
+          ),
           const SizedBox(height: 8),
-          _buildCostRow('Thuế VAT (8%)', '48,000đ'),
+          _buildCostRow('Thuế VAT (8%)', _formatPrice(_vat())),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.only(top: 12),
@@ -1245,10 +1698,10 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                 ),
               ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Tổng thanh toán',
                   style: TextStyle(
                     fontSize: 16,
@@ -1257,7 +1710,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                   ),
                 ),
                 Text(
-                  '648,000đ',
+                  _formatPrice(_grandTotal()),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -1443,6 +1896,8 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         return 'Đang sửa';
       case WorkStatus.completed:
         return 'Hoàn thành';
+      case WorkStatus.cancelled:
+        return 'Đã hủy';
       default:
         return 'Đang sửa';
     }
@@ -1457,6 +1912,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
       case WorkStatus.inProgress:
         return WorkStatus.completed;
       case WorkStatus.completed:
+      case WorkStatus.cancelled:
         return null;
     }
   }
@@ -1471,6 +1927,8 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         return 'Hoàn thành sửa chữa';
       case WorkStatus.pending:
         return 'Cập nhật trạng thái';
+      default:
+        return 'Cập nhật trạng thái';
     }
   }
 
@@ -1484,6 +1942,8 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         return 2;
       case WorkStatus.completed:
         return 3;
+      case WorkStatus.cancelled:
+        return 4;
       default:
         return 2;
     }

@@ -5,22 +5,18 @@ import 'dashboard_state.dart';
 import '../../../domain/entities/work_item.dart';
 import '../../../domain/usecases/get_work_items_usecase.dart';
 import '../../../domain/usecases/update_work_status_usecase.dart';
-import '../../../domain/usecases/search_work_items_usecase.dart';
 
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final GetWorkItemsUseCase getWorkItemsUseCase;
   final UpdateWorkStatusUseCase updateWorkStatusUseCase;
-  final SearchWorkItemsUseCase searchWorkItemsUseCase;
 
   DashboardBloc({
     required this.getWorkItemsUseCase,
     required this.updateWorkStatusUseCase,
-    required this.searchWorkItemsUseCase,
   }) : super(const DashboardInitial()) {
     on<LoadDashboardData>(_onLoadDashboardData);
     on<RefreshDashboardData>(_onRefreshDashboardData);
     on<UpdateWorkStatus>(_onUpdateWorkStatus);
-    on<SearchWorkItems>(_onSearchWorkItems);
     on<ResetDashboardData>(_onResetDashboardData);
   }
 
@@ -103,35 +99,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
           emit(currentState.copyWith(
             workItems: updatedItems,
-            pendingCount: stats['pending'],
-            inProgressCount: stats['inProgress'],
-            inspectionCount: stats['inspection'],
-          ));
-        },
-      );
-    }
-  }
-
-  Future<void> _onSearchWorkItems(
-    SearchWorkItems event,
-    Emitter<DashboardState> emit,
-  ) async {
-    if (state is DashboardLoaded) {
-      final result = await searchWorkItemsUseCase(
-        SearchWorkItemsParams(
-          event.query,
-          technicianId: event.technicianId,
-        ),
-      );
-
-      result.fold(
-        (failure) => emit(DashboardError(_mapFailureToMessage(failure))),
-        (workItems) {
-          final stats = _calculateStats(workItems);
-          final currentState = state as DashboardLoaded;
-          
-          emit(currentState.copyWith(
-            workItems: workItems,
             pendingCount: stats['pending'],
             inProgressCount: stats['inProgress'],
             inspectionCount: stats['inspection'],

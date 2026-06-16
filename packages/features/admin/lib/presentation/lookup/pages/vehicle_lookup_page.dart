@@ -24,13 +24,14 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   Timer? _debounce;
+  bool _isSearchFocused = false;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeIn;
 
   static const _kDebounceMs = 400;
   static const _kGreen = Color(0xFF006E2F);
-  static const _kBg = Color(0xFFF7F9FB);
+  static const _kBg = Color(0xFFF8FAFB);
 
   @override
   void initState() {
@@ -38,11 +39,14 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
 
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 500),
     )..forward();
     _fadeIn = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
 
-    // Auto focus search field and load recent vehicles
+    _focusNode.addListener(() {
+      setState(() => _isSearchFocused = _focusNode.hasFocus);
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
       context.read<LookupBloc>().add(
@@ -94,7 +98,6 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
   }
 
   void _openVehicleDetail(VehicleLookupResult vehicle) {
-    // Chuyển đổi VehicleLookupResult → VehicleModel để dùng AdminVehicleDetailSheet
     final model = VehicleModel(
       id: vehicle.id,
       licensePlate: vehicle.licensePlate,
@@ -155,17 +158,24 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF191C1E)),
           ),
-          title: const Row(
+          title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.two_wheeler_rounded, size: 20, color: _kGreen),
-              SizedBox(width: 8),
-              Text(
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _kGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.two_wheeler_rounded, size: 18, color: _kGreen),
+              ),
+              const SizedBox(width: 10),
+              const Text(
                 'Tra cứu xe',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: _kGreen,
+                  color: Color(0xFF191C1E),
                 ),
               ),
             ],
@@ -175,15 +185,13 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
             preferredSize: const Size.fromHeight(1),
             child: Container(
               height: 1,
-              color: const Color(0xFFDAE4DC).withValues(alpha: 0.5),
+              color: const Color(0xFFE5E7EB),
             ),
           ),
         ),
         body: Column(
           children: [
-            // ── Search Bar ──────────────────────────────────────────────
             _buildSearchBar(),
-            // ── Results ─────────────────────────────────────────────────
             Expanded(
               child: BlocBuilder<LookupBloc, LookupState>(
                 builder: (context, state) {
@@ -215,19 +223,27 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
     );
   }
 
-  // ── Widgets ────────────────────────────────────────────────────────
+  // ── Search Bar ──────────────────────────────────────────────────────
 
   Widget _buildSearchBar() {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBCCBB9), width: 1.5),
+        border: Border.all(
+          color: _isSearchFocused
+              ? _kGreen
+              : const Color(0xFFE5E7EB),
+          width: _isSearchFocused ? 2 : 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
+            color: _isSearchFocused
+                ? _kGreen.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: _isSearchFocused ? 16 : 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -235,9 +251,9 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
       child: Row(
         children: [
           const SizedBox(width: 16),
-          const Icon(
+          Icon(
             Icons.search_rounded,
-            color: Color(0xFF6D7B6C),
+            color: _isSearchFocused ? _kGreen : const Color(0xFF9CA3AF),
             size: 22,
           ),
           const SizedBox(width: 12),
@@ -251,7 +267,7 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF191C1E),
-                letterSpacing: 0.5,
+                letterSpacing: 0.3,
               ),
               decoration: const InputDecoration(
                 hintText: 'Biển số, model, hãng xe...',
@@ -269,7 +285,6 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
               onSubmitted: (_) => _onSearchSubmit(),
             ),
           ),
-          // Clear / Search button
           ValueListenableBuilder(
             valueListenable: _searchController,
             builder: (_, value, __) {
@@ -288,16 +303,23 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
           ),
           GestureDetector(
             onTap: _onSearchSubmit,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.all(6),
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: _kGreen,
-                borderRadius: BorderRadius.circular(10),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _isSearchFocused
+                      ? [const Color(0xFF006E2F), const Color(0xFF16A34A)]
+                      : [const Color(0xFF006E2F), const Color(0xFF22C55E)],
+                ),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: _kGreen.withValues(alpha: 0.3),
+                    color: _kGreen.withValues(alpha: 0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -315,40 +337,46 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
     );
   }
 
+  // ── States ──────────────────────────────────────────────────────────
+
   Widget _buildInitialHint() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 88,
+            height: 88,
             decoration: BoxDecoration(
-              color: const Color(0xFFECEFF1),
-              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+              ),
+              borderRadius: BorderRadius.circular(28),
             ),
             child: const Icon(
               Icons.two_wheeler_rounded,
-              size: 42,
-              color: Color(0xFF455A64),
+              size: 46,
+              color: Color(0xFF006E2F),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           const Text(
             'Tìm kiếm xe',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
               color: Color(0xFF191C1E),
             ),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Nhập biển số, tên model hoặc hãng xe\nđể tìm thông tin xe.',
+            'Nhập biển số, tên model hoặc hãng xe\ndể tìm thông tin xe.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: Color(0xFF6D7B6C),
+              color: Color(0xFF6B7280),
               height: 1.5,
             ),
           ),
@@ -359,8 +387,26 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
 
   Widget _buildLoading() {
     return const Center(
-      child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(_kGreen),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(_kGreen),
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Đang tìm kiếm...',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -370,16 +416,24 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 56,
-            color: const Color(0xFF455A64).withValues(alpha: 0.4),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.search_off_rounded,
+              size: 40,
+              color: Color(0xFF9CA3AF),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           const Text(
             'Không tìm thấy xe nào',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
               color: Color(0xFF191C1E),
             ),
@@ -387,7 +441,7 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
           const SizedBox(height: 8),
           const Text(
             'Thử từ khóa khác hoặc kiểm tra lại biển số.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF6D7B6C)),
+            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
           ),
         ],
       ),
@@ -399,13 +453,24 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 48, color: Color(0xFFBA1A1A)),
-          const SizedBox(height: 16),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEE2E2),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: Color(0xFFDC2626),
+            ),
+          ),
+          const SizedBox(height: 20),
           const Text(
             'Không thể tải dữ liệu',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
               color: Color(0xFF191C1E),
             ),
@@ -413,19 +478,21 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
           const SizedBox(height: 8),
           Text(
             message,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF6D7B6C)),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
           OutlinedButton.icon(
             onPressed: _onSearchSubmit,
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Thử lại'),
             style: OutlinedButton.styleFrom(
               foregroundColor: _kGreen,
-              side: const BorderSide(color: _kGreen),
+              side: const BorderSide(color: _kGreen, width: 1.5),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
         ],
@@ -435,24 +502,45 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
 
   Widget _buildResultList(List<LookupResult> results, String? query) {
     final vehicles = results.whereType<VehicleLookupResult>().toList();
-    
+
     final isDefaultList = query == null || query.trim().isEmpty;
-    final headerText = isDefaultList 
-        ? 'Xe mới cập nhật gần đây' 
-        : '${vehicles.length} kết quả tìm kiếm cho "$query"';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Text(
-            headerText,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF6D7B6C),
-              fontWeight: FontWeight.w500,
-            ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: _kGreen,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isDefaultList ? 'Xe mới cập nhật gần đây' : '${vehicles.length} kết quả',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (!isDefaultList) ...[
+                const SizedBox(width: 6),
+                Text(
+                  ' cho "$query"',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF9CA3AF),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         Expanded(
@@ -463,6 +551,7 @@ class _VehicleLookupPageState extends State<VehicleLookupPage>
               return VehicleSearchResultCard(
                 vehicle: vehicles[index],
                 onTap: () => _openVehicleDetail(vehicles[index]),
+                index: index,
               );
             },
           ),

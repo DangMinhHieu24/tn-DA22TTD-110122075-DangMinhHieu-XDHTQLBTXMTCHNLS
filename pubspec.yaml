@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   
   # Core packages
   core:
@@ -35,7 +37,7 @@ dependencies:
   injectable: ^2.3.2
   
   # Date formatting
-  intl: ^0.19.0
+  intl: ^0.20.2
   
   # Supabase
   supabase_flutter: ^2.5.0

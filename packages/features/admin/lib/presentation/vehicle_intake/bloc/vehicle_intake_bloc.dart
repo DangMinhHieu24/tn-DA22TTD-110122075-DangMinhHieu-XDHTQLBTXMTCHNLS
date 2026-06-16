@@ -39,6 +39,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
     on<VehicleIntakeVehicleYearChanged>(_onVehicleYearChanged);
     on<VehicleIntakeVehicleColorChanged>(_onVehicleColorChanged);
     on<VehicleIntakeHistoryRequested>(_onHistoryRequested);
+    on<ToggleHistoryExpanded>(_onToggleHistoryExpanded);
   }
 
   void _onLicensePlateChanged(
@@ -177,7 +178,8 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
         emit(state.copyWith(
           isSearching: false,
           vehicleFound: false,
-          vehicleHistory: [], // Clear history
+          vehicleHistory: [],
+          historyExpanded: false,
         ));
       }
     } catch (e) {
@@ -270,6 +272,15 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
         errorMessage: 'Không thể tải lịch sử: ${e.toString()}',
       ));
     }
+  }
+
+  void _onToggleHistoryExpanded(
+    ToggleHistoryExpanded event,
+    Emitter<VehicleIntakeState> emit,
+  ) {
+    emit(state.copyWith(
+      historyExpanded: event.expanded,
+    ));
   }
 
   Future<void> _onSubmitted(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:design_system/design_system.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -39,6 +40,16 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         initialRoute: AppRouter.splash,
         onGenerateRoute: AppRouter.onGenerateRoute,
+        locale: const Locale('vi'),
+        supportedLocales: const [
+          Locale('vi'),
+          Locale('en'),
+        ],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
       ),
     );
   }
