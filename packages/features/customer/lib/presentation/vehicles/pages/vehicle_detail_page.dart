@@ -8,9 +8,6 @@ import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
 import '../bloc/customer_work_order_bloc.dart';
 import 'customer_work_order_detail_page.dart';
-import '../widgets/customer_bottom_nav.dart';
-import 'my_vehicles_page.dart';
-import '../../account/pages/customer_account_page.dart';
 import '../../warranties/pages/customer_warranty_page.dart';
 
 class VehicleDetailPage extends StatefulWidget {
@@ -527,26 +524,6 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
                   ),
                 ),
               ),
-              CustomerBottomNav(
-                selectedIndex: 0,
-                onItemSelected: (index) {
-                  if (index == 0) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const MyVehiclesPage(),
-                      ),
-                      (route) => false,
-                    );
-                  } else if (index == 3) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const CustomerAccountPage(),
-                      ),
-                      (route) => false,
-                    );
-                  }
-                },
-              ),
             ],
           ),
         ),
@@ -992,35 +969,12 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Lịch sử sửa chữa',
-                style: AppTextStyles.titleMedium.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.filter_list,
-                    size: 18, color: AppColors.onSurfaceVariant),
-                label: Text(
-                  'Lọc theo trạng thái',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            ],
+          Text(
+            'Lịch sử sửa chữa',
+            style: AppTextStyles.titleMedium.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
           // Work orders list
@@ -1094,70 +1048,13 @@ class _WorkOrderCard extends StatelessWidget {
     required this.onTap,
   });
 
-  bool get _isCompleted =>
-      workOrder.status.toLowerCase() == 'completed' ||
-      workOrder.status.toLowerCase() == 'hoan_thanh' ||
-      workOrder.status.toLowerCase() == 'done' ||
-      workOrder.status.toLowerCase() == 'paid' ||
-      workOrder.status.toLowerCase() == 'da_thanh_toan';
-
-  bool get _isPaid =>
-      workOrder.status.toLowerCase() == 'paid' ||
-      workOrder.status.toLowerCase() == 'da_thanh_toan';
-
-  Color get _statusBgColor {
-    if (_isPaid) return AppColors.primary;
-    if (_isCompleted) return const Color(0xFF16A34A);
-    return AppColors.error;
-  }
-
-  Color get _cardBorderColor {
-    if (_isPaid) return AppColors.outlineVariant.withValues(alpha: 0.3);
-    if (_isCompleted) return const Color(0xFF16A34A).withValues(alpha: 0.2);
-    return AppColors.error.withValues(alpha: 0.2);
-  }
-
-  Color get _cardBgColor {
-    if (_isPaid) return AppColors.surfaceContainerLowest;
-    if (_isCompleted) return const Color(0xFF16A34A).withValues(alpha: 0.06);
-    return AppColors.errorContainer.withValues(alpha: 0.12);
-  }
-
-  Color get _tagColor {
-    if (_isPaid) return AppColors.primary;
-    if (_isCompleted) return const Color(0xFF16A34A);
-    return AppColors.error;
-  }
-
-  Color get _leftBorderColor {
-    if (_isPaid) return AppColors.primaryContainer;
-    if (_isCompleted) return const Color(0xFF16A34A).withValues(alpha: 0.4);
-    return AppColors.error;
-  }
-
   String get _statusLabel {
     final s = workOrder.status.toLowerCase();
-    if (s == 'completed' || s == 'hoan_thanh' || s == 'done') {
-      return 'Hoàn thành';
-    }
+    if (s == 'completed' || s == 'hoan_thanh' || s == 'done') return 'Hoàn thành';
     if (s == 'paid' || s == 'da_thanh_toan') return 'Đã thanh toán';
     if (s == 'pending' || s == 'cho_xu_ly') return 'Chờ xử lý';
     if (s == 'in_progress' || s == 'dang_xu_ly') return 'Đang xử lý';
     return workOrder.status;
-  }
-
-  IconData get _statusIcon {
-    final s = workOrder.status.toLowerCase();
-    if (s == 'paid' || s == 'da_thanh_toan') return Icons.payments;
-    return _isCompleted ? Icons.check_circle : Icons.pending;
-  }
-
-  String get _servicesSummary {
-    if (workOrder.services.isEmpty) return workOrder.notes ?? '';
-    return workOrder.services
-        .map((s) => s.description ?? s.serviceType)
-        .where((s) => s.isNotEmpty)
-        .join(', ');
   }
 
   String get _formattedDate {
@@ -1169,167 +1066,63 @@ class _WorkOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _cardBgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _cardBorderColor),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.onSurface.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row: tag + status chip
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _tagColor.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '#${workOrder.orderNumber}',
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: _tagColor,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _statusBgColor,
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _statusBgColor.withValues(alpha: 0.25),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_statusIcon,
-                          size: 14, color: AppColors.onPrimary),
-                      const SizedBox(width: 4),
-                      Text(
-                        _statusLabel,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.onPrimary,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Order title + date
-            Text(
-              _cardTitle,
-              style: AppTextStyles.titleSmall.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.onSurface,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              _formattedDate,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Services summary with left border
-            if (_servicesSummary.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.only(left: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: _leftBorderColor.withValues(alpha: 0.4),
-                      width: 2,
-                    ),
-                  ),
-                ),
-                child: Text(
-                  _servicesSummary,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    height: 1.5,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            const SizedBox(height: 16),
-            // CTA button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: onTap,
-                icon: const SizedBox.shrink(),
-                label: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '#${workOrder.orderNumber}',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _statusLabel,
+                          style: AppTextStyles.labelSmall.copyWith(
+                            fontSize: 11,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     Text(
-                      'Xem chi tiết phiếu',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: AppColors.onPrimary,
-                        fontWeight: FontWeight.w700,
+                      _formattedDate,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward,
-                        size: 16, color: AppColors.onPrimary),
                   ],
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _statusBgColor,
-                  foregroundColor: AppColors.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                  shadowColor: _statusBgColor.withValues(alpha: 0.3),
-                ),
               ),
-            ),
-          ],
+              const Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant, size: 20),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  String get _cardTitle {
-    final summary = _servicesSummary.trim();
-    if (summary.isNotEmpty) {
-      final firstItem = summary.split(',').first.trim();
-      if (firstItem.isNotEmpty) {
-        return firstItem.length > 42 ? '${firstItem.substring(0, 42)}…' : firstItem;
-      }
-    }
-
-    final p = workOrder.priority.toLowerCase();
-    if (p == 'emergency' || p == 'dot_xuat') return 'Sửa chữa đột xuất';
-    if (p == 'scheduled' || p == 'dinh_ky') return 'Bảo dưỡng định kỳ';
-    if (p == 'normal') return 'Phiếu sửa chữa';
-    return 'Phiếu sửa chữa';
   }
 }
