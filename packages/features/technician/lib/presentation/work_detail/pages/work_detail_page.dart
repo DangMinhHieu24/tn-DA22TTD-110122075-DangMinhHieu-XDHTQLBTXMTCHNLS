@@ -999,9 +999,11 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
   }
 
   Future<void> _showAddServiceDialog(BuildContext context) async {
+    final existingTypes = widget.workItem.services.map((s) => s.serviceType).toSet();
+    final availableTypes = _serviceTypes.where((t) => !existingTypes.contains(t)).toList();
     final descCtrl = TextEditingController();
-    final priceCtrl = TextEditingController(text: _formatPrice(_defaultServicePrice('MAINTENANCE')));
-    String selectedType = 'MAINTENANCE';
+    String selectedType = availableTypes.isNotEmpty ? availableTypes.first : 'MAINTENANCE';
+    final priceCtrl = TextEditingController(text: _formatPrice(_defaultServicePrice(selectedType)));
 
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -1108,6 +1110,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                         ...List.generate(_serviceTypes.length, (i) {
                           final type = _serviceTypes[i];
                           final isSelected = selectedType == type;
+                          final isExisting = existingTypes.contains(type);
                           final icons = [
                             Icons.build_circle_outlined,
                             Icons.battery_charging_full,
@@ -1119,23 +1122,29 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                onTap: () => setDialogState(() {
-                                  selectedType = type;
-                                  priceCtrl.text = _formatPrice(_defaultServicePrice(type));
-                                }),
+                                onTap: isExisting
+                                    ? null
+                                    : () => setDialogState(() {
+                                          selectedType = type;
+                                          priceCtrl.text = _formatPrice(_defaultServicePrice(type));
+                                        }),
                                 borderRadius: BorderRadius.circular(12),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFFE8F5E9)
-                                        : const Color(0xFFF5F7F8),
+                                    color: isExisting
+                                        ? const Color(0xFFF0F0F0)
+                                        : isSelected
+                                            ? const Color(0xFFE8F5E9)
+                                            : const Color(0xFFF5F7F8),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: isSelected
-                                          ? const Color(0xFF006E2F)
-                                          : const Color(0xFFE0E3E5),
+                                      color: isExisting
+                                          ? const Color(0xFFE0E3E5)
+                                          : isSelected
+                                              ? const Color(0xFF006E2F)
+                                              : const Color(0xFFE0E3E5),
                                       width: isSelected ? 1.5 : 1,
                                     ),
                                   ),
@@ -1144,9 +1153,11 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                                       Icon(
                                         icons[i],
                                         size: 22,
-                                        color: isSelected
-                                            ? const Color(0xFF006E2F)
-                                            : const Color(0xFF3D4A3D),
+                                        color: isExisting
+                                            ? const Color(0xFFB0B0B0)
+                                            : isSelected
+                                                ? const Color(0xFF006E2F)
+                                                : const Color(0xFF3D4A3D),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -1155,13 +1166,24 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                            color: isSelected
-                                                ? const Color(0xFF006E2F)
-                                                : const Color(0xFF191C1E),
+                                            color: isExisting
+                                                ? const Color(0xFFB0B0B0)
+                                                : isSelected
+                                                    ? const Color(0xFF006E2F)
+                                                    : const Color(0xFF191C1E),
                                           ),
                                         ),
                                       ),
-                                      if (isSelected)
+                                      if (isExisting)
+                                        Text(
+                                          'Đã có',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: const Color(0xFFB0B0B0),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        )
+                                      else if (isSelected)
                                         Container(
                                           width: 22,
                                           height: 22,
@@ -1317,12 +1339,14 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            onPressed: () {
-                              if (descCtrl.text.trim().isEmpty) return;
-                              Navigator.of(ctx).pop({
-                                'serviceType': selectedType,
-                                'description': descCtrl.text.trim(),
-                                'price': priceCtrl.text.trim().isEmpty
+                            onPressed: availableTypes.isEmpty
+                                ? null
+                                : () {
+                                    if (descCtrl.text.trim().isEmpty) return;
+                                    Navigator.of(ctx).pop({
+                                      'serviceType': selectedType,
+                                      'description': descCtrl.text.trim(),
+                                      'price': priceCtrl.text.trim().isEmpty
                                     ? null
                                     : double.tryParse(
                                         priceCtrl.text.trim().replaceAll(RegExp(r'[^\d]'), ''),
@@ -1339,29 +1363,40 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                             ),
                             child: Ink(
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
-                                ),
+                                color: availableTypes.isEmpty ? const Color(0xFFB0B0B0) : null,
+                                gradient: availableTypes.isNotEmpty
+                                    ? const LinearGradient(
+                                        colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                                      )
+                                    : null,
                                 borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF006E2F).withOpacity(0.25),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                                boxShadow: availableTypes.isNotEmpty
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(0xFF006E2F).withOpacity(0.25),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ]
+                                    : null,
                               ),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 alignment: Alignment.center,
-                                child: const Row(
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add, size: 18, color: Colors.white),
-                                    SizedBox(width: 6),
+                                    Icon(
+                                      availableTypes.isEmpty ? Icons.block : Icons.add,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 6),
                                     Text(
-                                      'Thêm hạng mục',
-                                      style: TextStyle(
+                                      availableTypes.isEmpty
+                                          ? 'Đã đủ hạng mục'
+                                          : 'Thêm hạng mục',
+                                      style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white,
