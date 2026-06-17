@@ -48,7 +48,6 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
   late final WorkOrderRealtimeService _realtimeService;
   // Local photo URLs to allow cache-busting retries
   late List<String> _photoUrls;
-  String? _thumbnailUrl;
   List<WorkItemService> _serviceItems = const [];
   
   // Parts inventory
@@ -540,8 +539,6 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     _photoUrls = widget.workItem.photoUrls.isNotEmpty
         ? List<String>.from(widget.workItem.photoUrls)
         : <String>[];
-    _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
-    _notesController.text = widget.workItem.notes ?? '';
     _startRealtime();
     _fetchInventory();
   }
@@ -651,7 +648,6 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
           _photoUrls = item.photoUrls.isNotEmpty
               ? List<String>.from(item.photoUrls)
               : const <String>[];
-          _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
         });
       },
     );
@@ -1904,122 +1900,35 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              // Add Photo Button
-              InkWell(
-            onTap: () {},
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFECEEF0),
-                    border: Border.all(
-                      color: const Color(0xFFBCCBB9),
-                      style: BorderStyle.solid,
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_a_photo,
-                        size: 24,
-                        color: Color(0xFF006E2F),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Chụp ảnh',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF006E2F),
-                        ),
-                      ),
-                    ],
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F7F8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFE0E3E5),
+                width: 1,
+              ),
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.camera_alt_outlined,
+                  size: 32,
+                  color: Color(0xFFB0B8B2),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Chụp ảnh sau sửa',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFB0B8B2),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Sample Photo
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      _thumbnailUrl ?? 'https://via.placeholder.com/80',
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          width: 80,
-                          height: 80,
-                          color: const Color(0xFFECEEF0),
-                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3E9E9),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFBA1A1A).withOpacity(0.15)),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.broken_image, size: 20, color: Color(0xFFBA1A1A)),
-                                const SizedBox(height: 4),
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      final url = _thumbnailUrl ?? 'https://via.placeholder.com/80';
-                                      _thumbnailUrl = '$url?r=${DateTime.now().millisecondsSinceEpoch}';
-                                    });
-                                  },
-                                  child: const Text('Thử lại', style: TextStyle(fontSize: 12, color: Color(0xFF006E2F))),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          _thumbnailUrl = null;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF191C1E).withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
