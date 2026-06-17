@@ -535,9 +535,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     _serviceItems = List<WorkItemService>.from(widget.workItem.services);
     _photoUrls = widget.workItem.photoUrls.isNotEmpty
         ? List<String>.from(widget.workItem.photoUrls)
-        : (widget.workItem.imageUrl != null && widget.workItem.imageUrl!.isNotEmpty
-            ? [widget.workItem.imageUrl!]
-            : <String>[]);
+        : <String>[];
     _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
     _notesController.text = widget.workItem.description;
     _startRealtime();
@@ -648,9 +646,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
           _serviceItems = List<WorkItemService>.from(item.services);
           _photoUrls = item.photoUrls.isNotEmpty
               ? List<String>.from(item.photoUrls)
-              : (item.imageUrl != null && item.imageUrl!.isNotEmpty
-                  ? [item.imageUrl!]
-                  : const <String>[]);
+              : const <String>[];
           _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
         });
       },
