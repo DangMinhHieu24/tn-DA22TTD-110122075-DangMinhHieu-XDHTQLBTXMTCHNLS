@@ -1847,186 +1847,105 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
   /// Technical Notes & Evidence Section
   Widget _buildTechnicalNotesSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: const Color(0xFFE0E3E5),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF191C1E).withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with icon
+          // Notes + Photos inline header
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.edit_note_rounded,
-                  size: 20,
-                  color: Color(0xFF006E2F),
+                child: const Icon(Icons.edit_note_rounded, size: 18, color: Color(0xFF006E2F)),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Ghi chú & Ảnh sau sửa',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF191C1E)),
                 ),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'Ghi chú kỹ thuật',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF191C1E),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Notes text field
-          TextField(
-            controller: _notesController,
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: 'Mô tả tình trạng, nguyên nhân và hướng xử lý...',
-              helperText: 'Gợi ý: Ghi rõ mã lỗi, thông số đo được, khuyến nghị cho khách',
-              helperMaxLines: 2,
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: const Color(0xFF3D4A3D).withOpacity(0.4),
-              ),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: const Color(0xFFE0E3E5),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: const Color(0xFFE0E3E5),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFF006E2F),
-                  width: 1.5,
-                ),
-              ),
-              contentPadding: const EdgeInsets.all(14),
-            ),
-          ),
-          const SizedBox(height: 20),
-          // Photo section header
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.camera_alt_rounded,
-                  size: 20,
-                  color: Color(0xFF006E2F),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Hình ảnh sau sửa',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF191C1E),
+              // Save button inline
+              SizedBox(
+                height: 32,
+                child: ElevatedButton.icon(
+                  onPressed: _savingNotes ? null : () => _saveNotes(),
+                  icon: _savingNotes
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_rounded, size: 16),
+                  label: Text(_savingNotes ? 'Đang lưu' : 'Lưu', style: const TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF006E2F),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Photo grid placeholder
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FA),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFE0E3E5),
-                width: 1,
-                strokeAlign: BorderSide.strokeAlignInside,
+          // Text field
+          TextField(
+            controller: _notesController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Mô tả tình trạng, nguyên nhân và hướng xử lý...',
+              hintStyle: TextStyle(fontSize: 13, color: const Color(0xFF3D4A3D).withOpacity(0.4)),
+              filled: true,
+              fillColor: const Color(0xFFF8F9FA),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: const Color(0xFFE0E3E5)),
               ),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.add_a_photo_rounded,
-                    size: 24,
-                    color: Color(0xFF006E2F),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Thêm ảnh sau sửa',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF191C1E),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Chụp ảnh chi tiết đã sửa, vị trí hư hỏng',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: const Color(0xFF3D4A3D).withOpacity(0.5),
-                  ),
-                ),
-              ],
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: const Color(0xFFE0E3E5)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF006E2F), width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.all(12),
             ),
           ),
-          const SizedBox(height: 20),
-          // Save button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _savingNotes ? null : () => _saveNotes(),
-              icon: _savingNotes
-                  ? const SizedBox(
-                      width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save_rounded, size: 18),
-              label: Text(_savingNotes ? 'Đang lưu...' : 'Lưu ghi chú'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF006E2F),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
+          const SizedBox(height: 12),
+          // Photo row
+          InkWell(
+            onTap: () {},
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE0E3E5), width: 1),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_a_photo_rounded, size: 18, color: Color(0xFF006E2F)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Thêm ảnh sau sửa',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF006E2F)),
+                  ),
+                ],
               ),
             ),
           ),
