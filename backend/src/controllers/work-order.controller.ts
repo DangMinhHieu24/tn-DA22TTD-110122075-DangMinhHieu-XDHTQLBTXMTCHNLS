@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, WorkOrderStatus, PaymentMethod } from '@prisma/client';
+import { PrismaClient, WorkOrderStatus, PaymentMethod, ApprovalStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -69,7 +69,7 @@ const computeWorkOrderTotalRevenue = (workOrder: {
  */
 export const getWorkOrders = async (req: Request, res: Response) => {
   try {
-    const { status, technicianId, priority, vehicleId } = req.query;
+    const { status, technicianId, priority, vehicleId, sortBy } = req.query;
     const authUser = (req as any).user;
 
     const where: any = {};
@@ -143,9 +143,9 @@ export const getWorkOrders = async (req: Request, res: Response) => {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: sortBy === 'paidAt'
+        ? { paidAt: 'desc' }
+        : { createdAt: 'desc' },
     });
 
     res.json({
@@ -255,6 +255,7 @@ export const createWorkOrder = async (req: Request, res: Response) => {
       services, // Array of { serviceType, description }
       photos, // Array of { photoUrl, description }
       partsUsed, // Array of { partId, quantity, unitPrice }
+      appointmentId,
     } = req.body;
 
     // Get user from auth middleware
@@ -307,6 +308,7 @@ export const createWorkOrder = async (req: Request, res: Response) => {
         data: {
           orderNumber,
           vehicleId,
+          appointmentId: appointmentId || null,
           status: status || 'PENDING',
           priority: priority || 'NORMAL',
           notes,
@@ -315,7 +317,10 @@ export const createWorkOrder = async (req: Request, res: Response) => {
           scheduledTime: resolvedScheduledTime,
           createdById,
           services: {
-            create: services || [],
+            create: (services || []).map((s: any) => ({
+              ...s,
+              approvalStatus: 'APPROVED',
+            })),
           },
           photos: {
             create: photos || [],
@@ -356,6 +361,14 @@ export const createWorkOrder = async (req: Request, res: Response) => {
         },
       });
     });
+
+    // If linked to an appointment, mark it as COMPLETED
+    if (appointmentId) {
+      await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: { status: 'COMPLETED' },
+      }).catch(() => {});
+    }
 
     res.status(201).json({
       success: true,
@@ -534,6 +547,11 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
     // If status is COMPLETED, set completedAt
     if (normalizedStatus === 'COMPLETED') {
       updateData.completedAt = new Date();
+    }
+
+    // If status is PAID, set paidAt
+    if (normalizedStatus === 'PAID') {
+      updateData.paidAt = new Date();
     }
 
     const workOrder = await prisma.$transaction(async (tx) => {
@@ -730,6 +748,7 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
         description,
         price,
         serviceName,
+        approvalStatus: 'PENDING',
       },
     });
 
@@ -742,6 +761,66 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to add service',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Approve or reject a pending service
+ * PATCH /api/work-orders/:id/services/:serviceId/approval
+ */
+export const approveWorkOrderService = async (req: Request, res: Response) => {
+  try {
+    const { id, serviceId } = req.params;
+    const { approvalStatus } = req.body;
+
+    if (!approvalStatus || !['APPROVED', 'REJECTED'].includes(approvalStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'approvalStatus must be APPROVED or REJECTED',
+      });
+    }
+
+    const existingService = await prisma.workOrderService.findUnique({
+      where: { id: serviceId },
+    });
+
+    if (!existingService) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found',
+      });
+    }
+
+    if (existingService.workOrderId !== id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service does not belong to this work order',
+      });
+    }
+
+    if (existingService.approvalStatus !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        message: `Service already ${existingService.approvalStatus.toLowerCase()}`,
+      });
+    }
+
+    const service = await prisma.workOrderService.update({
+      where: { id: serviceId },
+      data: { approvalStatus: approvalStatus as ApprovalStatus },
+    });
+
+    res.json({
+      success: true,
+      message: `Service ${approvalStatus.toLowerCase()} successfully`,
+      data: service,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update service approval',
       error: error.message,
     });
   }
@@ -885,8 +964,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     });
     const completedToday = await prisma.workOrder.count({
       where: {
-        status: 'COMPLETED',
-        completedAt: {
+        status: 'PAID',
+        paidAt: {
           gte: startOfToday,
           lt: startOfTomorrow,
         },

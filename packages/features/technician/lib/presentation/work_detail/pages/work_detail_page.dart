@@ -8,12 +8,22 @@ import '../../../domain/repositories/work_repository.dart';
 import '../../../domain/entities/work_item.dart';
 import '../../../domain/entities/work_item_service.dart';
 
-String _serviceLabel(String? type) => switch (type) {
+const _serviceTypes = ['MAINTENANCE', 'BATTERY_CHECK', 'BRAKES_TIRES', 'OTHER_REPAIR'];
+
+String _serviceLabel(String type) => switch (type) {
   'MAINTENANCE' => 'Bảo dưỡng định kỳ',
   'BATTERY_CHECK' => 'Kiểm tra pin/sạc',
   'BRAKES_TIRES' => 'Phanh & Lốp',
   'OTHER_REPAIR' => 'Sửa chữa khác',
-  _ => type ?? '',
+  _ => type,
+};
+
+double _defaultServicePrice(String type) => switch (type) {
+  'MAINTENANCE' => 200000,
+  'BATTERY_CHECK' => 150000,
+  'BRAKES_TIRES' => 250000,
+  'OTHER_REPAIR' => 200000,
+  _ => 0,
 };
 
 /// Chi tiết phiếu sửa chữa - 100% converted from UX design
@@ -427,7 +437,10 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
   Widget _buildStatusTimeline() {
     final activeStep = _getActiveStep(_currentItem.status);
     final nextStatus = _getNextStatus(_currentItem.status);
-    final isActionDisabled = nextStatus == null;
+    final approvedServices = _serviceItems.where((s) => s.isApproved);
+    final allApprovedDone = approvedServices.every((item) => item.isDone);
+    final isActionDisabled = nextStatus == null ||
+        (nextStatus == WorkStatus.completed && !allApprovedDone);
     final buttonLabel = isActionDisabled
       ? 'Đã hoàn thành'
       : _getNextStatusButtonLabel(nextStatus!);
@@ -526,6 +539,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ? [widget.workItem.imageUrl!]
             : <String>[]);
     _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
+    _notesController.text = widget.workItem.description;
     _startRealtime();
     _fetchInventory();
   }
@@ -632,6 +646,12 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         setState(() {
           _currentItem = item;
           _serviceItems = List<WorkItemService>.from(item.services);
+          _photoUrls = item.photoUrls.isNotEmpty
+              ? List<String>.from(item.photoUrls)
+              : (item.imageUrl != null && item.imageUrl!.isNotEmpty
+                  ? [item.imageUrl!]
+                  : const <String>[]);
+          _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
         });
       },
     );
@@ -732,8 +752,11 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
 
   /// Checklist Items Section
   Widget _buildChecklistSection() {
-    final completedCount = _serviceItems.where((item) => item.isDone).length;
-    final totalCount = _serviceItems.length;
+    final approvedItems = _serviceItems.where((item) => item.isApproved);
+    final completedCount = approvedItems.where((item) => item.isDone).length;
+    final approvedCount = approvedItems.length;
+    final pendingCount = _serviceItems.where((item) => item.isPending).length;
+    final rejectedCount = _serviceItems.where((item) => item.isRejected).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -750,7 +773,9 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
               ),
             ),
             Text(
-              '$completedCount/$totalCount hoàn thành',
+              pendingCount > 0
+                  ? '$completedCount/$approvedCount hoàn thành · $pendingCount chờ duyệt'
+                  : '$completedCount/$approvedCount hoàn thành',
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF3D4A3D),
@@ -783,7 +808,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () {},
+            onTap: () => _showAddServiceDialog(context),
             borderRadius: BorderRadius.circular(14),
             child: Ink(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -832,22 +857,32 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
 
   Widget _buildChecklistItem(WorkItemService item) {
     final isDone = item.isDone;
-    final title = item.serviceName?.isNotEmpty == true
-        ? item.serviceName!
-        : item.description?.isNotEmpty == true
-            ? item.description!
-            : 'Hạng mục';
+    final isPending = item.isPending;
+    final isRejectedStatus = item.isRejected;
+    final title = _serviceLabel(item.serviceType);
     final priceLabel = item.price != null
-        ? '${_formatMoney(item.price!)}đ'
+        ? _formatPrice(item.price!)
         : 'Chưa có giá';
-    
+
+    Color? _statusColor() {
+      if (isPending) return const Color(0xFFF59E0B);
+      if (isRejectedStatus) return const Color(0xFFBA1A1A);
+      return null;
+    }
+
+    String _statusLabel() {
+      if (isPending) return 'Chờ duyệt';
+      if (isRejectedStatus) return 'Đã từ chối';
+      return '';
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
-        border: !isDone
+        border: !isDone && !isPending && !isRejectedStatus
             ? const Border(
                 left: BorderSide(
                   color: Color(0xFF006E2F),
@@ -868,7 +903,9 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         children: [
           Checkbox(
             value: isDone,
-            onChanged: (value) => _toggleServiceStatus(item, value ?? false),
+            onChanged: isPending || isRejectedStatus
+                ? null
+                : (value) => _toggleServiceStatus(item, value ?? false),
             activeColor: const Color(0xFF006E2F),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
@@ -879,14 +916,38 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isDone ? const Color(0xFF3D4A3D).withOpacity(0.7) : const Color(0xFF191C1E),
-                    decoration: isDone ? TextDecoration.lineThrough : null,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: isDone ? const Color(0xFF3D4A3D).withOpacity(0.7) : const Color(0xFF191C1E),
+                          decoration: isDone ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                    ),
+                    if (_statusLabel().isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _statusColor()!.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _statusLabel(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: _statusColor(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -941,77 +1002,386 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     );
   }
 
-  String _formatMoney(double value) {
-    final raw = value.toStringAsFixed(0);
-    final reversed = raw.split('').reversed.toList();
-    final chunks = <String>[];
-
-    for (var i = 0; i < reversed.length; i += 3) {
-      chunks.add(reversed.sublist(i, i + 3 > reversed.length ? reversed.length : i + 3).join());
-    }
-
-    return chunks.map((chunk) => chunk.split('').reversed.join()).toList().reversed.join(',');
-  }
-
   Future<void> _showAddServiceDialog(BuildContext context) async {
-    final typeCtrl = TextEditingController();
     final descCtrl = TextEditingController();
+    final priceCtrl = TextEditingController(text: _formatPrice(_defaultServicePrice('MAINTENANCE')));
     String selectedType = 'MAINTENANCE';
 
-    final result = await showDialog<Map<String, String>>(
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
-            return AlertDialog(
-              title: const Text('Thêm hạng mục'),
-              content: Column(
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedType,
-                    decoration: const InputDecoration(
-                      labelText: 'Loại dịch vụ',
-                      border: OutlineInputBorder(),
+                  // Drag handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFBFC7C2),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'MAINTENANCE', child: Text('Bảo dưỡng định kỳ')),
-                      DropdownMenuItem(value: 'BATTERY_CHECK', child: Text('Kiểm tra pin/sạc')),
-                      DropdownMenuItem(value: 'BRAKES_TIRES', child: Text('Phanh & Lốp')),
-                      DropdownMenuItem(value: 'OTHER_REPAIR', child: Text('Sửa chữa khác')),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) setDialogState(() => selectedType = v);
-                    },
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: descCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Mô tả',
-                      hintText: 'Nhập mô tả hạng mục...',
-                      border: OutlineInputBorder(),
+                  // Gradient header
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF006E2F).withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    maxLines: 3,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.add_circle_outline,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Thêm hạng mục',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Phát hiện thêm vấn đề? Bổ sung ngay',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Service type selection
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Loại hạng mục',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF191C1E),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...List.generate(_serviceTypes.length, (i) {
+                          final type = _serviceTypes[i];
+                          final isSelected = selectedType == type;
+                          final icons = [
+                            Icons.build_circle_outlined,
+                            Icons.battery_charging_full,
+                            Icons.precision_manufacturing,
+                            Icons.handyman_outlined,
+                          ];
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: i < _serviceTypes.length - 1 ? 8 : 0),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => setDialogState(() {
+                                  selectedType = type;
+                                  priceCtrl.text = _formatPrice(_defaultServicePrice(type));
+                                }),
+                                borderRadius: BorderRadius.circular(12),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFFE8F5E9)
+                                        : const Color(0xFFF5F7F8),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? const Color(0xFF006E2F)
+                                          : const Color(0xFFE0E3E5),
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        icons[i],
+                                        size: 22,
+                                        color: isSelected
+                                            ? const Color(0xFF006E2F)
+                                            : const Color(0xFF3D4A3D),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _serviceLabel(type),
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                            color: isSelected
+                                                ? const Color(0xFF006E2F)
+                                                : const Color(0xFF191C1E),
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        Container(
+                                          width: 22,
+                                          height: 22,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF006E2F),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.check,
+                                            size: 14,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Description input
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Mô tả chi tiết',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF191C1E),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: descCtrl,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: 'Nhập mô tả chi tiết hạng mục...',
+                            hintStyle: TextStyle(
+                              color: const Color(0xFF3D4A3D).withOpacity(0.5),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF5F7F8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: const Color(0xFFBCCBB9).withOpacity(0.18),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: const Color(0xFFBCCBB9).withOpacity(0.18),
+                              ),
+                            ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF006E2F),
+                        width: 1.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.all(14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Price input
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chi phí (VNĐ)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF191C1E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: priceCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'Nhập chi phí...',
+                    hintStyle: TextStyle(
+                      color: const Color(0xFF3D4A3D).withOpacity(0.5),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7F8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: const Color(0xFFBCCBB9).withOpacity(0.18),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: const Color(0xFFBCCBB9).withOpacity(0.18),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF006E2F),
+                        width: 1.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.all(14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+                  const SizedBox(height: 24),
+                  // Action buttons
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: Color(0xFFE0E3E5)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Hủy',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF191C1E),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (descCtrl.text.trim().isEmpty) return;
+                              Navigator.of(ctx).pop({
+                                'serviceType': selectedType,
+                                'description': descCtrl.text.trim(),
+                                'price': priceCtrl.text.trim().isEmpty
+                                    ? null
+                                    : double.tryParse(
+                                        priceCtrl.text.trim().replaceAll(RegExp(r'[^\d]'), ''),
+                                      ),
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF006E2F).withOpacity(0.25),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                alignment: Alignment.center,
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add, size: 18, color: Colors.white),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Thêm hạng mục',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (descCtrl.text.trim().isEmpty) return;
-                    Navigator.of(ctx).pop({
-                      'serviceType': selectedType,
-                      'description': descCtrl.text.trim(),
-                    });
-                  },
-                  child: const Text('Thêm'),
-                ),
-              ],
             );
           },
         );
@@ -1025,6 +1395,8 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         _currentItem.id,
         result['serviceType']!,
         result['description']!,
+        serviceName: null,
+        price: result['price'] as double?,
       );
       service.fold(
         (l) => ScaffoldMessenger.of(context).showSnackBar(
@@ -1477,7 +1849,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             children: [
               // Add Photo Button
               InkWell(
-                onTap: () {},
+            onTap: () {},
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   width: 80,
@@ -1875,12 +2247,20 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     );
 
     result.fold(
-      (_) {},
+      (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cập nhật trạng thái thất bại')),
+        );
+      },
       (item) {
         if (!mounted) return;
         setState(() {
           _currentItem = item;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã chuyển sang "${_getStatusLabel(item.status)}"')),
+        );
       },
     );
   }

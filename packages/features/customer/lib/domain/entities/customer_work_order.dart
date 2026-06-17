@@ -38,16 +38,28 @@ class CustomerWorkOrder extends Equatable {
 }
 
 class CustomerWorkOrderService extends Equatable {
+  final String id;
   final String serviceType;
+  final String? serviceName;
   final String? description;
   final double? price;
+  final bool isDone;
+  final String approvalStatus; // 'PENDING', 'APPROVED', 'REJECTED'
 
   const CustomerWorkOrderService({
+    required this.id,
     required this.serviceType,
+    this.serviceName,
     this.description,
     this.price,
+    this.isDone = false,
+    this.approvalStatus = 'APPROVED',
   });
 
+  bool get isPending => approvalStatus == 'PENDING';
+  bool get isApproved => approvalStatus == 'APPROVED';
+  bool get isRejected => approvalStatus == 'REJECTED';
+
   @override
-  List<Object?> get props => [serviceType, description, price];
+  List<Object?> get props => [id, serviceType, serviceName, description, price, isDone, approvalStatus];
 }

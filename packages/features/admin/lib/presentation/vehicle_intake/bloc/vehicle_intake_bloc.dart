@@ -40,6 +40,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
     on<VehicleIntakeVehicleColorChanged>(_onVehicleColorChanged);
     on<VehicleIntakeHistoryRequested>(_onHistoryRequested);
     on<ToggleHistoryExpanded>(_onToggleHistoryExpanded);
+    on<VehicleIntakeAppointmentLinked>(_onAppointmentLinked);
   }
 
   void _onLicensePlateChanged(
@@ -283,6 +284,13 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
     ));
   }
 
+  void _onAppointmentLinked(
+    VehicleIntakeAppointmentLinked event,
+    Emitter<VehicleIntakeState> emit,
+  ) {
+    emit(state.copyWith(appointmentId: event.appointmentId));
+  }
+
   Future<void> _onSubmitted(
     VehicleIntakeSubmitted event,
     Emitter<VehicleIntakeState> emit,
@@ -396,6 +404,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
         estimatedHours: estimatedHours,
         photoFiles: state.photoFiles.isNotEmpty ? state.photoFiles : null,
         currentKm: submittedKm,
+        appointmentId: state.appointmentId,
       );
       
       emit(state.copyWith(

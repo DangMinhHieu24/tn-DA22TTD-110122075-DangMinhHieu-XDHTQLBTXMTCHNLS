@@ -1,7 +1,7 @@
 import 'package:core/core.dart';
 import '../../domain/entities/customer_work_order.dart';
 
-String _serviceLabel(String? type) => switch (type) {
+String serviceLabel(String? type) => switch (type) {
   'MAINTENANCE' => 'Bảo dưỡng định kỳ',
   'BATTERY_CHECK' => 'Kiểm tra pin/sạc',
   'BRAKES_TIRES' => 'Phanh & Lốp',
@@ -46,7 +46,7 @@ class CustomerWorkOrderModel extends CustomerWorkOrder {
       notes: notes,
       createdAt: createdAt,
       description: services.isNotEmpty
-          ? services.map((s) => s.description ?? _serviceLabel(s.serviceType)).join(', ')
+          ? services.map((s) => s.description ?? serviceLabel(s.serviceType)).join(', ')
           : notes ?? 'Phiếu sửa chữa',
       totalCost: totalCost ?? services.fold<double>(0, (sum, s) => sum + (s.price ?? 0)),
     );
@@ -55,16 +55,24 @@ class CustomerWorkOrderModel extends CustomerWorkOrder {
 
 class CustomerWorkOrderServiceModel extends CustomerWorkOrderService {
   const CustomerWorkOrderServiceModel({
+    required super.id,
     required super.serviceType,
+    super.serviceName,
     super.description,
     super.price,
+    super.isDone,
+    super.approvalStatus,
   });
 
   factory CustomerWorkOrderServiceModel.fromJson(Map<String, dynamic> json) {
     return CustomerWorkOrderServiceModel(
-      serviceType: json['serviceType'] as String,
+      id: json['id'] as String? ?? '',
+      serviceType: json['serviceType'] as String? ?? '',
+      serviceName: json['serviceName'] as String?,
       description: json['description'] as String?,
       price: (json['price'] as num?)?.toDouble(),
+      isDone: json['isDone'] as bool? ?? json['is_done'] as bool? ?? false,
+      approvalStatus: json['approvalStatus'] as String? ?? json['approval_status'] as String? ?? 'APPROVED',
     );
   }
 }

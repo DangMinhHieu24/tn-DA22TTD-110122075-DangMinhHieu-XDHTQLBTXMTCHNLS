@@ -121,6 +121,7 @@ class VehicleIntakeRepository {
     double? estimatedHours,
     List<File>? photoFiles,
     int? currentKm,
+    String? appointmentId,
   }) async {
     try {
       // Upload ảnh lên Firebase Storage nếu có
@@ -132,11 +133,12 @@ class VehicleIntakeRepository {
         );
       }
 
-      // Build services array
+      // Build services array with default prices
       final services = serviceTypes.map((type) {
         return {
           'serviceType': _mapServiceType(type),
           'description': _getServiceDescription(type),
+          'price': _getServicePrice(type),
         };
       }).toList();
 
@@ -158,6 +160,7 @@ class VehicleIntakeRepository {
         if (currentKm != null) 'currentKm': currentKm,
         'services': services,
         if (photos != null && photos.isNotEmpty) 'photos': photos,
+        if (appointmentId != null) 'appointmentId': appointmentId,
       };
 
       return await workOrderDataSource.createWorkOrder(data);
@@ -204,6 +207,21 @@ class VehicleIntakeRepository {
         return 'Sửa chữa khác';
       default:
         return '';
+    }
+  }
+
+  double _getServicePrice(String type) {
+    switch (type) {
+      case 'maintenance':
+        return 200000;
+      case 'battery':
+        return 150000;
+      case 'brakes':
+        return 250000;
+      case 'other':
+        return 200000;
+      default:
+        return 0;
     }
   }
 }

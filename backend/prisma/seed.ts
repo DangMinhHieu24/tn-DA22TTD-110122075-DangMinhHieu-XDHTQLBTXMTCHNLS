@@ -433,6 +433,7 @@ async function main() {
               serviceName: svcName,
               description: svcName,
               price: servicePrice,
+              approvalStatus: 'APPROVED',
             },
           ],
         },
@@ -506,7 +507,7 @@ async function main() {
         estimatedHours: 1.5,
         createdAt,
         createdById: admin.id,
-        services: { create: [{ serviceType: svcType, serviceName: svcName, description: svcName, price: basePrices[j % basePrices.length] }] },
+        services: { create: [{ serviceType: svcType, serviceName: svcName, description: svcName, price: basePrices[j % basePrices.length], approvalStatus: 'APPROVED' }] },
       },
     });
 

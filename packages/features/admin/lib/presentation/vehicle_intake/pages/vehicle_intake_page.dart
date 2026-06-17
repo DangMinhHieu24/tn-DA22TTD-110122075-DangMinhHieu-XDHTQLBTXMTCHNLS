@@ -9,22 +9,24 @@ import '../bloc/vehicle_intake_bloc.dart';
 /// Follows Material Design 3 color system and "Kinetic Sanctuary" design philosophy
 class VehicleIntakePage extends StatelessWidget {
   final String? initialLicensePlate;
+  final String? appointmentId;
 
-  const VehicleIntakePage({super.key, this.initialLicensePlate});
+  const VehicleIntakePage({super.key, this.initialLicensePlate, this.appointmentId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => GetIt.instance<VehicleIntakeBloc>(),
-      child: _VehicleIntakeView(initialLicensePlate: initialLicensePlate),
+      child: _VehicleIntakeView(initialLicensePlate: initialLicensePlate, appointmentId: appointmentId),
     );
   }
 }
 
 class _VehicleIntakeView extends StatefulWidget {
   final String? initialLicensePlate;
+  final String? appointmentId;
 
-  const _VehicleIntakeView({this.initialLicensePlate});
+  const _VehicleIntakeView({this.initialLicensePlate, this.appointmentId});
 
   @override
   State<_VehicleIntakeView> createState() => _VehicleIntakeViewState();
@@ -49,6 +51,10 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final bloc = context.read<VehicleIntakeBloc>();
       bloc.add(const VehicleIntakeTechniciansRequested());
+
+      if (widget.appointmentId != null && widget.appointmentId!.isNotEmpty) {
+        bloc.add(VehicleIntakeAppointmentLinked(widget.appointmentId!));
+      }
 
       if (widget.initialLicensePlate != null && widget.initialLicensePlate!.isNotEmpty) {
         _licensePlateController.text = widget.initialLicensePlate!;
@@ -1340,11 +1346,12 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.5,
+                childAspectRatio: 1.0,
                 children: [
                   _buildServiceCheckbox(
                     icon: Icons.handyman,
                     label: 'Bảo dưỡng định kỳ',
+                    price: 200000,
                     isChecked: state.maintenanceChecked,
                     onChanged: (val) => context.read<VehicleIntakeBloc>().add(
                       VehicleIntakeServiceToggled('maintenance', val ?? false),
@@ -1353,6 +1360,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                   _buildServiceCheckbox(
                     icon: Icons.battery_charging_full,
                     label: 'Kiểm tra pin/sạc',
+                    price: 150000,
                     isChecked: state.batteryChecked,
                     onChanged: (val) => context.read<VehicleIntakeBloc>().add(
                       VehicleIntakeServiceToggled('battery', val ?? false),
@@ -1361,6 +1369,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                   _buildServiceCheckbox(
                     icon: Icons.tire_repair,
                     label: 'Phanh & Lốp',
+                    price: 250000,
                     isChecked: state.brakesChecked,
                     onChanged: (val) => context.read<VehicleIntakeBloc>().add(
                       VehicleIntakeServiceToggled('brakes', val ?? false),
@@ -1369,6 +1378,7 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
                   _buildServiceCheckbox(
                     icon: Icons.build_circle,
                     label: 'Sửa chữa khác',
+                    price: 200000,
                     isChecked: state.otherChecked,
                     onChanged: (val) => context.read<VehicleIntakeBloc>().add(
                       VehicleIntakeServiceToggled('other', val ?? false),
@@ -1379,6 +1389,86 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
             },
           ),
           const SizedBox(height: 24),
+          // Total cost
+          BlocBuilder<VehicleIntakeBloc, VehicleIntakeState>(
+            builder: (context, state) {
+              final total = _computeTotal(state);
+              if (total <= 0) return const SizedBox.shrink();
+              final formattedTotal = '${total.toString().replaceAllMapped(
+                    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+                    (m) => '${m[1]}.',
+                  )}₫';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF006E2F), Color(0xFF22C55E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF006E2F).withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long_outlined,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tạm tính',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Tổng chi phí dự kiến',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      formattedTotal,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           // Notes textarea
           Container(
             decoration: BoxDecoration(
@@ -1421,54 +1511,100 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
     );
   }
 
-  /// Service checkbox item
+  /// Service selection card
   Widget _buildServiceCheckbox({
     required IconData icon,
     required String label,
     required bool isChecked,
+    required double price,
     required ValueChanged<bool?> onChanged,
   }) {
+    final formattedPrice = price > 0
+        ? '${price.toInt().toString().replaceAllMapped(
+              RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+              (m) => '${m[1]}.',
+            )}₫'
+        : '';
     return GestureDetector(
       onTap: () => onChanged(!isChecked),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(8),
+          color: isChecked ? const Color(0xFFF0FDF4) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isChecked ? const Color(0xFF006E2F) : const Color(0xFFDBDEE0),
+            color: isChecked ? const Color(0xFF006E2F) : const Color(0xFFE0E3E5),
             width: isChecked ? 2 : 1,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x12000000),
-              blurRadius: 10,
-              offset: Offset(0, 2),
+              color: isChecked
+                  ? const Color(0xFF006E2F).withValues(alpha: 0.12)
+                  : const Color(0xFF191C1E).withValues(alpha: 0.04),
+              blurRadius: isChecked ? 12 : 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isChecked ? const Color(0xFF006E2F) : const Color(0xFF3D4A3D),
-              size: 24,
+            // Icon with circle background
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isChecked
+                    ? const Color(0xFF006E2F)
+                    : const Color(0xFFF5F7F8),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: isChecked ? Colors.white : const Color(0xFF3D4A3D),
+                size: 22,
+              ),
             ),
-            const SizedBox(height: 8),
+            const Spacer(),
+            // Label
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF191C1E),
+                fontWeight: isChecked ? FontWeight.w600 : FontWeight.w500,
+                color: isChecked
+                    ? const Color(0xFF006E2F)
+                    : const Color(0xFF191C1E),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            // Price
+            Text(
+              formattedPrice,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: isChecked
+                    ? const Color(0xFF006E2F)
+                    : const Color(0xFF3D4A3D),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  int _computeTotal(VehicleIntakeState state) {
+    int total = 0;
+    if (state.maintenanceChecked) total += 200000;
+    if (state.batteryChecked) total += 150000;
+    if (state.brakesChecked) total += 250000;
+    if (state.otherChecked) total += 200000;
+    return total;
   }
 
   /// Step 4: Assignment & Confirmation

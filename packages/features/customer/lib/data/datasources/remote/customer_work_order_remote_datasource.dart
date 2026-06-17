@@ -3,6 +3,7 @@ import '../../models/customer_work_order_model.dart';
 
 abstract class CustomerWorkOrderRemoteDataSource {
   Future<List<CustomerWorkOrderModel>> getWorkOrdersByVehicle(String vehicleId);
+  Future<void> approveService(String workOrderId, String serviceId, String approvalStatus);
 }
 
 class CustomerWorkOrderRemoteDataSourceImpl
@@ -24,5 +25,13 @@ class CustomerWorkOrderRemoteDataSourceImpl
     }
 
     throw Exception('Failed to load work orders');
+  }
+
+  @override
+  Future<void> approveService(String workOrderId, String serviceId, String approvalStatus) async {
+    await dio.patch(
+      '/work-orders/$workOrderId/services/$serviceId/approval',
+      data: {'approvalStatus': approvalStatus},
+    );
   }
 }

@@ -10,6 +10,10 @@ abstract class CustomerRepository {
   Future<Either<Failure, List<CustomerWorkOrder>>> getWorkOrdersByVehicle(String vehicleId);
   Future<Either<Failure, List<CustomerMaintenanceLog>>> getMaintenanceLogsByVehicle(String vehicleId);
 
+  // Service approval
+  Future<Either<Failure, void>> approveService(String workOrderId, String serviceId);
+  Future<Either<Failure, void>> rejectService(String workOrderId, String serviceId);
+
   // Appointments
   Future<Either<Failure, List<CustomerAppointment>>> getMyAppointments();
   Future<Either<Failure, CustomerAppointment>> createAppointment({

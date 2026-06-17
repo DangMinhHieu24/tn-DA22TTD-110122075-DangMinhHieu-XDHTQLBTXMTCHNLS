@@ -980,7 +980,7 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
                       onPressed: () {
                         Navigator.of(ctx).pop();
                         final plate = appointment.vehicleLicensePlate;
-                        _openNewIntake(plate ?? '');
+                        _openNewIntake(plate ?? '', appointment.id);
                       },
                       icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
                       label: const Text('Tiếp nhận xe'),
@@ -1028,11 +1028,12 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
     );
   }
 
-  void _openNewIntake([String licensePlate = '']) {
+  void _openNewIntake([String licensePlate = '', String? appointmentId]) {
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (_, animation, __) => VehicleIntakePage(
           initialLicensePlate: licensePlate.isNotEmpty ? licensePlate : null,
+          appointmentId: appointmentId,
         ),
         transitionsBuilder: (_, animation, __, child) {
           return SlideTransition(

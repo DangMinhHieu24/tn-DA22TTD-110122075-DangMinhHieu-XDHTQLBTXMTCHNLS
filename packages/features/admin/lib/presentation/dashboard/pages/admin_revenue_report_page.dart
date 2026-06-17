@@ -48,7 +48,7 @@ class AdminRevenueReportPage extends StatefulWidget {
 }
 
 class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
-  _ReportRange _selectedRange = _ReportRange.sevenDays;
+  _ReportRange _selectedRange = _ReportRange.thisMonth;
   late ReportTab _selectedTab;
   _ServiceRange _serviceRange = _ServiceRange.week;
   DateTimeRange? _customRange;
@@ -1771,9 +1771,9 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
   }
 
   String _formatMillions(double value) {
-    if (value <= 0) return '0.0M';
+    if (value <= 0) return '0.0tr';
     final millions = value / 1000000;
-    return '${millions.toStringAsFixed(1)}M';
+    return '${millions.toStringAsFixed(1)}tr';
   }
 
   double _sumLastDays(List<RevenuePoint> points, int days) {

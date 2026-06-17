@@ -105,9 +105,12 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
     try {
       final dio = GetIt.instance<Dio>();
       final status = _tabs[_tabController.index].status;
+      final params = <String, dynamic>{};
+      if (status != null) params['status'] = status;
+      if (status == 'PAID') params['sortBy'] = 'paidAt';
       final response = await dio.get(
         '/work-orders',
-        queryParameters: status != null ? {'status': status} : null,
+        queryParameters: params.isNotEmpty ? params : null,
       );
       final data = (response.data['data'] as List<dynamic>)
           .cast<Map<String, dynamic>>();
@@ -134,11 +137,20 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
     }).toList();
 
     final priorityOrder = {'URGENT': 0, 'HIGH': 1, 'NORMAL': 2, 'LOW': 3};
+    final isPaidTab = _tabs[_tabController.index].status == 'PAID';
     switch (_sortBy) {
       case 'newest':
-        list.sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
+        if (isPaidTab) {
+          list.sort((a, b) => (b['paidAt'] ?? '').compareTo(a['paidAt'] ?? ''));
+        } else {
+          list.sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
+        }
       case 'oldest':
-        list.sort((a, b) => (a['createdAt'] ?? '').compareTo(b['createdAt'] ?? ''));
+        if (isPaidTab) {
+          list.sort((a, b) => (a['paidAt'] ?? '').compareTo(b['paidAt'] ?? ''));
+        } else {
+          list.sort((a, b) => (a['createdAt'] ?? '').compareTo(b['createdAt'] ?? ''));
+        }
       case 'priority':
         list.sort((a, b) {
           final pa = priorityOrder[a['priority']] ?? 2;
@@ -534,7 +546,9 @@ class _WorkOrderCard extends StatelessWidget {
     final vehicleModel = data['vehicle']?['vehicleModel'] ?? data['vehicle']?['model'] ?? '';
     final ownerName = data['vehicle']?['owner']?['name'] ?? 'N/A';
     final techName = data['technician']?['name'] ?? 'Chưa phân công';
-    final createdAt = _safeFormatDate(data['createdAt'] as String?);
+    final createdAt = status == 'PAID'
+        ? _safeFormatDate(data['paidAt'] as String?)
+        : _safeFormatDate(data['createdAt'] as String?);
     final services = (data['services'] as List<dynamic>? ?? []);
     final serviceText = services
         .map((s) => _serviceLabel(s['serviceType'] as String?))

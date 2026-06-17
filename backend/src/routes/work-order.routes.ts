@@ -8,6 +8,7 @@ import {
   addPartsToWorkOrder,
   updateWorkOrderServiceStatus,
   addWorkOrderService,
+  approveWorkOrderService,
   updateWorkOrder,
   deleteWorkOrder,
   getDashboardStats,
@@ -57,6 +58,9 @@ router.patch('/:id/services/:serviceId', updateWorkOrderServiceStatus);
 
 // POST /api/work-orders/:id/services - Add a new service
 router.post('/:id/services', addWorkOrderService);
+
+// PATCH /api/work-orders/:id/services/:serviceId/approval - Approve/reject a service
+router.patch('/:id/services/:serviceId/approval', approveWorkOrderService);
 
 // PUT /api/work-orders/:id - Update work order
 router.put('/:id', updateWorkOrder);

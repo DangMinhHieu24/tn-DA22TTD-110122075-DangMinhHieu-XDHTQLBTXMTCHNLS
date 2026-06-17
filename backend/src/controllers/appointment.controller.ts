@@ -54,6 +54,9 @@ export const getAllAppointments = async (req: Request, res: Response) => {
 
     if (status) {
       where.status = status as string;
+    } else {
+      // Exclude COMPLETED appointments by default (already have work orders)
+      where.status = { not: 'COMPLETED' };
     }
 
     const appointments = await prisma.appointment.findMany({

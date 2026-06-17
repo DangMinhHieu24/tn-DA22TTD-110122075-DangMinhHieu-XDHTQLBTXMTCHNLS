@@ -60,6 +60,26 @@ class CustomerRepositoryImpl implements CustomerRepository {
   }
 
   @override
+  Future<Either<Failure, void>> approveService(String workOrderId, String serviceId) async {
+    try {
+      await workOrderRemoteDataSource.approveService(workOrderId, serviceId, 'APPROVED');
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> rejectService(String workOrderId, String serviceId) async {
+    try {
+      await workOrderRemoteDataSource.approveService(workOrderId, serviceId, 'REJECTED');
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<CustomerAppointment>>> getMyAppointments() async {
     try {
       final appointments = await appointmentRemoteDataSource.getMyAppointments();

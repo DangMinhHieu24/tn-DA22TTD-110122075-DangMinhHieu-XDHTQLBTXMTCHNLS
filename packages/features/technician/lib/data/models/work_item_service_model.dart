@@ -9,6 +9,7 @@ class WorkItemServiceModel extends WorkItemService {
     super.price,
     required super.isDone,
     super.note,
+    super.approvalStatus,
     required super.createdAt,
   });
 
@@ -21,6 +22,7 @@ class WorkItemServiceModel extends WorkItemService {
       price: (json['price'] != null) ? (json['price'] as num).toDouble() : null,
       isDone: json['isDone'] as bool? ?? json['is_done'] as bool? ?? false,
       note: json['note'] as String?,
+      approvalStatus: json['approvalStatus'] as String? ?? json['approval_status'] as String? ?? 'APPROVED',
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? json['created_at'] as String? ?? '') ?? DateTime.now(),
     );
   }
@@ -34,6 +36,7 @@ class WorkItemServiceModel extends WorkItemService {
       'price': price,
       'isDone': isDone,
       'note': note,
+      'approvalStatus': approvalStatus,
       'createdAt': createdAt.toIso8601String(),
     };
   }

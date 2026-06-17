@@ -174,3 +174,12 @@ class ToggleHistoryExpanded extends VehicleIntakeEvent {
   @override
   List<Object?> get props => [expanded];
 }
+
+class VehicleIntakeAppointmentLinked extends VehicleIntakeEvent {
+  final String appointmentId;
+
+  const VehicleIntakeAppointmentLinked(this.appointmentId);
+
+  @override
+  List<Object?> get props => [appointmentId];
+}

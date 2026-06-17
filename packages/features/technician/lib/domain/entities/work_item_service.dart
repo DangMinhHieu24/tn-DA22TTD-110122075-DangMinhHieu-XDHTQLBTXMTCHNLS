@@ -6,6 +6,7 @@ class WorkItemService {
   final double? price;
   final bool isDone;
   final String? note;
+  final String approvalStatus; // 'PENDING', 'APPROVED', 'REJECTED'
   final DateTime createdAt;
 
   WorkItemService({
@@ -16,6 +17,11 @@ class WorkItemService {
     this.price,
     required this.isDone,
     this.note,
+    this.approvalStatus = 'APPROVED',
     required this.createdAt,
   });
+
+  bool get isPending => approvalStatus == 'PENDING';
+  bool get isApproved => approvalStatus == 'APPROVED';
+  bool get isRejected => approvalStatus == 'REJECTED';
 }

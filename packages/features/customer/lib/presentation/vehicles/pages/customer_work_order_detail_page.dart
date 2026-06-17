@@ -11,6 +11,14 @@ import '../widgets/customer_bottom_nav.dart';
 import 'my_vehicles_page.dart';
 import '../../account/pages/customer_account_page.dart';
 
+String _serviceLabel(String type) => switch (type) {
+  'MAINTENANCE' => 'Bảo dưỡng định kỳ',
+  'BATTERY_CHECK' => 'Kiểm tra pin/sạc',
+  'BRAKES_TIRES' => 'Phanh & Lốp',
+  'OTHER_REPAIR' => 'Sửa chữa khác',
+  _ => type,
+};
+
 class CustomerWorkOrderDetailPage extends StatefulWidget {
   final CustomerWorkOrder workOrder;
   final CustomerVehicle vehicle;
@@ -333,6 +341,25 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
 
   // ─── Technical Alert ───────────────────────────────────────────────────────
   Widget _buildTechnicalAlert() {
+    final pendingServices = _currentWorkOrder.services
+        .where((s) => s.isPending)
+        .toList();
+
+    if (pendingServices.isEmpty) return const SizedBox.shrink();
+
+    String formatPrice(double amount) {
+      if (amount <= 0) return '0₫';
+      final whole = amount.floor();
+      final parts = <String>[];
+      var s = whole.toString();
+      while (s.length > 3) {
+        parts.add(s.substring(s.length - 3));
+        s = s.substring(0, s.length - 3);
+      }
+      parts.add(s);
+      return '${parts.reversed.join('.')}₫';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -356,107 +383,156 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: const Border(
-              left: BorderSide(color: AppColors.secondary, width: 4),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.onSurface.withValues(alpha: 0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+        ...pendingServices.map((service) {
+          final svcLabel = _serviceLabel(service.serviceType);
+          final priceText = service.price != null
+              ? formatPrice(service.price!)
+              : 'Liên hệ báo giá';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(16),
+              border: const Border(
+                left: BorderSide(color: AppColors.secondary, width: 4),
               ),
-            ],
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.info_outline,
-                  color: AppColors.secondary, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Khách báo xe sụt pin nhanh khi tăng tốc mạnh. Cần kiểm tra pack pin và cập nhật cấu hình BMS.',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.onSurface,
-                        height: 1.5,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.onSurface.withValues(alpha: 0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline,
+                    color: AppColors.secondary, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              svcLabel,
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.secondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Chi phí phát sinh: 450.000đ',
-                      style: AppTextStyles.titleSmall.copyWith(
-                        fontWeight: FontWeight.w800,
+                      const SizedBox(height: 8),
+                      Text(
+                        service.description ?? 'Không có mô tả',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.onSurface,
+                          height: 1.5,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '(Tiết kiệm 70.000đ so với giá niêm yết)',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.onSurfaceVariant,
+                      const SizedBox(height: 12),
+                      Text(
+                        'Chi phí phát sinh: $priceText',
+                        style: AppTextStyles.titleSmall.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
-                              foregroundColor: Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 10),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _approveService(service),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.secondary,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                'Phê duyệt',
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            onPressed: () => _rejectService(service),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide.none,
+                              backgroundColor: AppColors.surfaceContainerHigh,
+                              foregroundColor: AppColors.onSurfaceVariant,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              elevation: 0,
                             ),
                             child: Text(
-                              'Phê duyệt',
+                              'Từ chối',
                               style: AppTextStyles.labelMedium.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide.none,
-                            backgroundColor: AppColors.surfaceContainerHigh,
-                            foregroundColor: AppColors.onSurfaceVariant,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text(
-                            'Từ chối',
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        }),
       ],
+    );
+  }
+
+  Future<void> _approveService(CustomerWorkOrderService service) async {
+    final result = await _customerRepository.approveService(
+      _currentWorkOrder.id,
+      service.id,
+    );
+    if (!mounted) return;
+    result.fold(
+      (_) => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phê duyệt thất bại')),
+      ),
+      (_) => _refreshWorkOrder(),
+    );
+  }
+
+  Future<void> _rejectService(CustomerWorkOrderService service) async {
+    final result = await _customerRepository.rejectService(
+      _currentWorkOrder.id,
+      service.id,
+    );
+    if (!mounted) return;
+    result.fold(
+      (_) => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Từ chối thất bại')),
+      ),
+      (_) => _refreshWorkOrder(),
     );
   }
 

@@ -39,6 +39,9 @@ class VehicleIntakeState extends Equatable {
   final bool isLoadingHistory;
   final bool historyExpanded;
 
+  // Linked appointment (optional)
+  final String? appointmentId;
+
   const VehicleIntakeState({
     this.licensePlate = '',
     this.km = '',
@@ -69,6 +72,7 @@ class VehicleIntakeState extends Equatable {
     this.vehicleHistory = const <WorkOrderModel>[],
     this.isLoadingHistory = false,
     this.historyExpanded = false,
+    this.appointmentId,
   });
 
   VehicleIntakeState copyWith({
@@ -101,6 +105,7 @@ class VehicleIntakeState extends Equatable {
     List<WorkOrderModel>? vehicleHistory,
     bool? isLoadingHistory,
     bool? historyExpanded,
+    String? appointmentId,
   }) {
     return VehicleIntakeState(
       licensePlate: licensePlate ?? this.licensePlate,
@@ -132,6 +137,7 @@ class VehicleIntakeState extends Equatable {
       vehicleHistory: vehicleHistory ?? this.vehicleHistory,
       isLoadingHistory: isLoadingHistory ?? this.isLoadingHistory,
       historyExpanded: historyExpanded ?? this.historyExpanded,
+      appointmentId: appointmentId ?? this.appointmentId,
     );
   }
 
@@ -166,5 +172,6 @@ class VehicleIntakeState extends Equatable {
         vehicleHistory,
         isLoadingHistory,
         historyExpanded,
+        appointmentId,
       ];
 }

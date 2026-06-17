@@ -40,6 +40,12 @@ enum ServiceType {
   OTHER_REPAIR     // Sửa chữa khác
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum PhotoType {
   INTAKE
   AFTER_REPAIR
@@ -103,6 +109,10 @@ model WorkOrder {
   vehicleId         String          @map("vehicle_id")
   vehicle           Vehicle         @relation(fields: [vehicleId], references: [id])
   
+  // Link to appointment (optional)
+  appointmentId     String?         @unique @map("appointment_id")
+  appointment       Appointment?    @relation(fields: [appointmentId], references: [id])
+  
   // Status & Priority
   status            WorkOrderStatus @default(PENDING)
   priority          WorkPriority    @default(NORMAL)
@@ -141,17 +151,18 @@ model WorkOrder {
 }
 
 model WorkOrderService {
-  id            String      @id @default(uuid())
-  workOrderId   String      @map("order_id")
-  workOrder     WorkOrder   @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  serviceType   ServiceType
-  description   String?     // Mô tả chi tiết dịch vụ
-  serviceName   String?     @map("service_name")
-  price         Float?      @map("price")
-  isDone        Boolean     @default(false) @map("is_done")
-  note          String?     @map("note")
+  id              String         @id @default(uuid())
+  workOrderId     String         @map("order_id")
+  workOrder       WorkOrder      @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  serviceType     ServiceType
+  description     String?        // Mô tả chi tiết dịch vụ
+  serviceName     String?        @map("service_name")
+  price           Float?         @map("price")
+  isDone          Boolean        @default(false) @map("is_done")
+  note            String?        @map("note")
+  approvalStatus  ApprovalStatus @default(PENDING) @map("approval_status")
 
-  createdAt     DateTime    @default(now())
+  createdAt       DateTime       @default(now())
 
   @@map("repair_items")
 }
@@ -219,6 +230,7 @@ enum AppointmentStatus {
   PENDING
   CONFIRMED
   CANCELLED
+  COMPLETED
 }
 
 model Appointment {
@@ -231,6 +243,7 @@ model Appointment {
   serviceType String?  @map("service_type")
   notes       String?
   status      AppointmentStatus @default(PENDING)
+  workOrder   WorkOrder?
 
   @@map("appointments")
 }

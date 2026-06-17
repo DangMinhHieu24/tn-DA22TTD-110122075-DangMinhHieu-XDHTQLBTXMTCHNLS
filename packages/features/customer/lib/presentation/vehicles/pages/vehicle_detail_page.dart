@@ -1097,37 +1097,60 @@ class _WorkOrderCard extends StatelessWidget {
   bool get _isCompleted =>
       workOrder.status.toLowerCase() == 'completed' ||
       workOrder.status.toLowerCase() == 'hoan_thanh' ||
-      workOrder.status.toLowerCase() == 'done';
+      workOrder.status.toLowerCase() == 'done' ||
+      workOrder.status.toLowerCase() == 'paid' ||
+      workOrder.status.toLowerCase() == 'da_thanh_toan';
 
-  Color get _statusBgColor =>
-      _isCompleted ? AppColors.primary : AppColors.error;
+  bool get _isPaid =>
+      workOrder.status.toLowerCase() == 'paid' ||
+      workOrder.status.toLowerCase() == 'da_thanh_toan';
 
-  Color get _cardBorderColor => _isCompleted
-      ? AppColors.outlineVariant.withValues(alpha: 0.3)
-      : AppColors.error.withValues(alpha: 0.2);
+  Color get _statusBgColor {
+    if (_isPaid) return AppColors.primary;
+    if (_isCompleted) return const Color(0xFF16A34A);
+    return AppColors.error;
+  }
 
-  Color get _cardBgColor => _isCompleted
-      ? AppColors.surfaceContainerLowest
-      : AppColors.errorContainer.withValues(alpha: 0.12);
+  Color get _cardBorderColor {
+    if (_isPaid) return AppColors.outlineVariant.withValues(alpha: 0.3);
+    if (_isCompleted) return const Color(0xFF16A34A).withValues(alpha: 0.2);
+    return AppColors.error.withValues(alpha: 0.2);
+  }
 
-  Color get _tagColor =>
-      _isCompleted ? AppColors.primary : AppColors.error;
+  Color get _cardBgColor {
+    if (_isPaid) return AppColors.surfaceContainerLowest;
+    if (_isCompleted) return const Color(0xFF16A34A).withValues(alpha: 0.06);
+    return AppColors.errorContainer.withValues(alpha: 0.12);
+  }
 
-  Color get _leftBorderColor =>
-      _isCompleted ? AppColors.primaryContainer : AppColors.error;
+  Color get _tagColor {
+    if (_isPaid) return AppColors.primary;
+    if (_isCompleted) return const Color(0xFF16A34A);
+    return AppColors.error;
+  }
+
+  Color get _leftBorderColor {
+    if (_isPaid) return AppColors.primaryContainer;
+    if (_isCompleted) return const Color(0xFF16A34A).withValues(alpha: 0.4);
+    return AppColors.error;
+  }
 
   String get _statusLabel {
     final s = workOrder.status.toLowerCase();
     if (s == 'completed' || s == 'hoan_thanh' || s == 'done') {
       return 'Hoàn thành';
     }
+    if (s == 'paid' || s == 'da_thanh_toan') return 'Đã thanh toán';
     if (s == 'pending' || s == 'cho_xu_ly') return 'Chờ xử lý';
     if (s == 'in_progress' || s == 'dang_xu_ly') return 'Đang xử lý';
     return workOrder.status;
   }
 
-  IconData get _statusIcon =>
-      _isCompleted ? Icons.check_circle : Icons.pending;
+  IconData get _statusIcon {
+    final s = workOrder.status.toLowerCase();
+    if (s == 'paid' || s == 'da_thanh_toan') return Icons.payments;
+    return _isCompleted ? Icons.check_circle : Icons.pending;
+  }
 
   String get _servicesSummary {
     if (workOrder.services.isEmpty) return workOrder.notes ?? '';
