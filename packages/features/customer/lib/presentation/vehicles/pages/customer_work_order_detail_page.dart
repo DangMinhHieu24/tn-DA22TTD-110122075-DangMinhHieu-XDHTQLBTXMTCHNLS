@@ -2,14 +2,9 @@ import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../../../domain/entities/customer_maintenance_log.dart';
 import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
 import '../../../domain/repositories/customer_repository.dart';
-import '../widgets/customer_bottom_nav.dart';
-import 'my_vehicles_page.dart';
-import '../../account/pages/customer_account_page.dart';
 
 String _serviceLabel(String type) => switch (type) {
   'MAINTENANCE' => 'Bảo dưỡng định kỳ',
@@ -37,8 +32,7 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
   late CustomerWorkOrder _currentWorkOrder;
   late final CustomerRepository _customerRepository;
   late final WorkOrderRealtimeService _realtimeService;
-  List<CustomerMaintenanceLog> _maintenanceLogs = const [];
-  bool _isLoadingMaintenanceLogs = false;
+
 
   @override
   void initState() {
@@ -61,7 +55,6 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
       onChanged: _refreshWorkOrder,
     );
     _refreshWorkOrder();
-    _refreshMaintenanceLogs();
   }
 
   Future<void> _refreshWorkOrder() async {
@@ -82,30 +75,6 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
         }
       },
     );
-    _refreshMaintenanceLogs();
-  }
-
-  Future<void> _refreshMaintenanceLogs() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoadingMaintenanceLogs = true;
-    });
-
-    final result = await _customerRepository.getMaintenanceLogsByVehicle(widget.vehicle.id);
-    result.fold(
-      (_) {},
-      (logs) {
-        if (!mounted) return;
-        setState(() {
-          _maintenanceLogs = logs;
-        });
-      },
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _isLoadingMaintenanceLogs = false;
-    });
   }
 
   @override
@@ -126,31 +95,11 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
                     const SizedBox(height: 24),
                     _buildTechnicalAlert(),
                     const SizedBox(height: 24),
-                    _buildMaintenanceHistory(),
+                    _buildServicesList(),
                     const SizedBox(height: 32),
                   ],
                 ),
               ),
-            ),
-            CustomerBottomNav(
-              selectedIndex: 0,
-              onItemSelected: (index) {
-                if (index == 0) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (_) => const MyVehiclesPage(),
-                    ),
-                    (route) => false,
-                  );
-                } else if (index == 3) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (_) => const CustomerAccountPage(),
-                    ),
-                    (route) => false,
-                  );
-                }
-              },
             ),
           ],
         ),
@@ -222,103 +171,6 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Header Section ───────────────────────────────────────────────────────
-  Widget _buildHeaderSection() {
-    final vehicle = widget.vehicle;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.electric_bike,
-                color: AppColors.onSurfaceVariant, size: 28),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  vehicle.model,
-                  style: AppTextStyles.titleSmall.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  'Biển số: ${vehicle.licensePlate}',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: AppColors.primaryContainer.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.security,
-                          size: 11, color: AppColors.primary),
-                      const SizedBox(width: 3),
-                      Text(
-                        'Còn bảo hành: ${vehicle.warrantyDaysRemaining ?? 0} ngày',
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_currentWorkOrder.scheduledTime != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'DỰ KIẾN XONG:',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: const Color(0xFFD97706),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 10,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  _formatScheduledTime(_currentWorkOrder.scheduledTime!),
-                  style: AppTextStyles.titleSmall.copyWith(
-                    color: const Color(0xFFD97706),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
         ],
       ),
     );
@@ -537,203 +389,101 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
   }
 
   // ─── Maintenance History Timeline ──────────────────────────────────────────
-  Widget _buildMaintenanceHistory() {
-    final logs = _maintenanceLogs;
-    final visibleLogs = logs.take(3).toList();
+  Widget _buildServicesList() {
+    final services = _currentWorkOrder.services;
+    if (services.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Lịch sử bảo trì',
-                style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            if (logs.isNotEmpty)
-              Text(
-                '${logs.length} mục',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-          ],
+        Text(
+          'Danh sách hạng mục',
+          style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
-        if (_isLoadingMaintenanceLogs)
-          Text(
-            'Đang tải lịch sử bảo trì...',
-            style: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.onSurfaceVariant),
-          )
-        else if (logs.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              'Xe này chưa có lịch sử bảo trì',
-              style: AppTextStyles.bodyMedium
-                  .copyWith(color: AppColors.onSurfaceVariant),
-            ),
-          )
-        else
-          ...visibleLogs.asMap().entries.map((entry) {
-            final i = entry.key;
-            final log = entry.value;
-            final isLast = i == visibleLogs.length - 1;
-            final isFirst = i == 0;
-            return _buildTimelineItem(
-              title: log.serviceSummary?.trim().isNotEmpty == true
-                  ? log.serviceSummary!.trim()
-                  : _mapServiceTypeLabel(log.serviceType ?? ''),
-              description: _buildMaintenanceDescription(log),
-              date: _formatDate(log.performedAt),
-              isFirst: isFirst,
-              isLast: isLast,
-            );
-          }),
-        const SizedBox(height: 12),
-        if (logs.isNotEmpty)
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                // TODO: open full maintenance history screen.
-              },
-              icon: const Icon(Icons.history, size: 18),
-              label: Text(
-                'Xem tất cả lịch sử',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: BorderSide(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.6),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
+        ...services.map((s) => _buildServiceCard(s)),
       ],
     );
   }
 
-  Widget _buildTimelineItem({
-    required String title,
-    required String description,
-    required String date,
-    required bool isFirst,
-    required bool isLast,
-  }) {
-    return IntrinsicHeight(
+  Widget _buildServiceCard(CustomerWorkOrderService s) {
+    final svcLabel = _serviceLabel(s.serviceType);
+    final priceText = s.price != null ? _formatPrice(s.price!) : null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Timeline indicator column
-          SizedBox(
-            width: 24,
-            child: Column(
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: isFirst
-                          ? AppColors.primary
-                          : AppColors.outlineVariant,
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: isFirst
-                            ? AppColors.primary
-                            : AppColors.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 1,
-                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-              ],
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.primaryContainer.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Content
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: AppTextStyles.titleSmall.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          date,
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (description.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        description,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+            child: Center(
+              child: Icon(
+                s.isDone ? Icons.check_circle : Icons.build_outlined,
+                size: 16,
+                color: s.isDone ? AppColors.primary : AppColors.onSurfaceVariant,
               ),
             ),
           ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  svcLabel,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    decoration: s.isDone ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                if ((s.description ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    s.description!,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (priceText != null)
+            Text(
+              priceText,
+              style: AppTextStyles.labelMedium.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  String _formatPrice(double amount) {
+    if (amount <= 0) return '0₫';
+    final whole = amount.floor();
+    final parts = <String>[];
+    var s = whole.toString();
+    while (s.length > 3) {
+      parts.add(s.substring(s.length - 3));
+      s = s.substring(0, s.length - 3);
+    }
+    parts.add(s);
+    return '${parts.reversed.join('.')}₫';
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -755,49 +505,4 @@ class _CustomerWorkOrderDetailPageState extends State<CustomerWorkOrderDetailPag
     }
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  }
-
-  String _formatScheduledTime(String scheduledTime) {
-    final parsed = DateTime.tryParse(scheduledTime);
-    if (parsed == null) {
-      return scheduledTime;
-    }
-
-    return DateFormat('HH:mm, dd/MM/yyyy', 'vi').format(parsed.toLocal());
-  }
-
-  String _mapServiceTypeLabel(String serviceType) {
-    switch (serviceType.toUpperCase()) {
-      case 'MAINTENANCE':
-        return 'Bảo dưỡng định kỳ';
-      case 'BATTERY_CHECK':
-        return 'Kiểm tra pin & BMS';
-      case 'BRAKES_TIRES':
-        return 'Phanh & lốp';
-      case 'OTHER_REPAIR':
-        return 'Sửa chữa khác';
-      default:
-        return serviceType;
-    }
-  }
-
-  String _buildMaintenanceDescription(CustomerMaintenanceLog log) {
-    final parts = <String>[];
-
-    if ((log.notes ?? '').trim().isNotEmpty) {
-      parts.add(log.notes!.trim());
-    }
-
-    if (log.odometerKm != null) {
-      parts.add('Km: ${log.odometerKm}');
-    }
-
-    if (log.nextServiceKm != null) {
-      parts.add('Lần sau: ${log.nextServiceKm} km');
-    }
-
-    return parts.join(' • ');
-  }
 }

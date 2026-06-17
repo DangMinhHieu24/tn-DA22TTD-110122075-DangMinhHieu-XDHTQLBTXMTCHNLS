@@ -1053,6 +1053,7 @@ class _WorkOrderCard extends StatelessWidget {
     if (s == 'completed' || s == 'hoan_thanh' || s == 'done') return 'Hoàn thành';
     if (s == 'paid' || s == 'da_thanh_toan') return 'Đã thanh toán';
     if (s == 'pending' || s == 'cho_xu_ly') return 'Chờ xử lý';
+    if (s == 'inspection' || s == 'dang_kiem_tra') return 'Đang kiểm tra';
     if (s == 'in_progress' || s == 'dang_xu_ly') return 'Đang xử lý';
     return workOrder.status;
   }
