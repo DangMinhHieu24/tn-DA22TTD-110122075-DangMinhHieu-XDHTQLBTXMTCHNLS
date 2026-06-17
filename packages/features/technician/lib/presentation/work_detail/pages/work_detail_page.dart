@@ -84,6 +84,10 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                     const SizedBox(height: 24),
                     _buildStatusTimeline(),
                     const SizedBox(height: 24),
+                    if (_currentItem.notes != null && _currentItem.notes!.trim().isNotEmpty) ...[
+                      _buildIntakeNotesSection(),
+                      const SizedBox(height: 24),
+                    ],
                     _buildChecklistSection(),
                     const SizedBox(height: 24),
                     _buildPartsInventorySection(),
@@ -537,7 +541,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         ? List<String>.from(widget.workItem.photoUrls)
         : <String>[];
     _thumbnailUrl = (_photoUrls.isNotEmpty) ? _photoUrls.first : 'https://via.placeholder.com/80';
-    _notesController.text = widget.workItem.description;
+    _notesController.text = widget.workItem.notes ?? '';
     _startRealtime();
     _fetchInventory();
   }
@@ -1779,6 +1783,65 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Ghi chú của staff lúc tiếp nhận
+  Widget _buildIntakeNotesSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF0),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFF5E6C8),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5E6C8),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.assignment_outlined,
+              size: 20,
+              color: Color(0xFFB8860B),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Ghi chú tiếp nhận',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFB8860B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _currentItem.notes ?? '',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF5D4E37),
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

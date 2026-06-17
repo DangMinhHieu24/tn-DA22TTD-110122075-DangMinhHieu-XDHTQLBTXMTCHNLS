@@ -14,6 +14,7 @@ class WorkItem extends Equatable {
   final List<WorkItemService> services;
   final String customerName;
   final String description;
+  final String? notes;
   final WorkStatus status;
   final WorkPriority priority;
   final String? scheduledTime;
@@ -28,6 +29,7 @@ class WorkItem extends Equatable {
     this.services = const [],
     required this.customerName,
     required this.description,
+    this.notes,
     required this.status,
     required this.priority,
     this.scheduledTime,
@@ -44,6 +46,7 @@ class WorkItem extends Equatable {
       services,
         customerName,
         description,
+        notes,
         status,
         priority,
         scheduledTime,
