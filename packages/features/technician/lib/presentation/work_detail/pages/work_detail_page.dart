@@ -352,17 +352,17 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.add_a_photo,
+                      Icons.image_outlined,
                       size: 48,
-                      color: Color(0xFF3D4A3D),
+                      color: Color(0xFFB0B8B2),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Thêm ảnh',
+                      'Không có ảnh tiếp nhận',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF3D4A3D),
+                        color: Color(0xFFB0B8B2),
                       ),
                     ),
                   ],
