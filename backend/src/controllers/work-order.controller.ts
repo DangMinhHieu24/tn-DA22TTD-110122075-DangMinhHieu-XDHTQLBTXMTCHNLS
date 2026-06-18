@@ -686,8 +686,9 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
           });
         }
 
-        // Award loyalty points (1 point per 100,000 VND)
-        const pointsToAward = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 100000);
+        // Loyalty: 1 tree per order + 1 per 500k, points = floor(totalPrice / 2000)
+        const pointsToAward = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 2000);
+        const extraTrees = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 500000);
         if (pointsToAward > 0) {
           const orderVehicle = await tx.vehicle.findUnique({
             where: { id: savedWorkOrder.vehicleId },
@@ -698,7 +699,7 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
               where: { id: orderVehicle.ownerId },
               data: {
                 loyaltyPoints: { increment: pointsToAward },
-                treesPlanted: { increment: 1 },
+                treesPlanted: { increment: 1 + extraTrees },
               },
             });
           }

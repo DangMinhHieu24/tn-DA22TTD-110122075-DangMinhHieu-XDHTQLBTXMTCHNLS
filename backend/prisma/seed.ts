@@ -491,14 +491,15 @@ async function main() {
       });
     }
 
-    // Award loyalty points (1 point per 100,000 VND)
-    const pointsToAward = Math.floor(totalPrice / 100000);
+    // Loyalty: 1 tree per order + 1 per 500k, points = floor(totalPrice / 2000)
+    const pointsToAward = Math.floor(totalPrice / 2000);
+    const extraTrees = Math.floor(totalPrice / 500000);
     if (pointsToAward > 0) {
       await prisma.user.update({
         where: { id: owner.id },
         data: {
           loyaltyPoints: { increment: pointsToAward },
-          treesPlanted: { increment: 1 },
+          treesPlanted: { increment: 1 + extraTrees },
         },
       });
     }
