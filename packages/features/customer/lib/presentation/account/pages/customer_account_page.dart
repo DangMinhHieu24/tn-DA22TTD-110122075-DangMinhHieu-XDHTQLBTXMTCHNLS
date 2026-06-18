@@ -110,123 +110,205 @@ class CustomerAccountPage extends StatelessWidget {
                             ),
                           ),
 
-                          // ── Trees Impact (hero) ──
+                          // ── Trees Impact (artistic) ──
                           if (user != null)
                             Padding(
                               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xFF1B5E20),
-                                      Color(0xFF2E7D32),
-                                      Color(0xFF388E3C),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: Stack(
                                   children: [
-                                    // Big tree number
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        ...List.generate(
-                                          user.treesPlanted > 3 ? 3 : user.treesPlanted,
-                                          (i) => Padding(
-                                            padding: EdgeInsets.only(right: i < 2 ? 4 : 0),
-                                            child: Icon(
-                                              Icons.forest,
-                                              size: 32,
-                                              color: Colors.white.withValues(alpha: 0.9),
+                                    // Background gradient
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                                      decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Color(0xFF0D3B0F),
+                                            Color(0xFF1B5E20),
+                                            Color(0xFF2E7D32),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          // Decorative top: crescent + sparkle
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Icon(
+                                                    Icons.nights_stay,
+                                                    size: 20,
+                                                    color: Colors.white.withValues(alpha: 0.25),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Icon(
+                                                    Icons.star,
+                                                    size: 10,
+                                                    color: Colors.white.withValues(alpha: 0.2),
+                                                  ),
+                                                ],
+                                              ),
+                                              Icon(
+                                                Icons.trip_origin,
+                                                size: 40,
+                                                color: Colors.white.withValues(alpha: 0.08),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // Artistic tree cluster
+                                          SizedBox(
+                                            height: 80,
+                                            child: Stack(
+                                              alignment: Alignment.bottomCenter,
+                                              children: [
+                                                // Ground line
+                                                Positioned(
+                                                  left: 0,
+                                                  right: 0,
+                                                  bottom: 0,
+                                                  child: Container(
+                                                    height: 2,
+                                                    decoration: BoxDecoration(
+                                                      gradient: LinearGradient(
+                                                        colors: [
+                                                          Colors.transparent,
+                                                          Colors.white.withValues(alpha: 0.3),
+                                                          Colors.white.withValues(alpha: 0.3),
+                                                          Colors.transparent,
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                // Trees
+                                                ...List.generate(
+                                                  (user.treesPlanted > 5 ? 5 : user.treesPlanted).clamp(1, 5),
+                                                  (i) {
+                                                    final sizes = [52.0, 64.0, 58.0, 48.0, 56.0];
+                                                    final bottomOffsets = [0.0, 4.0, 2.0, 0.0, 3.0];
+                                                    return Positioned(
+                                                      left: 8.0 + i * 36.0,
+                                                      bottom: bottomOffsets[i],
+                                                      child: Icon(
+                                                        Icons.forest,
+                                                        size: sizes[i],
+                                                        color: Colors.white.withValues(
+                                                          alpha: 0.9 - i * 0.12,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                                if (user.treesPlanted > 5)
+                                                  Positioned(
+                                                    right: 0,
+                                                    bottom: 14,
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white.withValues(alpha: 0.15),
+                                                        borderRadius: BorderRadius.circular(10),
+                                                      ),
+                                                      child: Text(
+                                                        '+${user.treesPlanted - 5}',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
                                             ),
                                           ),
-                                        ),
-                                        if (user.treesPlanted > 3)
-                                          Padding(
-                                            padding: const EdgeInsets.only(left: 4),
-                                            child: Text(
-                                              '+${user.treesPlanted - 3}',
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
+
+                                          const SizedBox(height: 16),
+
+                                          // Tree count — large artistic number
+                                          Text(
+                                            '${user.treesPlanted}',
+                                            style: TextStyle(
+                                              fontSize: 56,
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.white.withValues(alpha: 0.95),
+                                              height: 1,
+                                              letterSpacing: -1,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+
+                                          // Tagline
+                                          Text(
+                                            'cây xanh đã được trồng',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white.withValues(alpha: 0.85),
+                                              letterSpacing: 0.3,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Cảm ơn bạn đã chung tay vì một hành tinh xanh',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.white.withValues(alpha: 0.5),
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+
+                                          const SizedBox(height: 24),
+
+                                          // Points — delicate chip
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 10,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(30),
+                                              border: Border.all(
+                                                color: Colors.white.withValues(alpha: 0.15),
                                               ),
                                             ),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      '${user.treesPlanted}',
-                                      style: const TextStyle(
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.white,
-                                        height: 1,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      user.treesPlanted > 1 ? 'Cây đã được trồng' : 'Cây đã được trồng',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(alpha: 0.9),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Nhờ những lần sửa chữa của bạn',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w400,
-                                        color: Colors.white.withValues(alpha: 0.65),
-                                      ),
-                                    ),
-
-                                    // Points as secondary info
-                                    const SizedBox(height: 20),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.card_giftcard,
-                                            size: 16,
-                                            color: Colors.white.withValues(alpha: 0.9),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            '${user.loyaltyPoints} điểm tích luỹ',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white.withValues(alpha: 0.9),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.eco,
+                                                  size: 16,
+                                                  color: Colors.white.withValues(alpha: 0.8),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '${user.loyaltyPoints} điểm quà tặng',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.white.withValues(alpha: 0.85),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            Icons.chevron_right,
-                                            size: 16,
-                                            color: Colors.white.withValues(alpha: 0.6),
-                                          ),
+
+                                          const SizedBox(height: 8),
                                         ],
                                       ),
                                     ),
