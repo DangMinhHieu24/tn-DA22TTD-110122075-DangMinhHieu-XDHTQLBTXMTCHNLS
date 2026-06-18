@@ -144,13 +144,27 @@ class CustomerAccountPage extends StatelessWidget {
                                               ),
                                             ),
                                             const SizedBox(height: 4),
-                                            Text(
-                                              'cây xanh đã được trồng',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white.withValues(alpha: 0.9),
-                                              ),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'cây xanh đã được trồng',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.white.withValues(alpha: 0.9),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                GestureDetector(
+                                                  onTap: () => _showTreePolicy(context),
+                                                  child: Icon(
+                                                    Icons.info_outline,
+                                                    size: 14,
+                                                    color: Colors.white.withValues(alpha: 0.45),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
@@ -358,9 +372,69 @@ class CustomerAccountPage extends StatelessWidget {
   }
 
   Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(height: 1, color: const Color(0xFFF3F4F6)),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Divider(height: 1, color: Color(0xFFF3F4F6)),
+    );
+  }
+
+  void _showTreePolicy(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Row(
+              children: [
+                Icon(Icons.forest, size: 24, color: Color(0xFF2E7D32)),
+                SizedBox(width: 10),
+                Text(
+                  'Cam kết xanh',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Mỗi lần xe của bạn hoàn thành sửa chữa, chúng tôi thay mặt bạn trồng một cây xanh trên lãnh thổ Việt Nam, chung tay phủ xanh đất nước và bảo vệ môi trường.',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.6),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Chương trình được hợp tác với các tổ chức phi lợi nhuận trong nước, đảm bảo mỗi cây được trồng đúng chủng loại bản địa, đúng khu vực và được chăm sóc đến khi trưởng thành.',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.6),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.eco, size: 16, color: Color(0xFF2E7D32)),
+                const SizedBox(width: 6),
+                Text(
+                  'Vì một Việt Nam xanh hơn, từng km xe chạy!',
+                  style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
