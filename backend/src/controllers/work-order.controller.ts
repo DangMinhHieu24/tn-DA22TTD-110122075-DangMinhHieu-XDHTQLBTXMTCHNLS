@@ -686,8 +686,8 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
           });
         }
 
-        // Loyalty: 1 tree per order + 1 per 500k, points = floor(totalPrice / 2000)
-        const pointsToAward = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 2000);
+        // Loyalty: 1 tree per order + 1 per 500k, points = floor(totalPrice / 20000)
+        const pointsToAward = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 20000);
         const extraTrees = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 500000);
         if (pointsToAward > 0) {
           const orderVehicle = await tx.vehicle.findUnique({

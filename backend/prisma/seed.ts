@@ -492,7 +492,7 @@ async function main() {
     }
 
     // Loyalty: 1 tree per order + 1 per 500k, points = floor(totalPrice / 2000)
-    const pointsToAward = Math.floor(totalPrice / 2000);
+    const pointsToAward = Math.floor(totalPrice / 20000);
     const extraTrees = Math.floor(totalPrice / 500000);
     if (pointsToAward > 0) {
       await prisma.user.update({
