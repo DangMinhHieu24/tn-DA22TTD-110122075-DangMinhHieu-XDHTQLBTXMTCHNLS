@@ -110,111 +110,122 @@ class CustomerAccountPage extends StatelessWidget {
                             ),
                           ),
 
-                          // ── Impact Card (Trees + Points) ──
+                          // ── Trees Impact (hero) ──
                           if (user != null)
                             Padding(
                               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                               child: Container(
-                                padding: const EdgeInsets.all(20),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
-                                      Color(0xFFE8F5E9),
-                                      Color(0xFFC8E6C9),
-                                      Color(0xFFA5D6A7),
+                                      Color(0xFF1B5E20),
+                                      Color(0xFF2E7D32),
+                                      Color(0xFF388E3C),
                                     ],
                                   ),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.04),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
+                                      color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
                                     ),
                                   ],
                                 ),
-                                child: Row(
+                                child: Column(
                                   children: [
-                                    // Trees planted
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Container(
-                                            width: 48,
-                                            height: 48,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
-                                              borderRadius: BorderRadius.circular(14),
-                                            ),
-                                            child: const Icon(
+                                    // Big tree number
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        ...List.generate(
+                                          user.treesPlanted > 3 ? 3 : user.treesPlanted,
+                                          (i) => Padding(
+                                            padding: EdgeInsets.only(right: i < 2 ? 4 : 0),
+                                            child: Icon(
                                               Icons.forest,
-                                              color: Color(0xFF2E7D32),
-                                              size: 26,
+                                              size: 32,
+                                              color: Colors.white.withValues(alpha: 0.9),
                                             ),
                                           ),
-                                          const SizedBox(height: 10),
-                                          Text(
-                                            '${user.treesPlanted}',
-                                            style: const TextStyle(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w800,
-                                              color: Color(0xFF1B5E20),
+                                        ),
+                                        if (user.treesPlanted > 3)
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 4),
+                                            child: Text(
+                                              '+${user.treesPlanted - 3}',
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(height: 2),
-                                          const Text(
-                                            'Cây đã trồng',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF33691E),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '${user.treesPlanted}',
+                                      style: const TextStyle(
+                                        fontSize: 48,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        height: 1,
                                       ),
                                     ),
-                                    // Divider
-                                    Container(
-                                      width: 1,
-                                      height: 72,
-                                      color: const Color(0xFF81C784).withValues(alpha: 0.4),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      user.treesPlanted > 1 ? 'Cây đã được trồng' : 'Cây đã được trồng',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                      ),
                                     ),
-                                    // Points
-                                    Expanded(
-                                      child: Column(
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Nhờ những lần sửa chữa của bạn',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.white.withValues(alpha: 0.65),
+                                      ),
+                                    ),
+
+                                    // Points as secondary info
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Container(
-                                            width: 48,
-                                            height: 48,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFE65100).withValues(alpha: 0.12),
-                                              borderRadius: BorderRadius.circular(14),
-                                            ),
-                                            child: const Icon(
-                                              Icons.card_giftcard,
-                                              color: Color(0xFFE65100),
-                                              size: 26,
-                                            ),
+                                          Icon(
+                                            Icons.card_giftcard,
+                                            size: 16,
+                                            color: Colors.white.withValues(alpha: 0.9),
                                           ),
-                                          const SizedBox(height: 10),
+                                          const SizedBox(width: 6),
                                           Text(
-                                            '${user.loyaltyPoints}',
-                                            style: const TextStyle(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w800,
-                                              color: Color(0xFF3E2723),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          const Text(
-                                            'Điểm tích luỹ',
+                                            '${user.loyaltyPoints} điểm tích luỹ',
                                             style: TextStyle(
                                               fontSize: 13,
-                                              color: Color(0xFF6D4C00),
-                                              fontWeight: FontWeight.w500,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white.withValues(alpha: 0.9),
                                             ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.chevron_right,
+                                            size: 16,
+                                            color: Colors.white.withValues(alpha: 0.6),
                                           ),
                                         ],
                                       ),
