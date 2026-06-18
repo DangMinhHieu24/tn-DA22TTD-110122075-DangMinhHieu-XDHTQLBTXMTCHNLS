@@ -387,61 +387,169 @@ class CustomerAccountPage extends StatelessWidget {
   }
 
   void _showTreePolicy(BuildContext context) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Row(
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: SizedBox(
+            width: double.infinity,
+            child: Stack(
               children: [
-                Icon(Icons.forest, size: 24, color: Color(0xFF2E7D32)),
-                SizedBox(width: 10),
-                Text(
-                  'Cam kết xanh',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                // Background decoration
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xFFE8F5E9),
+                          Colors.white,
+                          Colors.white,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Decorative top leaves
+                Positioned(
+                  top: -20,
+                  right: -30,
+                  child: Icon(
+                    Icons.eco,
+                    size: 120,
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.06),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  left: -15,
+                  child: Icon(
+                    Icons.forest,
+                    size: 60,
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.05),
+                  ),
+                ),
+                // Content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header with decorative circle
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF1B5E20), Color(0xFF388E3C)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.forest, size: 32, color: Colors.white),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Cam kết xanh',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1B5E20),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 40,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF2E7D32), Color(0xFF66BB6A)],
+                          ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Content
+                      _policyText(
+                        'Mỗi lần xe của bạn hoàn thành sửa chữa, chúng tôi thay mặt bạn trồng một cây xanh trên lãnh thổ Việt Nam, chung tay phủ xanh đất nước và bảo vệ môi trường.',
+                      ),
+                      const SizedBox(height: 14),
+                      _policyText(
+                        'Chương trình hợp tác với các tổ chức phi lợi nhuận trong nước, đảm bảo cây bản địa được trồng đúng khu vực và chăm sóc đến khi trưởng thành.',
+                      ),
+                      const SizedBox(height: 22),
+                      // Divider
+                      Container(
+                        height: 1,
+                        color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                      ),
+                      const SizedBox(height: 16),
+                      // Footer
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.eco, size: 16, color: const Color(0xFF2E7D32).withValues(alpha: 0.7)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Vì một Việt Nam xanh hơn',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                  color: const Color(0xFF2E7D32).withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 18,
+                                color: const Color(0xFF2E7D32).withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Mỗi lần xe của bạn hoàn thành sửa chữa, chúng tôi thay mặt bạn trồng một cây xanh trên lãnh thổ Việt Nam, chung tay phủ xanh đất nước và bảo vệ môi trường.',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.6),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Chương trình được hợp tác với các tổ chức phi lợi nhuận trong nước, đảm bảo mỗi cây được trồng đúng chủng loại bản địa, đúng khu vực và được chăm sóc đến khi trưởng thành.',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.6),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.eco, size: 16, color: Color(0xFF2E7D32)),
-                const SizedBox(width: 6),
-                Text(
-                  'Vì một Việt Nam xanh hơn, từng km xe chạy!',
-                  style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _policyText(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        color: Colors.grey.shade700,
+        height: 1.65,
       ),
     );
   }
