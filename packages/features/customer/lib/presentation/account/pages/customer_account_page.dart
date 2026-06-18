@@ -33,19 +33,18 @@ class CustomerAccountPage extends StatelessWidget {
 
           return Scaffold(
             backgroundColor: const Color(0xFFF5F7FA),
-            body: SafeArea(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // ── Profile Header ──
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-                            decoration: const BoxDecoration(
+            body: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Profile Header ──
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 28),
+                          decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -318,11 +317,10 @@ class CustomerAccountPage extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          );
-        },
-      ),
-    );
+            );
+          },
+        ),
+      );
   }
 
   Widget _buildMenuItem({
