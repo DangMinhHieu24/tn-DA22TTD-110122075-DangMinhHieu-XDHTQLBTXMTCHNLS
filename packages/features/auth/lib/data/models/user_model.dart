@@ -8,6 +8,7 @@ class UserModel extends User {
     required super.role,
     super.phoneNumber,
     super.avatarUrl,
+    super.loyaltyPoints,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +19,7 @@ class UserModel extends User {
       role: _roleFromString(json['role'] as String),
       phoneNumber: json['phoneNumber'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
+      loyaltyPoints: json['loyaltyPoints'] as int? ?? 0,
     );
   }
 
@@ -29,6 +31,7 @@ class UserModel extends User {
       'role': _roleToString(role),
       'phoneNumber': phoneNumber,
       'avatarUrl': avatarUrl,
+      'loyaltyPoints': loyaltyPoints,
     };
   }
 

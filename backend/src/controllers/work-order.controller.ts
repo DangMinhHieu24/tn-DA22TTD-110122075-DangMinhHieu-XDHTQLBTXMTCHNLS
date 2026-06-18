@@ -686,6 +686,21 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
           });
         }
 
+        // Award loyalty points (1 point per 100,000 VND)
+        const pointsToAward = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 100000);
+        if (pointsToAward > 0) {
+          const orderVehicle = await tx.vehicle.findUnique({
+            where: { id: savedWorkOrder.vehicleId },
+            select: { ownerId: true },
+          });
+          if (orderVehicle) {
+            await tx.user.update({
+              where: { id: orderVehicle.ownerId },
+              data: { loyaltyPoints: { increment: pointsToAward } },
+            });
+          }
+        }
+
         return savedWorkOrder;
       }
 

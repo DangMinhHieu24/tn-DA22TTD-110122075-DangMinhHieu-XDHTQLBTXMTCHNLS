@@ -121,7 +121,8 @@ export const login = async (req: Request, res: Response) => {
         name: userWithoutPassword.name,
         role: userWithoutPassword.role.toLowerCase(),
         phoneNumber: userWithoutPassword.phoneNumber,
-        avatarUrl: userWithoutPassword.avatarUrl
+        avatarUrl: userWithoutPassword.avatarUrl,
+        loyaltyPoints: userWithoutPassword.loyaltyPoints
       }
     });
   } catch (error) {
@@ -157,7 +158,8 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       name: userWithoutPassword.name,
       role: userWithoutPassword.role.toLowerCase(),
       phoneNumber: userWithoutPassword.phoneNumber,
-      avatarUrl: userWithoutPassword.avatarUrl
+      avatarUrl: userWithoutPassword.avatarUrl,
+      loyaltyPoints: userWithoutPassword.loyaltyPoints
     });
   } catch (error) {
     console.error('Get current user error:', error);

@@ -491,6 +491,15 @@ async function main() {
       });
     }
 
+    // Award loyalty points (1 point per 100,000 VND)
+    const pointsToAward = Math.floor(totalPrice / 100000);
+    if (pointsToAward > 0) {
+      await prisma.user.update({
+        where: { id: owner.id },
+        data: { loyaltyPoints: { increment: pointsToAward } },
+      });
+    }
+
     orderIndex += 1;
     console.log(`✅ #${orderIndex - 1}: ${workOrder.orderNumber} — ${svcName} (${status})`);
   }

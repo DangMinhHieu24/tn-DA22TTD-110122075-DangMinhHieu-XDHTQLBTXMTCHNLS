@@ -8,9 +8,6 @@ import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
 import '../bloc/customer_work_order_bloc.dart';
 import 'customer_work_order_detail_page.dart';
-import '../widgets/customer_bottom_nav.dart';
-import 'my_vehicles_page.dart';
-import '../../account/pages/customer_account_page.dart';
 import '../../warranties/pages/customer_warranty_page.dart';
 
 class VehicleDetailPage extends StatefulWidget {
@@ -527,26 +524,6 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
                     ],
                   ),
                 ),
-              ),
-              CustomerBottomNav(
-                selectedIndex: 0,
-                onItemSelected: (index) {
-                  if (index == 0) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const MyVehiclesPage(),
-                      ),
-                      (route) => false,
-                    );
-                  } else if (index == 3) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const CustomerAccountPage(),
-                      ),
-                      (route) => false,
-                    );
-                  }
-                },
               ),
             ],
           ),
