@@ -3,8 +3,6 @@ import 'work_item_service.dart';
 
 enum WorkStatus { pending, inspection, inProgress, completed, cancelled }
 
-enum WorkPriority { normal, urgent }
-
 class WorkItem extends Equatable {
   final String id;
   final String licensePlate;
@@ -16,7 +14,6 @@ class WorkItem extends Equatable {
   final String description;
   final String? notes;
   final WorkStatus status;
-  final WorkPriority priority;
   final String? scheduledTime;
   final DateTime createdAt;
 
@@ -31,7 +28,6 @@ class WorkItem extends Equatable {
     required this.description,
     this.notes,
     required this.status,
-    required this.priority,
     this.scheduledTime,
     required this.createdAt,
   });
@@ -48,7 +44,6 @@ class WorkItem extends Equatable {
         description,
         notes,
         status,
-        priority,
         scheduledTime,
         createdAt,
       ];

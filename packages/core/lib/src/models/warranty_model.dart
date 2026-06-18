@@ -166,13 +166,104 @@ class VehicleWarrantyInfo extends Equatable {
       ];
 }
 
+class PartWarrantyModel extends Equatable {
+  final String id;
+  final String partId;
+  final String partName;
+  final String workOrderId;
+  final int warrantyDays;
+  final DateTime startDate;
+  final DateTime expiryDate;
+  final int daysRemaining;
+  final WarrantyStatus status;
+
+  const PartWarrantyModel({
+    required this.id,
+    required this.partId,
+    required this.partName,
+    required this.workOrderId,
+    required this.warrantyDays,
+    required this.startDate,
+    required this.expiryDate,
+    required this.daysRemaining,
+    required this.status,
+  });
+
+  factory PartWarrantyModel.fromJson(Map<String, dynamic> json) {
+    return PartWarrantyModel(
+      id: json['id'] as String,
+      partId: json['partId'] as String,
+      partName: json['partName'] as String,
+      workOrderId: json['workOrderId'] as String,
+      warrantyDays: json['warrantyDays'] as int,
+      startDate: DateTime.parse(json['startDate'] as String),
+      expiryDate: DateTime.parse(json['expiryDate'] as String),
+      daysRemaining: json['daysRemaining'] as int,
+      status: _statusFromString(json['status'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'partId': partId,
+      'partName': partName,
+      'workOrderId': workOrderId,
+      'warrantyDays': warrantyDays,
+      'startDate': startDate.toIso8601String(),
+      'expiryDate': expiryDate.toIso8601String(),
+      'daysRemaining': daysRemaining,
+      'status': _statusToString(status),
+    };
+  }
+
+  static WarrantyStatus _statusFromString(String status) {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return WarrantyStatus.active;
+      case 'EXPIRING_SOON':
+        return WarrantyStatus.expiringSoon;
+      case 'EXPIRED':
+        return WarrantyStatus.expired;
+      default:
+        return WarrantyStatus.active;
+    }
+  }
+
+  static String _statusToString(WarrantyStatus status) {
+    switch (status) {
+      case WarrantyStatus.active:
+        return 'ACTIVE';
+      case WarrantyStatus.expiringSoon:
+        return 'EXPIRING_SOON';
+      case WarrantyStatus.expired:
+        return 'EXPIRED';
+    }
+  }
+
+  @override
+  List<Object?> get props => [
+        id,
+        partId,
+        partName,
+        workOrderId,
+        warrantyDays,
+        startDate,
+        expiryDate,
+        daysRemaining,
+        status,
+      ];
+}
+
 class WarrantyResponse extends Equatable {
   final VehicleWarrantyInfo vehicle;
   final List<WarrantyModel> warranties;
+  final List<PartWarrantyModel> partWarranties;
 
   const WarrantyResponse({
     required this.vehicle,
     required this.warranties,
+    this.partWarranties = const [],
   });
 
   factory WarrantyResponse.fromJson(Map<String, dynamic> json) {
@@ -181,9 +272,14 @@ class WarrantyResponse extends Equatable {
       warranties: (json['warranties'] as List)
           .map((w) => WarrantyModel.fromJson(w as Map<String, dynamic>))
           .toList(),
+      partWarranties: json['partWarranties'] != null
+          ? (json['partWarranties'] as List)
+              .map((pw) => PartWarrantyModel.fromJson(pw as Map<String, dynamic>))
+              .toList()
+          : [],
     );
   }
 
   @override
-  List<Object?> get props => [vehicle, warranties];
+  List<Object?> get props => [vehicle, warranties, partWarranties];
 }

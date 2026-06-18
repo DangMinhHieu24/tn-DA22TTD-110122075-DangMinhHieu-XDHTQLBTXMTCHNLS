@@ -153,7 +153,6 @@ class VehicleIntakeRepository {
       final data = {
         'vehicleId': vehicleId,
         'status': 'PENDING',
-        'priority': 'NORMAL',
         'notes': notes,
         'technicianId': _normalizeTechnicianId(technicianId),
         'estimatedHours': estimatedHours,

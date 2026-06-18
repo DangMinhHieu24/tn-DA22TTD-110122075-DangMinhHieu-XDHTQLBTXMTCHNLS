@@ -9,7 +9,6 @@ import '../bloc/dashboard_state.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/greeting_section.dart';
 import '../widgets/stats_card.dart';
-import '../widgets/urgent_work_card.dart';
 import '../widgets/work_card.dart';
 import '../widgets/draggable_fab.dart';
 import '../widgets/dashboard_bottom_nav.dart';
@@ -273,8 +272,7 @@ class _DashboardViewState extends State<_DashboardView> {
   }
 
   Widget _buildWorkSection(DashboardLoaded state) {
-    final urgentItems = state.urgentWorkItems;
-    final normalItems = state.normalWorkItems;
+    final items = state.todayWorkItems;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,22 +306,8 @@ class _DashboardViewState extends State<_DashboardView> {
         ),
         const SizedBox(height: 24),
         
-        // Urgent work items
-        ...urgentItems.map((item) => Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: UrgentWorkCard(
-            licensePlate: item.licensePlate,
-            vehicleModel: item.vehicleModel,
-            customerName: item.customerName,
-            description: item.description,
-            onStartRepair: () {
-              _openWorkDetail(context, item);
-            },
-          ),
-        )),
-        
-        // Normal work items
-        ...normalItems.map((item) => Padding(
+        // Work items
+        ...items.map((item) => Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: WorkCard(
             licensePlate: item.licensePlate,

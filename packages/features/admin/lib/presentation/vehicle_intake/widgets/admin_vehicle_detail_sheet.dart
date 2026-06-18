@@ -4,6 +4,7 @@ import 'package:core/core.dart';
 import '../../../data/models/vehicle_model.dart';
 import '../../../data/models/work_order_model.dart';
 import '../../../data/repositories/vehicle_intake_repository.dart';
+import '../../warranty/admin_vehicle_warranty_page.dart';
 
 class AdminVehicleDetailSheet extends StatefulWidget {
   final VehicleModel vehicle;
@@ -266,6 +267,46 @@ class _AdminVehicleDetailSheetState extends State<AdminVehicleDetailSheet> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminVehicleWarrantyPage(
+                      vehicleId: v.id,
+                      licensePlate: v.licensePlate,
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.verified_user, size: 16, color: Color(0xFF166534)),
+                    const SizedBox(width: 6),
+                    Text(
+                      v.isUnderWarranty ? 'Xem chi tiết bảo hành' : 'Xem thông tin bảo hành',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right, size: 18, color: Color(0xFF166534)),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 24),
 

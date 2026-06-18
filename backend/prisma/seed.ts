@@ -4,21 +4,6 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const buildSpreadDates = (startDate: Date, endDate: Date, count: number) => {
-  if (count <= 1) {
-    return [new Date((startDate.getTime() + endDate.getTime()) / 2)];
-  }
-
-  const span = endDate.getTime() - startDate.getTime();
-  return Array.from({ length: count }, (_, index) => new Date(startDate.getTime() + Math.round((span * index) / (count - 1))));
-};
-
-const setBusinessHour = (date: Date, hour: number, minute: number) => {
-  const result = new Date(date);
-  result.setHours(hour, minute, 0, 0);
-  return result;
-};
-
 const roundMoney = (value: number) => Math.round(value / 1000) * 1000;
 
 const buildPhotos = (label: string, index: number) => {
@@ -189,6 +174,7 @@ async function main() {
         minThreshold: 2,
         unitPrice: 4200000,
         sellPrice: 5200000,
+        warrantyDays: 365,
       },
       {
         partName: 'BMS 60V 30A',
@@ -197,6 +183,7 @@ async function main() {
         minThreshold: 3,
         unitPrice: 450000,
         sellPrice: 650000,
+        warrantyDays: 180,
       },
       {
         partName: 'Sạc 60V 5A',
@@ -205,6 +192,7 @@ async function main() {
         minThreshold: 4,
         unitPrice: 520000,
         sellPrice: 720000,
+        warrantyDays: 180,
       },
       {
         partName: 'Động cơ hub 1500W',
@@ -213,6 +201,7 @@ async function main() {
         minThreshold: 1,
         unitPrice: 2800000,
         sellPrice: 3500000,
+        warrantyDays: 365,
       },
       {
         partName: 'Bộ điều khiển 60V 35A',
@@ -221,6 +210,7 @@ async function main() {
         minThreshold: 2,
         unitPrice: 900000,
         sellPrice: 1200000,
+        warrantyDays: 180,
       },
       {
         partName: 'Tay ga điện (Hall)',
@@ -229,6 +219,7 @@ async function main() {
         minThreshold: 6,
         unitPrice: 90000,
         sellPrice: 150000,
+        warrantyDays: 90,
       },
       {
         partName: 'Má phanh trước (đĩa)',
@@ -237,6 +228,7 @@ async function main() {
         minThreshold: 6,
         unitPrice: 120000,
         sellPrice: 180000,
+        warrantyDays: 90,
       },
       {
         partName: 'Đĩa phanh trước 220mm',
@@ -245,6 +237,7 @@ async function main() {
         minThreshold: 3,
         unitPrice: 180000,
         sellPrice: 260000,
+        warrantyDays: 90,
       },
       {
         partName: 'Lốp không săm 90/90-12',
@@ -253,6 +246,7 @@ async function main() {
         minThreshold: 4,
         unitPrice: 650000,
         sellPrice: 900000,
+        warrantyDays: 180,
       },
       {
         partName: 'Cảm biến phanh (cut-off)',
@@ -261,6 +255,7 @@ async function main() {
         minThreshold: 5,
         unitPrice: 60000,
         sellPrice: 120000,
+        warrantyDays: 90,
       },
     ],
   });
@@ -290,8 +285,6 @@ async function main() {
   const batteryPack = partByName.get('Pin Li-ion 60V 20Ah (pack)')!;
   const bms = partByName.get('BMS 60V 30A')!;
   const charger = partByName.get('Sạc 60V 5A')!;
-  
-  
   const controller = partByName.get('Bộ điều khiển 60V 35A')!;
   const throttle = partByName.get('Tay ga điện (Hall)')!;
   const brakeSensor = partByName.get('Cảm biến phanh (cut-off)')!;
@@ -330,22 +323,22 @@ async function main() {
 
   // Realistic service scenarios
   const serviceScenarios = [
-    { type: 'MAINTENANCE', name: 'Bảo dưỡng định kỳ 5.000km', parts: [] },
-    { type: 'BATTERY_CHECK', name: 'Kiểm tra pin & BMS', parts: [] },
-    { type: 'BRAKES_TIRES', name: 'Thay má phanh trước', parts: ['brakePad'] },
-    { type: 'BRAKES_TIRES', name: 'Thay lốp không săm', parts: ['tire'] },
-    { type: 'BRAKES_TIRES', name: 'Thay má phanh + đĩa phanh', parts: ['brakePad', 'brakeDisc'] },
-    { type: 'OTHER_REPAIR', name: 'Thay pin Li-ion 60V', parts: ['batteryPack'] },
-    { type: 'OTHER_REPAIR', name: 'Thay BMS 60V 30A', parts: ['bms'] },
-    { type: 'MAINTENANCE', name: 'Bảo dưỡng + kiểm tra sạc', parts: ['charger'] },
-    { type: 'BATTERY_CHECK', name: 'Kiểm tra pin + thay BMS', parts: ['bms'] },
-    { type: 'OTHER_REPAIR', name: 'Thay bộ điều khiển 60V', parts: ['controller'] },
-    { type: 'OTHER_REPAIR', name: 'Sửa chữa hệ thống phanh', parts: ['brakePad', 'brakeSensor'] },
-    { type: 'BRAKES_TIRES', name: 'Thay lốp + má phanh', parts: ['tire', 'brakePad'] },
-    { type: 'OTHER_REPAIR', name: 'Thay tay ga điện', parts: ['throttle'] },
-    { type: 'MAINTENANCE', name: 'Bảo dưỡng tổng quát', parts: [] },
-    { type: 'OTHER_REPAIR', name: 'Thay pin + BMS + sạc', parts: ['batteryPack', 'bms', 'charger'] },
-    { type: 'BRAKES_TIRES', name: 'Thay đĩa phanh + lốp', parts: ['brakeDisc', 'tire'] },
+    { type: 'MAINTENANCE', name: 'Bảo dưỡng định kỳ 5.000km', parts: [], techNote: 'Đã thay dầu nhớt, vệ sinh lọc gió, kiểm tra hệ thống phanh và đèn. Xe hoạt động ổn định.' },
+    { type: 'BATTERY_CHECK', name: 'Kiểm tra pin & BMS', parts: [], techNote: 'Đã kiểm tra pin, BMS hoạt động bình thường, điện áp các cell đạt chuẩn, sạc đầy 100%.' },
+    { type: 'BRAKES_TIRES', name: 'Thay má phanh trước', parts: ['brakePad'], techNote: 'Đã thay má phanh trước mới, vệ sinh đĩa phanh, kiểm tra dầu phanh. Phanh ăn tốt.' },
+    { type: 'BRAKES_TIRES', name: 'Thay lốp không săm', parts: ['tire'], techNote: 'Đã thay lốp không săm mới, cân chỉnh áp suất 2.2 kg/cm², kiểm tra van và vành.' },
+    { type: 'BRAKES_TIRES', name: 'Thay má phanh + đĩa phanh', parts: ['brakePad', 'brakeDisc'], techNote: 'Đã thay má phanh và đĩa phanh trước mới, căn chỉnh kẹp phanh, kiểm tra dầu.' },
+    { type: 'OTHER_REPAIR', name: 'Thay pin Li-ion 60V', parts: ['batteryPack'], techNote: 'Đã thay pin Li-ion 60V 20Ah mới, kiểm tra BMS tương thích, sạc thử đạt 100%.' },
+    { type: 'OTHER_REPAIR', name: 'Thay BMS 60V 30A', parts: ['bms'], techNote: 'Đã thay BMS 60V 30A mới, cân bằng cell, kiểm tra dòng sạc/xả bình thường.' },
+    { type: 'MAINTENANCE', name: 'Bảo dưỡng + kiểm tra sạc', parts: ['charger'], techNote: 'Đã bảo dưỡng định kỳ, thay sạc mới 60V 5A, kiểm tra dòng sạc đạt chuẩn.' },
+    { type: 'BATTERY_CHECK', name: 'Kiểm tra pin + thay BMS', parts: ['bms'], techNote: 'Đã thay BMS mới, kiểm tra pin vẫn còn tốt, sạc đầy và xả kiểm tra.' },
+    { type: 'OTHER_REPAIR', name: 'Thay bộ điều khiển 60V', parts: ['controller'], techNote: 'Đã thay bộ điều khiển 60V 35A mới, lập trình lại thông số, chạy thử xe ổn định.' },
+    { type: 'OTHER_REPAIR', name: 'Sửa chữa hệ thống phanh', parts: ['brakePad', 'brakeSensor'], techNote: 'Đã thay má phanh và cảm biến phanh mới, kiểm tra công tắc cut-off hoạt động tốt.' },
+    { type: 'BRAKES_TIRES', name: 'Thay lốp + má phanh', parts: ['tire', 'brakePad'], techNote: 'Đã thay lốp sau mới và má phanh trước, kiểm tra hệ thống phanh an toàn.' },
+    { type: 'OTHER_REPAIR', name: 'Thay tay ga điện', parts: ['throttle'], techNote: 'Đã thay tay ga điện (Hall) mới, hiệu chuẩn tín hiệu, chạy thử xe êm và nhạy.' },
+    { type: 'MAINTENANCE', name: 'Bảo dưỡng tổng quát', parts: [], techNote: 'Đã kiểm tra toàn bộ xe: pin, động cơ, phanh, lốp, đèn. Xe đạt tiêu chuẩn vận hành.' },
+    { type: 'OTHER_REPAIR', name: 'Thay pin + BMS + sạc', parts: ['batteryPack', 'bms', 'charger'], techNote: 'Đã thay pin Li-ion mới kèm BMS và sạc, kiểm tra lần cuối tất cả thông số, xe vận hành tốt.' },
+    { type: 'BRAKES_TIRES', name: 'Thay đĩa phanh + lốp', parts: ['brakeDisc', 'tire'], techNote: 'Đã thay đĩa phanh trước và lốp sau mới, kiểm tra độ mòn và áp suất đạt chuẩn.' },
   ];
 
   const partMap: Record<string, any> = {
@@ -405,6 +398,8 @@ async function main() {
 
     const partsTotal = partsUsedList.reduce((s, p) => s + (p.quantity * p.unitPrice), 0);
     const totalPrice = roundMoney(partsTotal + servicePrice);
+    const estimatedHours = 1 + (i % 4) * 0.5;
+    const expectedHour = (createdAt.getHours() + Math.ceil(estimatedHours)) % 24;
 
     // Determine status: 80% PAID, 20% COMPLETED
     const isPaid = i % 5 !== 0; // 80% paid
@@ -416,11 +411,10 @@ async function main() {
         orderNumber: `WO-${new Date().getFullYear()}-${String(orderIndex).padStart(3, '0')}`,
         vehicleId: vehicle.id,
         status,
-        priority: 'NORMAL',
-        notes: `${svcName} - ${vehicle.licensePlate}`,
+        notes: scenario.techNote,
         technicianId: tech.id,
-        estimatedHours: 1 + (i % 4) * 0.5,
-        scheduledTime: `${createdAt.getHours()}:00`,
+        estimatedHours,
+        scheduledTime: `${expectedHour}:00`,
         totalPrice,
         createdAt,
         completedAt,
@@ -433,6 +427,7 @@ async function main() {
               serviceName: svcName,
               description: svcName,
               price: servicePrice,
+              isDone: true,
               approvalStatus: 'APPROVED',
             },
           ],
@@ -461,6 +456,40 @@ async function main() {
         nextServiceKm: (vehicle.currentKm ?? 5000) + kmIncrease + 800,
       },
     });
+
+    // Create PartWarranty records for parts with warranty
+    const createdPartsUsed = await prisma.partsUsed.findMany({
+      where: { workOrderId: workOrder.id },
+      include: { part: { select: { warrantyDays: true } } },
+    });
+    for (const pu of createdPartsUsed) {
+      if (pu.part.warrantyDays > 0) {
+        const expiryDate = new Date(completedAt.getTime() + pu.part.warrantyDays * 24 * 60 * 60 * 1000);
+        await prisma.partWarranty.create({
+          data: {
+            partUsedId: pu.id,
+            partId: pu.partId,
+            workOrderId: workOrder.id,
+            vehicleId: vehicle.id,
+            warrantyDays: pu.part.warrantyDays,
+            startDate: completedAt,
+            expiryDate,
+          },
+        });
+      }
+    }
+
+    // Update vehicle warranty expiry to the latest expiry date among all part warranties
+    const maxExpiry = await prisma.partWarranty.aggregate({
+      where: { vehicleId: vehicle.id },
+      _max: { expiryDate: true },
+    });
+    if (maxExpiry._max.expiryDate) {
+      await prisma.vehicle.update({
+        where: { id: vehicle.id },
+        data: { warrantyExpiry: maxExpiry._max.expiryDate },
+      });
+    }
 
     orderIndex += 1;
     console.log(`✅ #${orderIndex - 1}: ${workOrder.orderNumber} — ${svcName} (${status})`);
@@ -501,7 +530,6 @@ async function main() {
         orderNumber: `WO-${new Date().getFullYear()}-${String(orderIndex).padStart(3, '0')}`,
         vehicleId: vehicle.id,
         status,
-        priority: 'NORMAL',
         notes: `${svcName} - ${vehicle.licensePlate}`,
         technicianId: tech.id,
         estimatedHours: 1.5,

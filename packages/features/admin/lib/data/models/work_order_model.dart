@@ -13,7 +13,6 @@ class WorkOrderModel {
   final String orderNumber;
   final String vehicleId;
   final String status;
-  final String priority;
   final String? notes;
   final String? technicianId;
   final double? estimatedHours;
@@ -28,7 +27,6 @@ class WorkOrderModel {
     required this.orderNumber,
     required this.vehicleId,
     required this.status,
-    required this.priority,
     this.notes,
     this.technicianId,
     this.estimatedHours,
@@ -47,7 +45,6 @@ class WorkOrderModel {
       orderNumber: json['orderNumber'] as String,
       vehicleId: json['vehicleId'] as String,
       status: json['status'] as String,
-      priority: json['priority'] as String,
       notes: json['notes'] as String?,
       technicianId: json['technicianId'] as String?,
       estimatedHours: (json['estimatedHours'] as num?)?.toDouble(),
@@ -65,7 +62,6 @@ class WorkOrderModel {
       'orderNumber': orderNumber,
       'vehicleId': vehicleId,
       'status': status,
-      'priority': priority,
       'notes': notes,
       'technicianId': technicianId,
       'estimatedHours': estimatedHours,

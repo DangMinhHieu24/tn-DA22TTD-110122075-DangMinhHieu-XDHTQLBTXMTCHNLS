@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:core/core.dart';
+import 'package:auth/auth.dart';
 import '../domain/repositories/admin_appointment_repository.dart';
 import '../domain/repositories/dashboard_repository.dart';
 import '../domain/repositories/revenue_report_repository.dart';
@@ -43,6 +44,16 @@ void setupAdminDependencies() {
 
   getIt.registerLazySingleton<QRScannerService>(
     () => QRScannerService(),
+  );
+
+  getIt.registerLazySingleton<WarrantyService>(
+    () => WarrantyService(
+      baseUrl: 'http://10.0.2.2:3000/api',
+      getToken: () async {
+        final authLocalDataSource = getIt<AuthLocalDataSource>();
+        return (await authLocalDataSource.getToken()) ?? '';
+      },
+    ),
   );
 
   // Data sources

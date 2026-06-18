@@ -8,6 +8,9 @@ import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
 import '../bloc/customer_work_order_bloc.dart';
 import 'customer_work_order_detail_page.dart';
+import '../widgets/customer_bottom_nav.dart';
+import 'my_vehicles_page.dart';
+import '../../account/pages/customer_account_page.dart';
 import '../../warranties/pages/customer_warranty_page.dart';
 
 class VehicleDetailPage extends StatefulWidget {
@@ -24,6 +27,7 @@ class VehicleDetailPage extends StatefulWidget {
 
 class _VehicleDetailPageState extends State<VehicleDetailPage> {
   late final CustomerWorkOrderBloc _workOrderBloc;
+  String? _selectedStatusFilter;
 
   @override
   void initState() {
@@ -524,6 +528,26 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
                   ),
                 ),
               ),
+              CustomerBottomNav(
+                selectedIndex: 0,
+                onItemSelected: (index) {
+                  if (index == 0) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (_) => const MyVehiclesPage(),
+                      ),
+                      (route) => false,
+                    );
+                  } else if (index == 3) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerAccountPage(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ),
@@ -963,18 +987,291 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
     );
   }
 
+  String _getStatusLabel(String statusKey) {
+    switch (statusKey) {
+      case 'pending':
+        return 'Chờ xử lý';
+      case 'in_progress':
+        return 'Đang xử lý';
+      case 'inspection':
+        return 'Kiểm tra';
+      case 'completed':
+        return 'Hoàn thành';
+      case 'paid':
+        return 'Đã thanh toán';
+      case 'cancelled':
+        return 'Đã hủy';
+      default:
+        return statusKey;
+    }
+  }
+
+  IconData _getStatusIcon(String statusKey) {
+    switch (statusKey) {
+      case 'pending':
+        return Icons.pending_actions_rounded;
+      case 'in_progress':
+        return Icons.construction_rounded;
+      case 'inspection':
+        return Icons.find_in_page_rounded;
+      case 'completed':
+        return Icons.check_circle_rounded;
+      case 'paid':
+        return Icons.payments_rounded;
+      case 'cancelled':
+        return Icons.cancel_rounded;
+      default:
+        return Icons.info_rounded;
+    }
+  }
+
+  Color _getStatusColor(String statusKey) {
+    switch (statusKey) {
+      case 'paid':
+        return const Color(0xFF006E2F);
+      case 'completed':
+        return const Color(0xFF4CAF50);
+      case 'inspection':
+        return const Color(0xFF9C27B0);
+      case 'in_progress':
+        return const Color(0xFF2196F3);
+      case 'pending':
+        return const Color(0xFFFF9800);
+      case 'cancelled':
+        return const Color(0xFFF44336);
+      default:
+        return const Color(0xFF9E9E9E);
+    }
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final statuses = [
+          'all',
+          'pending',
+          'in_progress',
+          'inspection',
+          'completed',
+          'paid',
+          'cancelled',
+        ];
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 48,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Lọc theo trạng thái',
+                      style: AppTextStyles.titleMedium.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                    if (_selectedStatusFilter != null)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedStatusFilter = null);
+                          Navigator.of(ctx).pop();
+                        },
+                        child: Text(
+                          'Xóa lọc',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: statuses.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = statuses[index];
+                      final isSelected = (item == 'all' && _selectedStatusFilter == null) ||
+                          (_selectedStatusFilter == item);
+                      
+                      final String label = item == 'all' ? 'Tất cả trạng thái' : _getStatusLabel(item);
+                      final IconData icon = item == 'all' ? Icons.all_inclusive_rounded : _getStatusIcon(item);
+                      final Color color = item == 'all' ? AppColors.primary : _getStatusColor(item);
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedStatusFilter = item == 'all' ? null : item;
+                          });
+                          Navigator.of(ctx).pop();
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? color.withValues(alpha: 0.08)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? color.withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  icon,
+                                  color: color,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  label,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                    color: isSelected ? color : AppColors.onSurface,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: color,
+                                  size: 22,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildRepairHistorySection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Lịch sử sửa chữa',
-            style: AppTextStyles.titleMedium.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,
-            ),
+          // Section header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Lịch sử sửa chữa',
+                style: AppTextStyles.titleMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              Row(
+                children: [
+                  if (_selectedStatusFilter != null) ...[
+                    GestureDetector(
+                      onTap: () => setState(() => _selectedStatusFilter = null),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(_selectedStatusFilter!).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: _getStatusColor(_selectedStatusFilter!).withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getStatusIcon(_selectedStatusFilter!),
+                              size: 12,
+                              color: _getStatusColor(_selectedStatusFilter!),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _getStatusLabel(_selectedStatusFilter!),
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: _getStatusColor(_selectedStatusFilter!),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.close_rounded,
+                              size: 12,
+                              color: _getStatusColor(_selectedStatusFilter!),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  TextButton.icon(
+                    onPressed: () => _showFilterBottomSheet(context),
+                    icon: Icon(
+                      Icons.filter_list,
+                      size: 18,
+                      color: _selectedStatusFilter != null ? AppColors.primary : AppColors.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      'Lọc',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: _selectedStatusFilter != null ? AppColors.primary : AppColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           // Work orders list
@@ -995,14 +1292,44 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
                 );
               }
 
-              final orders =
-                  state is CustomerWorkOrderLoaded ? state.workOrders : [];
+              final allOrders = state is CustomerWorkOrderLoaded
+                      ? state.workOrders
+                      : <CustomerWorkOrder>[];
+                      
+              final orders = allOrders.where((o) {
+                final status = o.status.toLowerCase();
+                
+                // If a status filter is selected, filter by that status
+                if (_selectedStatusFilter != null) {
+                  final s = _selectedStatusFilter!;
+                  if (s == 'completed') {
+                    return status == 'completed' || status == 'hoan_thanh' || status == 'done';
+                  } else if (s == 'paid') {
+                    return status == 'paid' || status == 'da_thanh_toan';
+                  } else if (s == 'pending') {
+                    return status == 'pending' || status == 'cho_xu_ly';
+                  } else if (s == 'in_progress') {
+                    return status == 'in_progress' || status == 'dang_xu_ly';
+                  } else if (s == 'inspection') {
+                    return status == 'inspection';
+                  } else if (s == 'cancelled') {
+                    return status == 'cancelled';
+                  }
+                  return status == s;
+                }
+                
+                // By default (no filter selected), exclude cancelled
+                return status != 'cancelled';
+              }).toList();
+
               if (orders.isEmpty) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Text(
-                      'Chưa có phiếu sửa chữa cho xe này',
+                      _selectedStatusFilter != null
+                          ? 'Không có phiếu sửa chữa nào với trạng thái này'
+                          : 'Chưa có phiếu sửa chữa cho xe này',
                       style: AppTextStyles.bodyMedium
                           .copyWith(color: AppColors.onSurfaceVariant),
                     ),
@@ -1048,14 +1375,69 @@ class _WorkOrderCard extends StatelessWidget {
     required this.onTap,
   });
 
+  String get _statusKey => workOrder.status.toLowerCase();
+
+  bool get _isCompleted =>
+      _statusKey == 'completed' || _statusKey == 'hoan_thanh' || _statusKey == 'done';
+
+  bool get _isPaid => _statusKey == 'paid' || _statusKey == 'da_thanh_toan';
+
+  bool get _isInProgress => _statusKey == 'in_progress' || _statusKey == 'dang_xu_ly';
+
+  bool get _isInspection => _statusKey == 'inspection';
+
+  bool get _isPending => _statusKey == 'pending' || _statusKey == 'cho_xu_ly';
+
+  bool get _isCancelled => _statusKey == 'cancelled';
+
+  Color get _statusColor {
+    if (_isPaid) return const Color(0xFF006E2F);
+    if (_isCompleted) return const Color(0xFF4CAF50);
+    if (_isInspection) return const Color(0xFF9C27B0);
+    if (_isInProgress) return const Color(0xFF2196F3);
+    if (_isPending) return const Color(0xFFFF9800);
+    if (_isCancelled) return const Color(0xFFF44336);
+    return const Color(0xFF9E9E9E);
+  }
+
+  Color get _statusBgColor => _statusColor;
+
+  Color get _cardBorderColor => _statusColor.withValues(alpha: 0.2);
+
+  Color get _cardBgColor {
+    if (_isPaid) return AppColors.surfaceContainerLowest;
+    return _statusColor.withValues(alpha: 0.06);
+  }
+
+  Color get _tagColor => _statusColor;
+
+  Color get _leftBorderColor => _statusColor.withValues(alpha: 0.5);
+
   String get _statusLabel {
     final s = workOrder.status.toLowerCase();
-    if (s == 'completed' || s == 'hoan_thanh' || s == 'done') return 'Hoàn thành';
+    if (s == 'completed' || s == 'hoan_thanh' || s == 'done') {
+      return 'Hoàn thành';
+    }
     if (s == 'paid' || s == 'da_thanh_toan') return 'Đã thanh toán';
     if (s == 'pending' || s == 'cho_xu_ly') return 'Chờ xử lý';
-    if (s == 'inspection' || s == 'dang_kiem_tra') return 'Đang kiểm tra';
     if (s == 'in_progress' || s == 'dang_xu_ly') return 'Đang xử lý';
+    if (s == 'inspection') return 'Kiểm tra';
+    if (s == 'cancelled') return 'Đã hủy';
     return workOrder.status;
+  }
+
+  IconData get _statusIcon {
+    final s = workOrder.status.toLowerCase();
+    if (s == 'paid' || s == 'da_thanh_toan') return Icons.payments;
+    return _isCompleted ? Icons.check_circle : Icons.pending;
+  }
+
+  String get _servicesSummary {
+    if (workOrder.services.isEmpty) return workOrder.notes ?? '';
+    return workOrder.services
+        .map((s) => s.description ?? s.serviceType)
+        .where((s) => s.isNotEmpty)
+        .join(', ');
   }
 
   String get _formattedDate {
@@ -1067,63 +1449,162 @@ class _WorkOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        color: _cardBgColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _cardBorderColor),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.onSurface.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryContainer.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '#${workOrder.orderNumber}',
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _statusLabel,
-                          style: AppTextStyles.labelSmall.copyWith(
-                            fontSize: 11,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row: tag + status chip
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _tagColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '#${workOrder.orderNumber}',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: _tagColor,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _formattedDate,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _statusBgColor,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _statusBgColor.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_statusIcon,
+                          size: 14, color: AppColors.onPrimary),
+                      const SizedBox(width: 4),
+                      Text(
+                        _statusLabel,
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Order title + date
+            Text(
+              _cardTitle,
+              style: AppTextStyles.titleSmall.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formattedDate,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Services summary with left border
+            if (_servicesSummary.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.only(left: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: _leftBorderColor.withValues(alpha: 0.4),
+                      width: 2,
                     ),
-                  ],
+                  ),
+                ),
+                child: Text(
+                  _servicesSummary,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant, size: 20),
-            ],
-          ),
+            const SizedBox(height: 16),
+            // CTA button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onTap,
+                icon: const SizedBox.shrink(),
+                label: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Xem chi tiết phiếu',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: AppColors.onPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward,
+                        size: 16, color: AppColors.onPrimary),
+                  ],
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _statusBgColor,
+                  foregroundColor: AppColors.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                  shadowColor: _statusBgColor.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  String get _cardTitle {
+    final summary = _servicesSummary.trim();
+    if (summary.isNotEmpty) {
+      final firstItem = summary.split(',').first.trim();
+      if (firstItem.isNotEmpty) {
+        return firstItem.length > 42 ? '${firstItem.substring(0, 42)}…' : firstItem;
+      }
+    }
+    return 'Phiếu sửa chữa';
   }
 }

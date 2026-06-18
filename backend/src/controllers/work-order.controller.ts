@@ -65,17 +65,16 @@ const computeWorkOrderTotalRevenue = (workOrder: {
 /**
  * Get all work orders
  * GET /api/work-orders
- * Query params: status, technicianId, priority
+ * Query params: status, technicianId, vehicleId, sortBy
  */
 export const getWorkOrders = async (req: Request, res: Response) => {
   try {
-    const { status, technicianId, priority, vehicleId, sortBy } = req.query;
+    const { status, technicianId, vehicleId, sortBy } = req.query;
     const authUser = (req as any).user;
 
     const where: any = {};
     if (status) where.status = status;
     if (technicianId) where.technicianId = technicianId;
-    if (priority) where.priority = priority;
     if (vehicleId) where.vehicleId = vehicleId;
 
     if (authUser?.role === 'CUSTOMER') {
@@ -127,6 +126,7 @@ export const getWorkOrders = async (req: Request, res: Response) => {
           select: {
             id: true,
             name: true,
+            phoneNumber: true,
           },
         },
         services: true,
@@ -190,6 +190,7 @@ export const getWorkOrderById = async (req: Request, res: Response) => {
             id: true,
             name: true,
             email: true,
+            phoneNumber: true,
           },
         },
         services: true,
@@ -247,7 +248,6 @@ export const createWorkOrder = async (req: Request, res: Response) => {
     const {
       vehicleId,
       status,
-      priority,
       notes,
       technicianId,
       estimatedHours,
@@ -310,7 +310,6 @@ export const createWorkOrder = async (req: Request, res: Response) => {
           vehicleId,
           appointmentId: appointmentId || null,
           status: status || 'PENDING',
-          priority: priority || 'NORMAL',
           notes,
           technicianId,
           estimatedHours,
@@ -675,6 +674,18 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
           }
         }
 
+        // Update vehicle warranty expiry to the latest expiry among all part warranties
+        const maxExpiryResult = await tx.partWarranty.aggregate({
+          where: { vehicleId: savedWorkOrder.vehicleId },
+          _max: { expiryDate: true },
+        });
+        if (maxExpiryResult._max.expiryDate) {
+          await tx.vehicle.update({
+            where: { id: savedWorkOrder.vehicleId },
+            data: { warrantyExpiry: maxExpiryResult._max.expiryDate },
+          });
+        }
+
         return savedWorkOrder;
       }
 
@@ -833,7 +844,7 @@ export const approveWorkOrderService = async (req: Request, res: Response) => {
 export const updateWorkOrder = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { notes, estimatedHours, scheduledTime, priority } = req.body;
+    const { notes, estimatedHours, scheduledTime } = req.body;
     const resolvedScheduledTime = scheduledTime ?? buildScheduledTime(estimatedHours);
 
     const workOrder = await prisma.workOrder.update({
@@ -842,7 +853,6 @@ export const updateWorkOrder = async (req: Request, res: Response) => {
         notes,
         estimatedHours,
         scheduledTime: resolvedScheduledTime,
-        priority,
       },
       include: {
           vehicle: {

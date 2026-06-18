@@ -42,7 +42,6 @@ export 'presentation/settings/pages/settings_page.dart';
 export 'presentation/dashboard/widgets/dashboard_header.dart';
 export 'presentation/dashboard/widgets/greeting_section.dart';
 export 'presentation/dashboard/widgets/stats_card.dart';
-export 'presentation/dashboard/widgets/urgent_work_card.dart';
 export 'presentation/dashboard/widgets/work_card.dart';
 export 'presentation/dashboard/widgets/draggable_fab.dart';
 export 'presentation/dashboard/widgets/dashboard_bottom_nav.dart';

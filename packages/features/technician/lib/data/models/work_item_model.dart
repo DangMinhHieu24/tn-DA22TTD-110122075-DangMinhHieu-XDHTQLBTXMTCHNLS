@@ -15,7 +15,6 @@ class WorkItemModel extends WorkItem {
     required super.description,
     super.notes,
     required super.status,
-    required super.priority,
     super.scheduledTime,
     required super.createdAt,
   });
@@ -38,7 +37,6 @@ class WorkItemModel extends WorkItem {
       description: json['description'] as String? ?? '',
       notes: json['notes'] as String?,
       status: _statusFromString(json['status'] as String? ?? ''),
-      priority: _priorityFromString(json['priority'] as String? ?? ''),
       scheduledTime: json['scheduledTime'] as String?,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     );
@@ -73,7 +71,6 @@ class WorkItemModel extends WorkItem {
       description: description,
       notes: json['notes'] as String?,
       status: _statusFromString(json['status'] as String? ?? ''),
-      priority: _priorityFromString(json['priority'] as String? ?? ''),
       scheduledTime: json['scheduledTime'] as String?,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     );
@@ -100,7 +97,6 @@ class WorkItemModel extends WorkItem {
       'description': description,
       'notes': notes,
       'status': _statusToString(status),
-      'priority': _priorityToString(priority),
       'scheduledTime': scheduledTime,
       'createdAt': createdAt.toIso8601String(),
     };
@@ -118,7 +114,6 @@ class WorkItemModel extends WorkItem {
       description: description,
       notes: notes,
       status: status,
-      priority: priority,
       scheduledTime: scheduledTime,
       createdAt: createdAt,
     );
@@ -136,7 +131,6 @@ class WorkItemModel extends WorkItem {
       description: entity.description,
       notes: entity.notes,
       status: entity.status,
-      priority: entity.priority,
       scheduledTime: entity.scheduledTime,
       createdAt: entity.createdAt,
     );
@@ -188,26 +182,6 @@ class WorkItemModel extends WorkItem {
         return 'COMPLETED';
       case WorkStatus.cancelled:
         return 'CANCELLED';
-    }
-  }
-
-  static WorkPriority _priorityFromString(String priority) {
-    switch (priority.toUpperCase()) {
-      case 'URGENT':
-        return WorkPriority.urgent;
-      case 'NORMAL':
-        return WorkPriority.normal;
-      default:
-        return WorkPriority.normal;
-    }
-  }
-
-  static String _priorityToString(WorkPriority priority) {
-    switch (priority) {
-      case WorkPriority.urgent:
-        return 'URGENT';
-      case WorkPriority.normal:
-        return 'NORMAL';
     }
   }
 }

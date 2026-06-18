@@ -52,6 +52,19 @@ export const getVehicleWarranties = async (req: Request, res: Response) => {
       },
     });
 
+    // Fetch part warranties
+    const partWarranties = await prisma.partWarranty.findMany({
+      where: { vehicleId },
+      include: {
+        part: {
+          select: { partName: true },
+        },
+      },
+      orderBy: {
+        expiryDate: 'asc',
+      },
+    });
+
     // Calculate status and days remaining for each warranty
     const now = new Date();
     const warrantiesWithStatus = warranties.map((warranty) => {
@@ -74,11 +87,39 @@ export const getVehicleWarranties = async (req: Request, res: Response) => {
       };
     });
 
+    // Calculate status and days remaining for each part warranty
+    const partWarrantiesWithStatus = partWarranties.map((pw) => {
+      const expiryDate = new Date(pw.expiryDate);
+      const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      let status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
+      if (daysRemaining < 0) {
+        status = 'EXPIRED';
+      } else if (daysRemaining <= 30) {
+        status = 'EXPIRING_SOON';
+      } else {
+        status = 'ACTIVE';
+      }
+
+      return {
+        id: pw.id,
+        partId: pw.partId,
+        partName: pw.part.partName,
+        workOrderId: pw.workOrderId,
+        warrantyDays: pw.warrantyDays,
+        startDate: pw.startDate,
+        expiryDate: pw.expiryDate,
+        daysRemaining,
+        status,
+      };
+    });
+
     res.json({
       success: true,
       data: {
         vehicle,
         warranties: warrantiesWithStatus,
+        partWarranties: partWarrantiesWithStatus,
       },
     });
   } catch (error: any) {

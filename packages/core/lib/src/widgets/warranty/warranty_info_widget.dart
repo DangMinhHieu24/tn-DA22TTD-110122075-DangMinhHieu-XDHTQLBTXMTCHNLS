@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/warranty_model.dart';
 import 'warranty_card.dart';
+import 'part_warranty_card.dart';
 
 class WarrantyInfoWidget extends StatelessWidget {
   final WarrantyResponse warrantyResponse;
@@ -34,6 +35,8 @@ class WarrantyInfoWidget extends StatelessWidget {
 
     final vehicle = warrantyResponse.vehicle;
     final warranties = warrantyResponse.warranties;
+    final partWarranties = warrantyResponse.partWarranties;
+    final hasAny = warranties.isNotEmpty || partWarranties.isNotEmpty;
 
     return SingleChildScrollView(
       child: Column(
@@ -42,42 +45,41 @@ class WarrantyInfoWidget extends StatelessWidget {
           // Vehicle Info Section
           if (showVehicleInfo) _buildVehicleInfoSection(vehicle),
 
-          // Warranties Header with Add button for Admin
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.verified_user,
-                  color: Color(0xFF15803D),
-                  size: 24,
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Các loại bảo hành',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
+          // ── Empty state when both lists are empty ──
+          if (!hasAny) _buildEmptyState(),
+
+          // ── General Warranties ──
+          if (warranties.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.verified_user,
+                    color: Color(0xFF15803D),
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Các loại bảo hành',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
                     ),
                   ),
-                ),
-                if (showEditActions && onAddWarranty != null)
-                  IconButton(
-                    onPressed: onAddWarranty,
-                    icon: const Icon(Icons.add_circle),
-                    color: const Color(0xFF15803D),
-                    tooltip: 'Thêm bảo hành mới',
-                  ),
-              ],
+                  if (showEditActions && onAddWarranty != null)
+                    IconButton(
+                      onPressed: onAddWarranty,
+                      icon: const Icon(Icons.add_circle),
+                      color: const Color(0xFF15803D),
+                      tooltip: 'Thêm bảo hành mới',
+                    ),
+                ],
+              ),
             ),
-          ),
-
-          // Warranties List
-          if (warranties.isEmpty)
-            _buildEmptyState()
-          else
             ...warranties.map((warranty) => WarrantyCard(
                   warranty: warranty,
                   showActions: showEditActions,
@@ -88,9 +90,56 @@ class WarrantyInfoWidget extends StatelessWidget {
                       ? () => onDeleteWarranty!(warranty)
                       : null,
                 )),
+          ],
+
+          // ── Part Warranties ──
+          if (partWarranties.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.build,
+                    color: Color(0xFF2563EB),
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Bảo hành phụ tùng',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${partWarranties.length}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...partWarranties.map(
+              (pw) => PartWarrantyCard(partWarranty: pw),
+            ),
+          ],
 
           // Warning Note
-          if (warranties.any((w) => w.status == WarrantyStatus.expiringSoon))
+          if (warranties.any((w) => w.status == WarrantyStatus.expiringSoon) ||
+              partWarranties.any((pw) => pw.status == WarrantyStatus.expiringSoon))
             _buildWarningNote(context),
 
           const SizedBox(height: 24),

@@ -48,13 +48,6 @@ String _statusLabel(String status) => switch (status) {
       _ => status,
     };
 
-Color _priorityColor(String priority) => switch (priority) {
-      'URGENT' => const Color(0xFFBA1A1A),
-      'HIGH' => const Color(0xFFB45309),
-      'NORMAL' => const Color(0xFF006E2F),
-      _ => const Color(0xFF9CA3AF),
-    };
-
 class WorkOrderListPage extends StatefulWidget {
   final int initialTabIndex;
   const WorkOrderListPage({super.key, this.initialTabIndex = 0});
@@ -136,7 +129,6 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
       return plate.contains(q) || order.contains(q) || owner.contains(q) || phone.contains(q);
     }).toList();
 
-    final priorityOrder = {'URGENT': 0, 'HIGH': 1, 'NORMAL': 2, 'LOW': 3};
     final isPaidTab = _tabs[_tabController.index].status == 'PAID';
     switch (_sortBy) {
       case 'newest':
@@ -151,12 +143,6 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
         } else {
           list.sort((a, b) => (a['createdAt'] ?? '').compareTo(b['createdAt'] ?? ''));
         }
-      case 'priority':
-        list.sort((a, b) {
-          final pa = priorityOrder[a['priority']] ?? 2;
-          final pb = priorityOrder[b['priority']] ?? 2;
-          return pa.compareTo(pb);
-        });
     }
     return list;
   }
@@ -312,11 +298,9 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      _sortBy == 'priority'
-                          ? 'Ưu tiên'
-                          : _sortBy == 'oldest'
-                              ? 'Cũ nhất'
-                              : 'Bộ lọc',
+                      _sortBy == 'oldest'
+                          ? 'Cũ nhất'
+                          : 'Bộ lọc',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -540,7 +524,6 @@ class _WorkOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = (data['status'] ?? 'PENDING') as String;
-    final priority = (data['priority'] ?? 'NORMAL') as String;
     final orderNumber = data['orderNumber'] ?? '';
     final plate = data['vehicle']?['licensePlate'] ?? 'N/A';
     final vehicleModel = data['vehicle']?['vehicleModel'] ?? data['vehicle']?['model'] ?? '';
@@ -857,7 +840,6 @@ class _SortSheet extends StatelessWidget {
     final options = [
       ('newest', Icons.arrow_downward_rounded, 'Mới nhất trước'),
       ('oldest', Icons.arrow_upward_rounded, 'Cũ nhất trước'),
-      ('priority', Icons.flag_rounded, 'Theo mức ưu tiên'),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
