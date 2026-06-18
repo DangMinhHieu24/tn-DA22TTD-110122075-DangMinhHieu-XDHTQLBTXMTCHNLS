@@ -118,7 +118,7 @@ class CustomerAccountPage extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(24),
                                 child: SizedBox(
                                   width: double.infinity,
-                                  height: 380,
+                                  height: 280,
                                   child: Stack(
                                     children: [
                                       Positioned.fill(
@@ -136,7 +136,7 @@ class CustomerAccountPage extends StatelessWidget {
                                             Text(
                                               '${user.treesPlanted}',
                                               style: const TextStyle(
-                                                fontSize: 64,
+                                                fontSize: 48,
                                                 fontWeight: FontWeight.w900,
                                                 color: Colors.white,
                                                 height: 1,
@@ -152,7 +152,7 @@ class CustomerAccountPage extends StatelessWidget {
                                                 color: Colors.white.withValues(alpha: 0.9),
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
+                                            const SizedBox(height: 4),
                                             Text(
                                               'Cảm ơn bạn đã góp phần xây dựng một hành tinh xanh',
                                               style: TextStyle(
@@ -163,9 +163,9 @@ class CustomerAccountPage extends StatelessWidget {
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
-                                            const SizedBox(height: 20),
+                                            const SizedBox(height: 14),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                               decoration: BoxDecoration(
                                                 color: Colors.white.withValues(alpha: 0.12),
                                                 borderRadius: BorderRadius.circular(30),
