@@ -158,10 +158,18 @@ class CustomerAccountPage extends StatelessWidget {
                                                 const SizedBox(width: 6),
                                                 GestureDetector(
                                                   onTap: () => _showTreePolicy(context),
-                                                  child: Icon(
-                                                    Icons.info_outline,
-                                                    size: 14,
-                                                    color: Colors.white.withValues(alpha: 0.45),
+                                                  child: Container(
+                                                    width: 18,
+                                                    height: 18,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: Colors.white.withValues(alpha: 0.2),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.info_outline,
+                                                      size: 12,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
