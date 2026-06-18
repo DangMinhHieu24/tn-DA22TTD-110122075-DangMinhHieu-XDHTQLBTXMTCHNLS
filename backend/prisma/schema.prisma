@@ -54,6 +54,7 @@ model User {
   password    String
   role        UserRole @default(CUSTOMER)
   loyaltyPoints Int    @default(0) @map("loyalty_points")
+  treesPlanted  Int    @default(0) @map("trees_planted")
   avatarUrl   String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())

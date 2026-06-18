@@ -10,6 +10,7 @@ class User extends Equatable {
   final String? phoneNumber;
   final String? avatarUrl;
   final int loyaltyPoints;
+  final int treesPlanted;
 
   const User({
     required this.id,
@@ -19,6 +20,7 @@ class User extends Equatable {
     this.phoneNumber,
     this.avatarUrl,
     this.loyaltyPoints = 0,
+    this.treesPlanted = 0,
   });
 
   User copyWith({
@@ -29,6 +31,7 @@ class User extends Equatable {
     String? phoneNumber,
     String? avatarUrl,
     int? loyaltyPoints,
+    int? treesPlanted,
   }) {
     return User(
       id: id ?? this.id,
@@ -38,9 +41,10 @@ class User extends Equatable {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
+      treesPlanted: treesPlanted ?? this.treesPlanted,
     );
   }
 
   @override
-  List<Object?> get props => [id, email, name, role, phoneNumber, avatarUrl, loyaltyPoints];
+  List<Object?> get props => [id, email, name, role, phoneNumber, avatarUrl, loyaltyPoints, treesPlanted];
 }

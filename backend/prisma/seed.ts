@@ -496,7 +496,10 @@ async function main() {
     if (pointsToAward > 0) {
       await prisma.user.update({
         where: { id: owner.id },
-        data: { loyaltyPoints: { increment: pointsToAward } },
+        data: {
+          loyaltyPoints: { increment: pointsToAward },
+          treesPlanted: { increment: 1 },
+        },
       });
     }
 

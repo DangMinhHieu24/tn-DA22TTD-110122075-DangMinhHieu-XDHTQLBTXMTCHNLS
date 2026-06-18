@@ -696,7 +696,10 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
           if (orderVehicle) {
             await tx.user.update({
               where: { id: orderVehicle.ownerId },
-              data: { loyaltyPoints: { increment: pointsToAward } },
+              data: {
+                loyaltyPoints: { increment: pointsToAward },
+                treesPlanted: { increment: 1 },
+              },
             });
           }
         }

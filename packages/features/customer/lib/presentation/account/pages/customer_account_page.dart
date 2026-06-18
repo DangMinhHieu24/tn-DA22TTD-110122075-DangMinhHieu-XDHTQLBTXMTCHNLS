@@ -110,17 +110,20 @@ class CustomerAccountPage extends StatelessWidget {
                             ),
                           ),
 
-                          // ── Loyalty Points Card ──
+                          // ── Impact Card (Trees + Points) ──
                           if (user != null)
                             Padding(
                               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                               child: Container(
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                     colors: [
-                                      const Color(0xFFFFF3E0),
-                                      const Color(0xFFFFE0B2),
+                                      Color(0xFFE8F5E9),
+                                      Color(0xFFC8E6C9),
+                                      Color(0xFFA5D6A7),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(16),
@@ -134,57 +137,86 @@ class CustomerAccountPage extends StatelessWidget {
                                 ),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 52,
-                                      height: 52,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE65100).withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: const Icon(
-                                        Icons.card_giftcard,
-                                        color: Color(0xFFE65100),
-                                        size: 28,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
+                                    // Trees planted
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(14),
+                                            ),
+                                            child: const Icon(
+                                              Icons.forest,
+                                              color: Color(0xFF2E7D32),
+                                              size: 26,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            '${user.treesPlanted}',
+                                            style: const TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF1B5E20),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
                                           const Text(
-                                            'Điểm tích luỹ',
+                                            'Cây đã trồng',
                                             style: TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFF6D4C00),
+                                              fontSize: 13,
+                                              color: Color(0xFF33691E),
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
+                                        ],
+                                      ),
+                                    ),
+                                    // Divider
+                                    Container(
+                                      width: 1,
+                                      height: 72,
+                                      color: const Color(0xFF81C784).withValues(alpha: 0.4),
+                                    ),
+                                    // Points
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFE65100).withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(14),
+                                            ),
+                                            child: const Icon(
+                                              Icons.card_giftcard,
+                                              color: Color(0xFFE65100),
+                                              size: 26,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
                                           Text(
-                                            '${user.loyaltyPoints} điểm',
+                                            '${user.loyaltyPoints}',
                                             style: const TextStyle(
                                               fontSize: 28,
                                               fontWeight: FontWeight.w800,
                                               color: Color(0xFF3E2723),
                                             ),
                                           ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            'Điểm tích luỹ',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF6D4C00),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                         ],
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE65100),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: const Text(
-                                        'Chi tiết',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
                                       ),
                                     ),
                                   ],
