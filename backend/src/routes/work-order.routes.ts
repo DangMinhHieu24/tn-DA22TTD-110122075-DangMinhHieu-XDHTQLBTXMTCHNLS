@@ -15,6 +15,7 @@ import {
   getRevenueReport,
   getInvoices,
   recordPayment,
+  redeemPoints,
 } from '../controllers/work-order.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -34,6 +35,9 @@ router.get('/', getWorkOrders);
 
 // GET /api/work-orders/invoices - Search invoices (MUST be before /:id)
 router.get('/invoices', getInvoices);
+
+// POST /api/work-orders/:id/redeem-points - Redeem loyalty points
+router.post('/:id/redeem-points', redeemPoints);
 
 // PATCH /api/work-orders/:id/payment - Record payment
 router.patch('/:id/payment', recordPayment);

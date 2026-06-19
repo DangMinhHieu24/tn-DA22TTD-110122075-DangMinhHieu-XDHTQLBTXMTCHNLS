@@ -25,11 +25,19 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
   bool _isLoading = true;
   bool _isUpdating = false;
   String? _error;
+  final _pointsCtrl = TextEditingController();
+  bool _redeeming = false;
 
   @override
   void initState() {
     super.initState();
     _fetchDetail();
+  }
+
+  @override
+  void dispose() {
+    _pointsCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDetail() async {
@@ -73,6 +81,34 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
       ));
+    }
+  }
+
+  Future<void> _redeemPoints() async {
+    final text = _pointsCtrl.text.trim();
+    final points = int.tryParse(text);
+    if (points == null || points <= 0) return;
+    setState(() => _redeeming = true);
+    try {
+      final dio = GetIt.instance<Dio>();
+      await dio.post('/work-orders/${widget.workOrderId}/redeem-points', data: {'points': points});
+      _pointsCtrl.clear();
+      await _fetchDetail();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Đã áp dụng điểm thưởng thành công'),
+        backgroundColor: Color(0xFF006E2F),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Lỗi: $e'),
+        backgroundColor: const Color(0xFFBA1A1A),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _redeeming = false);
     }
   }
 
@@ -518,7 +554,10 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
     final owner = vehicle['owner'] as Map<String, dynamic>? ?? {};
     final points = owner['loyaltyPoints'] as int? ?? 0;
     final trees = owner['treesPlanted'] as int? ?? 0;
-    if (points == 0 && trees == 0) return const SizedBox.shrink();
+    final alreadyRedeemed = wo['pointsRedeemed'] as int? ?? 0;
+    final discount = wo['pointsDiscount'] as num? ?? 0;
+    final status = (wo['status'] ?? '') as String;
+    if (points == 0 && trees == 0 && alreadyRedeemed == 0) return const SizedBox.shrink();
 
     return _Card(
       title: 'Điểm thưởng & Cây xanh',
@@ -534,26 +573,83 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
               _loyaltyBadge(Icons.card_giftcard, '$points', 'Điểm', const Color(0xFFB45309)),
             ],
           ),
-          if (points > 0) ...[
+          if (alreadyRedeemed > 0) ...[
             const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E1).withValues(alpha: 0.6),
+                color: const Color(0xFFE8F5E9).withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFCA28).withValues(alpha: 0.3)),
+                border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: const Color(0xFFB45309).withValues(alpha: 0.7)),
+                  const Icon(Icons.check_circle, size: 18, color: Color(0xFF2E7D32)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Chủ xe có $points điểm (${_formatCurrency(points * 1000)}). Hỏi khách có muốn dùng không?',
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF5D4037), height: 1.4),
+                      'Đã dùng $alreadyRedeemed điểm (${_formatCurrency(discount)})',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF1B5E20), height: 1.4),
                     ),
                   ),
                 ],
+              ),
+            ),
+          ] else if (points > 0 && status != 'PAID') ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _pointsCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Nhập số điểm (tối đa $points)',
+                      hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFB45309), width: 1.5),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                    ),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: _redeeming ? null : _redeemPoints,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB45309),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    child: _redeeming
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Dùng', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 2),
+              child: Text(
+                'Tương đương ${_formatCurrency(points * 1000)} (~1.000đ/điểm)',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
             ),
           ],

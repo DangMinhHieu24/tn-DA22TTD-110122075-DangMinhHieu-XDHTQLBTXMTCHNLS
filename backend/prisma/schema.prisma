@@ -138,6 +138,10 @@ model WorkOrder {
   paymentMethod     PaymentMethod?  @map("payment_method")
   paidAt            DateTime?       @map("paid_at")
 
+  // Loyalty redemption
+  pointsRedeemed    Int?            @map("points_redeemed")
+  pointsDiscount    Float?          @map("points_discount")
+
   partsUsed         PartsUsed[]
   partWarranties    PartWarranty[]
   maintenanceLog    MaintenanceLog?

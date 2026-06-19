@@ -1436,3 +1436,84 @@ export const recordPayment = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const redeemPoints = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { points } = req.body as { points: number };
+
+    if (!Number.isInteger(points) || points <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số điểm không hợp lệ',
+      });
+    }
+
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id },
+      include: {
+        vehicle: {
+          include: {
+            owner: {
+              select: { id: true, loyaltyPoints: true, treesPlanted: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!workOrder) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy phiếu sửa chữa' });
+    }
+
+    const owner = workOrder.vehicle?.owner;
+    if (!owner) {
+      return res.status(400).json({ success: false, message: 'Phiếu không có chủ xe' });
+    }
+
+    if (points > owner.loyaltyPoints) {
+      return res.status(400).json({
+        success: false,
+        message: `Chủ xe chỉ có ${owner.loyaltyPoints} điểm, không thể dùng ${points}`,
+      });
+    }
+
+    const discount = points * 1000;
+    const baseTotal = workOrder.totalPrice ?? 0;
+    const newTotal = Math.max(0, baseTotal - discount);
+
+    const [updatedOrder] = await prisma.$transaction([
+      prisma.workOrder.update({
+        where: { id },
+        data: {
+          pointsRedeemed: points,
+          pointsDiscount: discount,
+          totalPrice: newTotal,
+        },
+        include: {
+          vehicle: {
+            include: {
+              owner: {
+                select: { id: true, name: true, phoneNumber: true, loyaltyPoints: true, treesPlanted: true },
+              },
+            },
+          },
+          services: { include: { workOrder: false } },
+          partsUsed: { include: { part: { select: { partName: true } } } },
+        },
+      }),
+      prisma.user.update({
+        where: { id: owner.id },
+        data: { loyaltyPoints: { decrement: points } },
+      }),
+    ]);
+
+    res.json({ success: true, data: updatedOrder });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to redeem points',
+      error: error.message,
+    });
+  }
+};
