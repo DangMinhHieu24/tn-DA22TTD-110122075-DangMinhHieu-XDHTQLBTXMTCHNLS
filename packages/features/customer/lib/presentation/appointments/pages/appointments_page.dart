@@ -266,8 +266,8 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
         // Upcoming
         if (upcoming.isNotEmpty) ...[
           _buildSectionHeader(
-            'Sắp tới',
-            Icons.upcoming,
+            'Lịch trình',
+            Icons.schedule_outlined,
             upcoming.length,
           ),
           const SizedBox(height: 12),
@@ -311,28 +311,22 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
   Widget _buildSectionHeader(String title, IconData icon, int count) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
+        Icon(icon, size: 18, color: AppColors.onSurface),
         const SizedBox(width: 8),
         Text(
           title,
-          style: AppTextStyles.titleSmall.copyWith(
-            fontWeight: FontWeight.w700,
+          style: AppTextStyles.titleMedium.copyWith(
+            fontWeight: FontWeight.w800,
             color: AppColors.onSurface,
           ),
         ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColors.primaryContainer.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            '$count',
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
+        const Spacer(),
+        Text(
+          'XEM TẤT CẢ',
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
           ),
         ),
       ],

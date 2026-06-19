@@ -15,8 +15,8 @@ class AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final month = DateFormat('MM', 'vi').format(appointment.scheduledAt);
     final day = DateFormat('dd').format(appointment.scheduledAt);
+    final month = DateFormat('MM').format(appointment.scheduledAt);
     final weekday = _weekdayLabel(appointment.scheduledAt.weekday);
 
     return Container(
@@ -222,24 +222,28 @@ class AppointmentCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge() {
+    Color dotColor;
     Color bgColor;
     Color textColor;
     String label;
 
     switch (appointment.status) {
       case 'CONFIRMED':
-        bgColor = const Color(0xFF22C55E).withValues(alpha: 0.15);
+        dotColor = const Color(0xFF16A34A);
+        bgColor = const Color(0xFFDCFCE7);
         textColor = const Color(0xFF16A34A);
         label = 'ĐÃ XÁC NHẬN';
         break;
       case 'CANCELLED':
-        bgColor = const Color(0xFFEF4444).withValues(alpha: 0.15);
+        dotColor = const Color(0xFFDC2626);
+        bgColor = const Color(0xFFFEE2E2);
         textColor = const Color(0xFFDC2626);
         label = 'ĐÃ HỦY';
         break;
       default:
-        bgColor = const Color(0xFFF59E0B).withValues(alpha: 0.15);
-        textColor = const Color(0xFFD97706);
+        dotColor = const Color(0xFFEA580C);
+        bgColor = const Color(0xFFFEE2E2);
+        textColor = const Color(0xFFEA580C);
         label = 'CHỜ XÁC NHẬN';
     }
 
@@ -249,13 +253,27 @@ class AppointmentCard extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: dotColor,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }
