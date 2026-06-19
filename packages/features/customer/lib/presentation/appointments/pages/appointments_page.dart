@@ -147,10 +147,28 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                 color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
-                Icons.calendar_today_outlined,
-                color: Color(0xFF1B5E20),
-                size: 26,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    color: Color(0xFF1B5E20),
+                    size: 26,
+                  ),
+                  Positioned(
+                    right: 4,
+                    bottom: 4,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF1B5E20),
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white, size: 12),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 14),
@@ -178,9 +196,9 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
             Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF1B5E20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B5E20),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.arrow_forward,
