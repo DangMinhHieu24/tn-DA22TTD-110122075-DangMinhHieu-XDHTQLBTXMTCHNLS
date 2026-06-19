@@ -226,8 +226,15 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
   Widget _buildHeader(Map<String, dynamic> wo, String status) {
     final topPad = MediaQuery.of(context).padding.top;
     return Container(
-      padding: EdgeInsets.fromLTRB(16, topPad + 10, 16, 14),
-      color: const Color(0xFFF0F4F8),
+      padding: EdgeInsets.fromLTRB(16, topPad + 10, 16, 16),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF0F4F8), Color(0xFFE8F0EC)],
+        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 0.5)),
+      ),
       child: Row(
         children: [
           GestureDetector(
@@ -236,10 +243,11 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
-              child: const Icon(Icons.arrow_back_ios_new, size: 16, color: Color(0xFF374151)),
+              child: const Icon(Icons.arrow_back_ios_new, size: 15, color: Color(0xFF374151)),
             ),
           ),
           const SizedBox(width: 12),
@@ -250,35 +258,50 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
                 Text(
                   wo['orderNumber'] ?? '',
                   style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w800,
+                    fontSize: 18, fontWeight: FontWeight.w900,
                     color: Color(0xFF111827), letterSpacing: -0.3,
                   ),
                 ),
-                const Text(
-                  'Phiếu Sửa Chữa',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Container(
+                      width: 6, height: 6,
+                      decoration: BoxDecoration(
+                        color: _statusColor(status),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _statusLabel(status),
+                      style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600,
+                        color: _statusColor(status),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      '•  ${_safeFormatDate(wo['createdAt'] as String?)}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          // Badge mới có dot + refresh
-          Row(
-            children: [
-              _StatusBadge(status: status),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _fetchDetail,
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF6B7280)),
-                ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _fetchDetail,
+            child: Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
-            ],
+              child: const Icon(Icons.refresh_rounded, size: 18, color: Color(0xFF6B7280)),
+            ),
           ),
         ],
       ),
@@ -294,15 +317,62 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
       iconColor: const Color(0xFF006E2F),
       child: Column(
         children: [
-          _DetailRow('Biển số', vehicle['licensePlate'] ?? 'N/A', bold: true),
-          _DetailRow('Model', vehicle['vehicleModel'] ?? vehicle['model'] ?? 'N/A'),
-          _DetailRow('Số khung', vehicle['chassisNumber'] ?? 'N/A'),
-          const Divider(height: 20),
-          _DetailRow('Chủ xe', owner['name'] ?? 'N/A', bold: true),
-          _DetailRow('Điện thoại', owner['phoneNumber'] ?? 'N/A',
-              icon: Icons.phone, iconColor: const Color(0xFF0058BE)),
-          if (owner['email'] != null)
-            _DetailRow('Email', owner['email'], icon: Icons.email_outlined),
+          // License plate hero
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F7F2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFD1E7D9)),
+            ),
+            child: Column(
+              children: [
+                const Text('Biển số', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                const SizedBox(height: 2),
+                Text(
+                  vehicle['licensePlate'] ?? 'N/A',
+                  style: const TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.w900,
+                    color: Color(0xFF111827), letterSpacing: 1,
+                  ),
+                ),
+                Text(
+                  vehicle['vehicleModel'] ?? vehicle['model'] ?? '',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Owner info
+          Row(
+            children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF006E2F).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.person, size: 20, color: Color(0xFF006E2F)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(owner['name'] ?? 'N/A',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                    const SizedBox(height: 2),
+                    Text(owner['phoneNumber'] ?? '',
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+                  ],
+                ),
+              ),
+              if (owner['email'] != null)
+                Text(owner['email'], style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+            ],
+          ),
         ],
       ),
     );
@@ -500,6 +570,8 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
   Widget _buildTotalCard(Map<String, dynamic> wo) {
     final services = (wo['services'] as List<dynamic>? ?? []);
     final parts = (wo['partsUsed'] as List<dynamic>? ?? []);
+    final discount = wo['pointsDiscount'] as num? ?? 0;
+    final discountAmount = (discount as num).toDouble();
 
     final serviceTotal = services.fold<double>(0, (sum, s) {
       return sum + ((s['price'] as num?)?.toDouble() ?? 0);
@@ -522,6 +594,13 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF15803D).withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -529,6 +608,9 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
             _TotalRow('Dịch vụ', serviceTotal, light: true),
           if (partsTotal > 0)
             _TotalRow('Phụ tùng', partsTotal, light: true),
+          if (discountAmount > 0) ...[
+            _TotalRow('Giảm điểm', -discountAmount, light: true),
+          ],
           if (serviceTotal > 0 || partsTotal > 0)
             const Divider(color: Colors.white24, height: 16),
           Row(
@@ -702,66 +784,69 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
     final actions = _getActions(status);
     if (actions.isEmpty && status != 'COMPLETED') return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        // Print button only when completed or paid
-        if (status == 'COMPLETED' || status == 'PAID')
-          OutlinedButton.icon(
-            onPressed: _showPrintPreview,
-            icon: const Icon(Icons.print_outlined, size: 18),
-            label: const Text('Xem & In Phiếu'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF16A34A),
-              side: const BorderSide(color: Color(0xFF16A34A)),
-              minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ...actions.map((action) => Padding(
-          padding: const EdgeInsets.only(top: 10),
-              child: _isUpdating
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF15803D)))
-                  : Container(
-                      width: double.infinity,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF006E2F), Color(0xFF15803D)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: FilledButton.icon(
-                        onPressed: () => _showConfirmDialog(action.status),
-                        icon: Icon(action.icon, size: 18),
-                        label: Text(action.label),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          shadowColor: Colors.transparent,
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-        )),
-        if (status != 'CANCELLED' && status != 'COMPLETED' && status != 'PAID')
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: OutlinedButton.icon(
-              onPressed: () => _showConfirmDialog('CANCELLED'),
-              icon: const Icon(Icons.cancel_outlined, size: 18),
-              label: const Text('Hủy Phiếu'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFBA1A1A),
-                side: const BorderSide(color: Color(0xFFBA1A1A)),
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+      ),
+      child: Column(
+        children: [
+          // Print button only when completed or paid
+          if (status == 'COMPLETED' || status == 'PAID')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SizedBox(
+                width: double.infinity, height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: _showPrintPreview,
+                  icon: const Icon(Icons.print_outlined, size: 18),
+                  label: const Text('Xem & In Phiếu'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF16A34A),
+                    side: const BorderSide(color: Color(0xFF16A34A)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ),
             ),
-          ),
-      ],
+          ...actions.map((action) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+                child: _isUpdating
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF15803D)))
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton.icon(
+                          onPressed: () => _showConfirmDialog(action.status),
+                          icon: Icon(action.icon, size: 18),
+                          label: Text(action.label),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: _statusColor(action.status),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+          )),
+          if (status != 'CANCELLED' && status != 'COMPLETED' && status != 'PAID')
+            SizedBox(
+              width: double.infinity, height: 48,
+              child: OutlinedButton.icon(
+                onPressed: () => _showConfirmDialog('CANCELLED'),
+                icon: const Icon(Icons.cancel_outlined, size: 18),
+                label: const Text('Hủy Phiếu'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFBA1A1A),
+                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -850,10 +935,10 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+        border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -864,23 +949,23 @@ class _Card extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Icon tròn thay vì vuông
               Container(
-                width: 34,
-                height: 34,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 17, color: iconColor),
+                child: Icon(icon, size: 16, color: iconColor),
               ),
               const SizedBox(width: 10),
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1F2937),
+                  letterSpacing: -0.2,
                 ),
               ),
             ],
