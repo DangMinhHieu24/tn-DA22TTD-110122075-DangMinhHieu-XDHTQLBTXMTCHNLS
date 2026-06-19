@@ -81,144 +81,353 @@ class _CustomerDetailSheetState extends State<CustomerDetailSheet> {
     }
   }
 
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+    }
+    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
+
+  String _formatDate(DateTime d) {
+    final months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+    return 'Thg ${months[d.month - 1]}, ${d.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final c = widget.customer;
+
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 24),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 48, height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDBDEE0),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Chi tiết khách hàng',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF191C1E)),
+                // ── Gradient header ──
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.fromLTRB(24, 12, 24, bottom + 0),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0D3B0F),
+                        Color(0xFF1B5E20),
+                        Color(0xFF2E7D32),
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Handle
+                      Center(
+                        child: Container(
+                          width: 40, height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Avatar + edit
+                      Row(
+                        children: [
+                          // Avatar
+                          Container(
+                            width: 68,
+                            height: 68,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.15),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _initials(c.name),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Name + phone
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  c.name,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (c.phoneNumber != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    c.phoneNumber!,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          // Edit button
+                          GestureDetector(
+                            onTap: () => setState(() => _isEditing = !_isEditing),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: _isEditing
+                                    ? Colors.white.withValues(alpha: 0.25)
+                                    : Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                _isEditing ? Icons.close : Icons.edit_outlined,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // ── Stats row ──
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            _statItem(Icons.forest, '${c.treesPlanted}', 'Cây'),
+                            _statDivider(),
+                            _statItem(Icons.card_giftcard, '${c.loyaltyPoints}', 'Điểm'),
+                            _statDivider(),
+                            _statItem(Icons.two_wheeler, '${c.vehicleCount}', 'Xe'),
+                            _statDivider(),
+                            _statItem(Icons.calendar_today, _formatDate(c.createdAt), 'Từ'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 0),
+                    ],
+                  ),
                 ),
-                GestureDetector(
-                  onTap: () => setState(() => _isEditing = !_isEditing),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _isEditing ? const Color(0xFF006E2F) : const Color(0xFFF2F4F6),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      _isEditing ? Icons.close : Icons.edit_outlined,
-                      size: 20,
-                      color: _isEditing ? Colors.white : const Color(0xFF006E2F),
-                    ),
+
+                // ── Body section ──
+                Container(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Thông tin liên hệ',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF191C1E),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildInfoField(
+                        icon: Icons.person_outline,
+                        label: 'Họ và tên',
+                        controller: _nameCtrl,
+                        enabled: _isEditing,
+                      ),
+                      const SizedBox(height: 14),
+
+                      _buildInfoField(
+                        icon: Icons.phone_outlined,
+                        label: 'Số điện thoại',
+                        controller: _phoneCtrl,
+                        enabled: _isEditing,
+                        digitsOnly: true,
+                      ),
+                      const SizedBox(height: 14),
+
+                      _buildInfoField(
+                        icon: Icons.email_outlined,
+                        label: 'Email',
+                        controller: _emailCtrl,
+                        enabled: _isEditing,
+                      ),
+
+                      if (_isEditing) ...[
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _save,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1B5E20),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 24, height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Lưu thay đổi',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            _buildInfoRow(Icons.person_outline, 'Tên', _nameCtrl, enabled: _isEditing),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.phone_outlined, 'Số điện thoại', _phoneCtrl, enabled: _isEditing),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.email_outlined, 'Email', _emailCtrl, enabled: _isEditing),
-            const SizedBox(height: 12),
-            _buildStaticRow('Số xe', '${widget.customer.vehicleCount}'),
-            const SizedBox(height: 8),
-            _buildStaticRow('Điểm loyalty', '${widget.customer.loyaltyPoints}'),
-            const SizedBox(height: 8),
-            _buildStaticRow('Ngày tạo', widget.customer.createdAt.toLocal().toString().split('.')[0]),
-            if (_isEditing) ...[
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF006E2F),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Lưu thay đổi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, TextEditingController ctrl, {bool enabled = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6D7B6C))),
-        const SizedBox(height: 4),
-        enabled
-            ? TextFormField(
-                controller: ctrl,
-                inputFormatters: label == 'Số điện thoại'
-                    ? [FilteringTextInputFormatter.digitsOnly]
-                    : null,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF191C1E)),
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  filled: true,
-                  fillColor: const Color(0xFFF7F9FB),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFDBDEE0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFDBDEE0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFF006E2F), width: 1.5),
-                  ),
-                ),
-              )
-            : Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F9FB),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  ctrl.text.isEmpty ? '—' : ctrl.text,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF191C1E)),
-                ),
-              ),
-      ],
+  Widget _statItem(IconData icon, String value, String label) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: Colors.white.withValues(alpha: 0.9)),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.65),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildStaticRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF6D7B6C))),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF191C1E))),
-      ],
+  Widget _statDivider() {
+    return Container(
+      width: 1,
+      height: 36,
+      color: Colors.white.withValues(alpha: 0.15),
+    );
+  }
+
+  Widget _buildInfoField({
+    required IconData icon,
+    required String label,
+    required TextEditingController controller,
+    bool enabled = false,
+    bool digitsOnly = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9FB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8ECF0)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: const Color(0xFF6D7B6C)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF8A9A89),
+                    ),
+                  ),
+                ),
+                enabled
+                    ? TextFormField(
+                        controller: controller,
+                        inputFormatters: digitsOnly
+                            ? [FilteringTextInputFormatter.digitsOnly]
+                            : null,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF191C1E),
+                          height: 1.4,
+                        ),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 6),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          controller.text.isEmpty ? '—' : controller.text,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF191C1E),
+                          ),
+                        ),
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

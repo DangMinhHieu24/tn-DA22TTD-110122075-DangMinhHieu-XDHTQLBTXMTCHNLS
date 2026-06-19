@@ -56,6 +56,7 @@ class CustomerLookupResult extends LookupResult {
   final String? phoneNumber;
   final String? avatarUrl;
   final int loyaltyPoints;
+  final int treesPlanted;
   final int vehicleCount;
   final DateTime createdAt;
 
@@ -67,6 +68,7 @@ class CustomerLookupResult extends LookupResult {
     this.phoneNumber,
     this.avatarUrl,
     this.loyaltyPoints = 0,
+    this.treesPlanted = 0,
     this.vehicleCount = 0,
     required this.createdAt,
   });

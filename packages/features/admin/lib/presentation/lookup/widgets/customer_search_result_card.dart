@@ -105,6 +105,9 @@ class CustomerSearchResultCard extends StatelessWidget {
   String _buildSubtitle() {
     final parts = <String>[];
     parts.add('${customer.vehicleCount} xe');
+    if (customer.treesPlanted > 0) {
+      parts.add('${customer.treesPlanted} 🌱');
+    }
     if (customer.loyaltyPoints > 0) {
       parts.add('${customer.loyaltyPoints} điểm');
     }

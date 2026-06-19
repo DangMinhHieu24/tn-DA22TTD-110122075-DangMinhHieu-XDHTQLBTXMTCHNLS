@@ -128,6 +128,7 @@ class LookupRemoteDataSourceImpl implements LookupRemoteDataSource {
                 phoneNumber: json['phoneNumber'] as String?,
                 avatarUrl: json['avatarUrl'] as String?,
                 loyaltyPoints: json['loyaltyPoints'] as int? ?? 0,
+                treesPlanted: json['treesPlanted'] as int? ?? 0,
                 vehicleCount: json['_count']?['ownedVehicles'] as int? ?? 0,
                 createdAt: DateTime.parse(json['createdAt'] as String),
               ))
