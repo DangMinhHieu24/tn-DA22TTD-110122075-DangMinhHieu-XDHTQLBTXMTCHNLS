@@ -96,22 +96,6 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Title
-                            Text(
-                              'Lịch hẹn',
-                              style: AppTextStyles.titleLarge.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Đặt lịch hẹn sửa chữa, bảo dưỡng xe của bạn',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
                             // New appointment button
                             _buildNewAppointmentButton(context),
                             const SizedBox(height: 24),
@@ -141,7 +125,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
       onTap: () => _openCreatePage(context),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -157,14 +141,14 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(
-                Icons.add_box_outlined,
+                Icons.calendar_today_outlined,
                 color: Color(0xFF1B5E20),
                 size: 26,
               ),
@@ -177,7 +161,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                   Text(
                     'Đặt lịch mới',
                     style: AppTextStyles.titleMedium.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.onSurface,
                     ),
                   ),
@@ -192,16 +176,16 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               ),
             ),
             Container(
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color(0xFF1B5E20),
               ),
               child: const Icon(
-                Icons.arrow_forward_ios,
+                Icons.arrow_forward,
                 color: Colors.white,
-                size: 16,
+                size: 20,
               ),
             ),
           ],
