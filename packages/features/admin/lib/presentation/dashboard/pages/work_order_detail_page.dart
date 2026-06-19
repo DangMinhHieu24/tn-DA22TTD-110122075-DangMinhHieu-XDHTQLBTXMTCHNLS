@@ -553,26 +553,19 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
     final vehicle = wo['vehicle'] as Map<String, dynamic>? ?? {};
     final owner = vehicle['owner'] as Map<String, dynamic>? ?? {};
     final points = owner['loyaltyPoints'] as int? ?? 0;
-    final trees = owner['treesPlanted'] as int? ?? 0;
     final alreadyRedeemed = wo['pointsRedeemed'] as int? ?? 0;
     final discount = wo['pointsDiscount'] as num? ?? 0;
     final status = (wo['status'] ?? '') as String;
-    if (points == 0 && trees == 0 && alreadyRedeemed == 0) return const SizedBox.shrink();
+    if (points == 0 && alreadyRedeemed == 0) return const SizedBox.shrink();
 
     return _Card(
-      title: 'Điểm thưởng & Cây xanh',
+      title: 'Điểm thưởng',
       icon: Icons.card_giftcard,
       iconColor: const Color(0xFFB45309),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              _loyaltyBadge(Icons.forest, '$trees', 'Cây', const Color(0xFF1B5E20)),
-              const SizedBox(width: 16),
-              _loyaltyBadge(Icons.card_giftcard, '$points', 'Điểm', const Color(0xFFB45309)),
-            ],
-          ),
+          _loyaltyBadge(Icons.card_giftcard, '$points', 'Điểm khả dụng', const Color(0xFFB45309)),
           if (alreadyRedeemed > 0) ...[
             const SizedBox(height: 14),
             Container(
