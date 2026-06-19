@@ -216,22 +216,33 @@ class _CustomerDetailSheetState extends State<CustomerDetailSheet> {
                       ),
                       const SizedBox(height: 24),
 
-                      // ── Stats row ──
+                      // ── Stats grid 2x2 ──
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            _statItem(Icons.forest, '${c.treesPlanted}', 'Cây'),
-                            _statDivider(),
-                            _statItem(Icons.card_giftcard, '${c.loyaltyPoints}', 'Điểm'),
-                            _statDivider(),
-                            _statItem(Icons.two_wheeler, '${c.vehicleCount}', 'Xe'),
-                            _statDivider(),
-                            _statItem(Icons.calendar_today, _formatDate(c.createdAt), 'Từ'),
+                            Row(
+                              children: [
+                                _statItem(Icons.forest, '${c.treesPlanted}', 'Cây xanh'),
+                                _statDivider(),
+                                _statItem(Icons.card_giftcard, '${c.loyaltyPoints}', 'Điểm thưởng'),
+                              ],
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Divider(height: 20, color: Colors.white.withValues(alpha: 0.1)),
+                            ),
+                            Row(
+                              children: [
+                                _statItem(Icons.two_wheeler, '${c.vehicleCount}', 'Xe'),
+                                _statDivider(),
+                                _statItem(Icons.calendar_today, _formatDate(c.createdAt), 'Thành viên'),
+                              ],
+                            ),
                           ],
                         ),
                       ),
