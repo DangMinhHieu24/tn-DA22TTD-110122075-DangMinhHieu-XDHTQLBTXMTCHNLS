@@ -171,6 +171,8 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
                 ],
                 const SizedBox(height: 16),
                 _buildTotalCard(wo),
+                const SizedBox(height: 16),
+                _buildLoyaltyCard(wo),
                 if (wo['notes'] != null) ...[
                   const SizedBox(height: 16),
                   _buildNotesCard(wo),
@@ -505,6 +507,90 @@ class _WorkOrderDetailPageState extends State<WorkOrderDetailPage> {
                     fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoyaltyCard(Map<String, dynamic> wo) {
+    final vehicle = wo['vehicle'] as Map<String, dynamic>? ?? {};
+    final owner = vehicle['owner'] as Map<String, dynamic>? ?? {};
+    final points = owner['loyaltyPoints'] as int? ?? 0;
+    final trees = owner['treesPlanted'] as int? ?? 0;
+    if (points == 0 && trees == 0) return const SizedBox.shrink();
+
+    return _Card(
+      title: 'Điểm thưởng & Cây xanh',
+      icon: Icons.card_giftcard,
+      iconColor: const Color(0xFFB45309),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _loyaltyBadge(Icons.forest, '$trees', 'Cây', const Color(0xFF1B5E20)),
+              const SizedBox(width: 16),
+              _loyaltyBadge(Icons.card_giftcard, '$points', 'Điểm', const Color(0xFFB45309)),
+            ],
+          ),
+          if (points > 0) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1).withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFCA28).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 18, color: const Color(0xFFB45309).withValues(alpha: 0.7)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Chủ xe có $points điểm (${_formatCurrency(points * 1000)}). Hỏi khách có muốn dùng không?',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF5D4037), height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _loyaltyBadge(IconData icon, String value, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: color.withValues(alpha: 0.7),
+            ),
           ),
         ],
       ),

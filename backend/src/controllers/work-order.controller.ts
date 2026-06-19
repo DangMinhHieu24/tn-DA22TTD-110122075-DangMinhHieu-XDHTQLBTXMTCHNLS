@@ -181,6 +181,8 @@ export const getWorkOrderById = async (req: Request, res: Response) => {
                 name: true,
                 email: true,
                 phoneNumber: true,
+                loyaltyPoints: true,
+                treesPlanted: true,
               },
             },
           },
