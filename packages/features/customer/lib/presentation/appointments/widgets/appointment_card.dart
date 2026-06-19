@@ -15,6 +15,10 @@ class AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final month = DateFormat('MM', 'vi').format(appointment.scheduledAt);
+    final day = DateFormat('dd').format(appointment.scheduledAt);
+    final weekday = _weekdayLabel(appointment.scheduledAt.weekday);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -22,162 +26,196 @@ class AppointmentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withValues(alpha: 0.05),
-            blurRadius: 16,
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: _getBorderColor(),
-          width: 1,
-        ),
+        border: Border.all(color: _getBorderColor()),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Status badge + Cancel button
-          Row(
+          // ── Left: Date column ──
+          Column(
             children: [
-              _buildStatusBadge(),
-              const Spacer(),
-              if (appointment.canCancel && onCancel != null)
-                TextButton.icon(
-                  onPressed: () => _showCancelDialog(context),
-                  icon: const Icon(Icons.close, size: 16),
-                  label: const Text('Hủy'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    textStyle: AppTextStyles.labelSmall.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Date & Time
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.calendar_month,
-                  color: AppColors.primary,
-                  size: 22,
+              Text(
+                weekday,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 2),
+              Text(
+                day,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.onSurface,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                month,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(width: 14),
+
+          // ── Vertical divider ──
+          Container(
+            width: 1,
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          ),
+
+          const SizedBox(width: 14),
+
+          // ── Right: Details ──
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status + Cancel
+                Row(
+                  children: [
+                    _buildStatusBadge(),
+                    const Spacer(),
+                    if (appointment.canCancel && onCancel != null)
+                      GestureDetector(
+                        onTap: () => _showCancelDialog(context),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 20,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Time
+                Row(
                   children: [
                     Text(
-                      DateFormat('EEEE, dd/MM/yyyy', 'vi').format(appointment.scheduledAt),
-                      style: AppTextStyles.titleSmall.copyWith(
-                        fontWeight: FontWeight.w700,
+                      DateFormat('HH:mm').format(appointment.scheduledAt),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.access_time,
+                      size: 16,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Vehicle
+                if (appointment.hasVehicle) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.two_wheeler,
+                        size: 16,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '${appointment.vehicleBrand ?? ''} ${appointment.vehicleModel ?? ''} • ${appointment.vehicleLicensePlate}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.onSurface,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // Service
+                Row(
+                  children: [
+                    Icon(
+                      _getServiceIcon(),
+                      size: 16,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
                     Text(
-                      DateFormat('HH:mm').format(appointment.scheduledAt),
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+                      appointment.serviceTypeLabel,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.onSurface,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
-          // Divider
-          Divider(
-            color: AppColors.outlineVariant.withValues(alpha: 0.5),
-            height: 1,
-          ),
-          const SizedBox(height: 12),
-
-          // Vehicle info
-          if (appointment.hasVehicle) ...[
-            Row(
-              children: [
-                Icon(
-                  Icons.directions_car,
-                  size: 18,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${appointment.vehicleBrand ?? ''} ${appointment.vehicleModel ?? ''} • ${appointment.vehicleLicensePlate}',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.onSurface,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                // Online badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.language,
+                        size: 14,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'LỊCH HẸN ONLINE',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurfaceVariant,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
 
-          // Service type
-          Row(
-            children: [
-              Icon(
-                _getServiceIcon(),
-                size: 18,
-                color: AppColors.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                appointment.serviceTypeLabel,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.onSurface,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-
-          // Notes
-          if (appointment.notes != null && appointment.notes!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.notes,
-                  size: 18,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
+                // Notes
+                if (appointment.notes != null && appointment.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
                     appointment.notes!,
-                    style: AppTextStyles.bodySmall.copyWith(
+                    style: TextStyle(
+                      fontSize: 12,
                       color: AppColors.onSurfaceVariant,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                ],
               ],
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -186,23 +224,23 @@ class AppointmentCard extends StatelessWidget {
   Widget _buildStatusBadge() {
     Color bgColor;
     Color textColor;
-    IconData icon;
+    String label;
 
     switch (appointment.status) {
       case 'CONFIRMED':
         bgColor = const Color(0xFF22C55E).withValues(alpha: 0.15);
         textColor = const Color(0xFF16A34A);
-        icon = Icons.check_circle;
+        label = 'ĐÃ XÁC NHẬN';
         break;
       case 'CANCELLED':
-        bgColor = AppColors.error.withValues(alpha: 0.1);
-        textColor = AppColors.error;
-        icon = Icons.cancel;
+        bgColor = const Color(0xFFEF4444).withValues(alpha: 0.15);
+        textColor = const Color(0xFFDC2626);
+        label = 'ĐÃ HỦY';
         break;
-      default: // PENDING
+      default:
         bgColor = const Color(0xFFF59E0B).withValues(alpha: 0.15);
         textColor = const Color(0xFFD97706);
-        icon = Icons.schedule;
+        label = 'CHỜ XÁC NHẬN';
     }
 
     return Container(
@@ -211,19 +249,13 @@ class AppointmentCard extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 4),
-          Text(
-            appointment.statusLabel,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: textColor,
+        ),
       ),
     );
   }
@@ -233,22 +265,37 @@ class AppointmentCard extends StatelessWidget {
       case 'CONFIRMED':
         return const Color(0xFF22C55E).withValues(alpha: 0.3);
       case 'CANCELLED':
-        return AppColors.error.withValues(alpha: 0.2);
+        return const Color(0xFFEF4444).withValues(alpha: 0.2);
       default:
-        return AppColors.outlineVariant.withValues(alpha: 0.4);
+        return const Color(0xFFE5E7EB);
     }
   }
 
   IconData _getServiceIcon() {
     switch (appointment.serviceType) {
       case 'MAINTENANCE':
-        return Icons.build;
+        return Icons.build_outlined;
       case 'BATTERY_CHECK':
-        return Icons.battery_charging_full;
+        return Icons.battery_charging_full_outlined;
       case 'BRAKES_TIRES':
         return Icons.tire_repair;
+      case 'OTHER_REPAIR':
+        return Icons.handyman_outlined;
       default:
-        return Icons.handyman;
+        return Icons.build_outlined;
+    }
+  }
+
+  String _weekdayLabel(int weekday) {
+    switch (weekday) {
+      case 1: return 'Th 2';
+      case 2: return 'Th 3';
+      case 3: return 'Th 4';
+      case 4: return 'Th 5';
+      case 5: return 'Th 6';
+      case 6: return 'Th 7';
+      case 7: return 'CN';
+      default: return '';
     }
   }
 
