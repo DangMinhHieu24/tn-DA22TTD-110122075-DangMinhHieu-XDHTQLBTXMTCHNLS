@@ -39,3 +39,5 @@ class AppointmentCreated extends AppointmentState {
 }
 
 class AppointmentCancelled extends AppointmentState {}
+
+class AppointmentHistoryCleared extends AppointmentState {}

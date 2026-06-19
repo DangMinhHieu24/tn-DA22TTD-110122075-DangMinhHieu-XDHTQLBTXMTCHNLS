@@ -5,6 +5,7 @@ abstract class CustomerAppointmentRemoteDataSource {
   Future<List<CustomerAppointmentModel>> getMyAppointments();
   Future<CustomerAppointmentModel> createAppointment(Map<String, dynamic> data);
   Future<void> cancelAppointment(String id);
+  Future<void> clearAppointmentHistory();
 }
 
 class CustomerAppointmentRemoteDataSourceImpl
@@ -47,6 +48,16 @@ class CustomerAppointmentRemoteDataSourceImpl
     if (response.data['success'] != true) {
       throw Exception(
           response.data['message'] ?? 'Failed to cancel appointment');
+    }
+  }
+
+  @override
+  Future<void> clearAppointmentHistory() async {
+    final response = await dio.patch('/appointments/my/history');
+
+    if (response.data['success'] != true) {
+      throw Exception(
+          response.data['message'] ?? 'Failed to clear appointment history');
     }
   }
 }

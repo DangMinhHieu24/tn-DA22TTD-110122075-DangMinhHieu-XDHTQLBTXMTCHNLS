@@ -118,4 +118,14 @@ class CustomerRepositoryImpl implements CustomerRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> clearAppointmentHistory() async {
+    try {
+      await appointmentRemoteDataSource.clearAppointmentHistory();
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

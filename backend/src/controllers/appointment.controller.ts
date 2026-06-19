@@ -100,7 +100,10 @@ export const getMyAppointments = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
 
     const appointments = await prisma.appointment.findMany({
-      where: { customerId: userId },
+      where: {
+        customerId: userId,
+        deletedAt: null,
+      },
       include: {
         vehicle: {
           select: {
@@ -272,6 +275,33 @@ export const cancelAppointment = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Lỗi khi hủy lịch hẹn',
+    });
+  }
+};
+
+export const clearMyAppointmentHistory = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+
+    const now = new Date();
+    await prisma.appointment.updateMany({
+      where: {
+        customerId: userId,
+        status: { in: ['CANCELLED', 'COMPLETED'] },
+        deletedAt: null,
+      },
+      data: { deletedAt: now },
+    });
+
+    res.json({
+      success: true,
+      message: 'Đã xoá lịch sử lịch hẹn',
+    });
+  } catch (error) {
+    console.error('Error clearing appointment history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xoá lịch sử lịch hẹn',
     });
   }
 };

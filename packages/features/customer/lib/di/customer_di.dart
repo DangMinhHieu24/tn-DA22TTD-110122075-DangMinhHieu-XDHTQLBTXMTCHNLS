@@ -9,6 +9,7 @@ import '../data/datasources/remote/customer_work_order_remote_datasource.dart';
 import '../data/repositories/customer_repository_impl.dart';
 import '../domain/repositories/customer_repository.dart';
 import '../domain/usecases/cancel_appointment.dart';
+import '../domain/usecases/clear_history.dart';
 import '../domain/usecases/create_appointment.dart';
 import '../domain/usecases/get_customer_vehicles.dart';
 import '../domain/usecases/get_my_appointments.dart';
@@ -83,6 +84,10 @@ void setupCustomerDependencies() {
     () => CancelAppointment(getIt<CustomerRepository>()),
   );
 
+  getIt.registerLazySingleton<ClearHistory>(
+    () => ClearHistory(getIt<CustomerRepository>()),
+  );
+
   // Presentation blocs
   getIt.registerFactory<CustomerVehicleBloc>(
     () => CustomerVehicleBloc(getCustomerVehicles: getIt<GetCustomerVehicles>()),
@@ -97,6 +102,7 @@ void setupCustomerDependencies() {
       getMyAppointments: getIt<GetMyAppointments>(),
       createAppointment: getIt<CreateAppointment>(),
       cancelAppointment: getIt<CancelAppointment>(),
+      clearHistory: getIt<ClearHistory>(),
     ),
   );
 

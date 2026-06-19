@@ -242,6 +242,7 @@ model Appointment {
   serviceType String?  @map("service_type")
   notes       String?
   status      AppointmentStatus @default(PENDING)
+  deletedAt   DateTime? @map("deleted_at")
   workOrder   WorkOrder?
 
   @@map("appointments")

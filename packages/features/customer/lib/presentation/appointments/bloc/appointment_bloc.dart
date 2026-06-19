@@ -4,6 +4,7 @@ import '../../../domain/entities/customer_appointment.dart';
 import '../../../domain/usecases/get_my_appointments.dart';
 import '../../../domain/usecases/create_appointment.dart';
 import '../../../domain/usecases/cancel_appointment.dart';
+import '../../../domain/usecases/clear_history.dart';
 
 part 'appointment_event.dart';
 part 'appointment_state.dart';
@@ -12,15 +13,18 @@ class AppointmentBloc extends Bloc<AppointmentEvent, AppointmentState> {
   final GetMyAppointments getMyAppointments;
   final CreateAppointment createAppointment;
   final CancelAppointment cancelAppointment;
+  final ClearHistory clearHistory;
 
   AppointmentBloc({
     required this.getMyAppointments,
     required this.createAppointment,
     required this.cancelAppointment,
+    required this.clearHistory,
   }) : super(AppointmentInitial()) {
     on<LoadAppointments>(_onLoadAppointments);
     on<CreateNewAppointment>(_onCreateAppointment);
     on<CancelExistingAppointment>(_onCancelAppointment);
+    on<ClearAppointmentHistory>(_onClearAppointmentHistory);
   }
 
   Future<void> _onLoadAppointments(
@@ -50,7 +54,6 @@ class AppointmentBloc extends Bloc<AppointmentEvent, AppointmentState> {
       (failure) => emit(AppointmentError(failure.message)),
       (appointment) {
         emit(AppointmentCreated(appointment));
-        // Reload list after creating
         add(LoadAppointments());
       },
     );
@@ -66,7 +69,21 @@ class AppointmentBloc extends Bloc<AppointmentEvent, AppointmentState> {
       (failure) => emit(AppointmentError(failure.message)),
       (_) {
         emit(AppointmentCancelled());
-        // Reload list after cancelling
+        add(LoadAppointments());
+      },
+    );
+  }
+
+  Future<void> _onClearAppointmentHistory(
+    ClearAppointmentHistory event,
+    Emitter<AppointmentState> emit,
+  ) async {
+    emit(AppointmentLoading());
+    final result = await clearHistory();
+    result.fold(
+      (failure) => emit(AppointmentError(failure.message)),
+      (_) {
+        emit(AppointmentHistoryCleared());
         add(LoadAppointments());
       },
     );

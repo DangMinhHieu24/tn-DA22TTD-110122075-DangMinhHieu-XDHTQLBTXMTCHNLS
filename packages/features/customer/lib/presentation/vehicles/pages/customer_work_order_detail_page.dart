@@ -1347,7 +1347,6 @@ class _CustomerWorkOrderDetailPageState
 
   Widget _buildPhotoItem(CustomerWorkOrderPhoto photo, int index,
       List<CustomerWorkOrderPhoto> allPhotos) {
-    final isLast = index == allPhotos.length - 1;
     return GestureDetector(
       onTap: () => _openPhotoViewer(allPhotos, index),
       child: ClipRRect(

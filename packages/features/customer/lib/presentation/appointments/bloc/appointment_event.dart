@@ -34,3 +34,5 @@ class CancelExistingAppointment extends AppointmentEvent {
   @override
   List<Object?> get props => [id];
 }
+
+class ClearAppointmentHistory extends AppointmentEvent {}

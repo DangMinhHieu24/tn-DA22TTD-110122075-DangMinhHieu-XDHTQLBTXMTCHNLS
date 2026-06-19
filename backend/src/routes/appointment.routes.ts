@@ -5,6 +5,7 @@ import {
   createAppointment,
   cancelAppointment,
   deleteAppointment,
+  clearMyAppointmentHistory,
 } from '../controllers/appointment.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -18,6 +19,9 @@ router.get('/', getAllAppointments);
 
 // GET /api/appointments/my - Get my appointments
 router.get('/my', getMyAppointments);
+
+// PATCH /api/appointments/my/history - Clear my past history
+router.patch('/my/history', clearMyAppointmentHistory);
 
 // POST /api/appointments - Create appointment
 router.post('/', createAppointment);

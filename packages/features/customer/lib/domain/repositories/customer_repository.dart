@@ -23,4 +23,5 @@ abstract class CustomerRepository {
     String? vehicleId,
   });
   Future<Either<Failure, void>> cancelAppointment(String id);
+  Future<Either<Failure, void>> clearAppointmentHistory();
 }
