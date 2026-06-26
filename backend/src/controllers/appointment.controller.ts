@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { createNotificationForAdmins } from './notification.controller';
 
 const prisma = new PrismaClient();
 
@@ -164,7 +165,22 @@ export const createAppointment = async (req: Request, res: Response) => {
         notes: notes || null,
         status: 'PENDING',
       },
+      include: {
+        customer: {
+          select: { name: true }
+        }
+      }
     });
+
+    // Create notification for admins
+    const formattedDate = new Date(scheduledDate).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const customerName = appointment.customer?.name || 'Khách hàng';
+    await createNotificationForAdmins(
+      'Lịch hẹn mới',
+      `${customerName} đã đặt một lịch hẹn mới vào lúc ${formattedDate}.`,
+      'APPOINTMENT_NEW',
+      { appointmentId: appointment.id }
+    );
 
     res.status(201).json({
       success: true,
@@ -263,7 +279,22 @@ export const cancelAppointment = async (req: Request, res: Response) => {
     const updated = await prisma.appointment.update({
       where: { id },
       data: { status: 'CANCELLED' },
+      include: {
+        customer: {
+          select: { name: true }
+        }
+      }
     });
+
+    // Create notification for admins
+    const formattedDate = new Date(updated.scheduledAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const customerName = updated.customer?.name || 'Khách hàng';
+    await createNotificationForAdmins(
+      'Lịch hẹn đã hủy',
+      `${customerName} đã hủy lịch hẹn đặt vào lúc ${formattedDate}.`,
+      'APPOINTMENT_CANCELLED',
+      { appointmentId: updated.id }
+    );
 
     res.json({
       success: true,
@@ -287,8 +318,11 @@ export const clearMyAppointmentHistory = async (req: Request, res: Response) => 
     await prisma.appointment.updateMany({
       where: {
         customerId: userId,
-        status: { in: ['CANCELLED', 'COMPLETED'] },
         deletedAt: null,
+        OR: [
+          { status: { in: ['CANCELLED', 'COMPLETED'] } },
+          { scheduledAt: { lt: now } }
+        ]
       },
       data: { deletedAt: now },
     });

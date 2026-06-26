@@ -22,13 +22,6 @@ String _safeFormatDate(String? raw, {String fallback = ''}) {
   }
 }
 
-String _formatCurrency(num? amount) {
-  if (amount == null || amount == 0) return '';
-  return NumberFormat.compactCurrency(
-      locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
-      .format(amount);
-}
-
 Color _statusColor(String status) => switch (status) {
       'PENDING' => const Color(0xFFB45309),
       'IN_PROGRESS' => const Color(0xFF0058BE),
@@ -182,24 +175,34 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   Widget _buildHeader() {
     final topPad = MediaQuery.of(context).padding.top;
     return Container(
-      color: Colors.white,
-      padding: EdgeInsets.fromLTRB(16, topPad + 10, 16, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(16, topPad + 12, 16, 16),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: const Icon(Icons.arrow_back_ios_new,
-                  size: 16, color: Color(0xFF374151)),
+                  size: 15, color: Color(0xFF334155)),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,15 +210,40 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
                 const Text(
                   'Phiếu Sửa Chữa',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF111827),
-                    letterSpacing: -0.3,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
                   ),
                 ),
-                Text(
-                  '${_workOrders.length} phiếu',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF006E2F).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5, height: 5,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF006E2F),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${_workOrders.length} phiếu',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF006E2F),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -226,13 +254,24 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
               _fetchWorkOrders();
             },
             child: Container(
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF006E2F),
-                borderRadius: BorderRadius.circular(10),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF008A3B), Color(0xFF006E2F)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF006E2F).withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.refresh_rounded, size: 18, color: Colors.white),
+              child: const Icon(Icons.refresh_rounded, size: 20, color: Colors.white),
             ),
           ),
         ],
@@ -244,13 +283,13 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   Widget _buildSearchAndSort() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Container(
-        height: 46,
+        height: 48,
         decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
@@ -259,59 +298,58 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
               child: TextField(
                 controller: _searchCtrl,
                 onChanged: (v) => setState(() => _searchQuery = v),
-                style: const TextStyle(fontSize: 14, color: Color(0xFF111827)),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B), fontWeight: FontWeight.w600),
                 decoration: InputDecoration(
                   hintText: 'Tìm biển số, mã phiếu, tên KH...',
-                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 18),
+                  hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w400),
+                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? GestureDetector(
                           onTap: () {
                             _searchCtrl.clear();
                             setState(() => _searchQuery = '');
                           },
-                          child: const Icon(Icons.cancel, color: Color(0xFF9CA3AF), size: 16),
+                          child: const Icon(Icons.cancel, color: Color(0xFF64748B), size: 18),
                         )
-                      : null,
+                       : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   isDense: true,
                 ),
               ),
             ),
             // Divider
-            Container(width: 1, height: 22, color: const Color(0xFFD1D5DB)),
+            Container(width: 1.5, height: 20, color: const Color(0xFFCBD5E1)),
             // Bộ lọc button
             GestureDetector(
-              onTap: _showSortSheet,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.tune_rounded,
-                      size: 16,
-                      color: _sortBy != 'newest'
-                          ? const Color(0xFF006E2F)
-                          : const Color(0xFF374151),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _sortBy == 'oldest'
-                          ? 'Cũ nhất'
-                          : 'Bộ lọc',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _sortBy != 'newest'
-                            ? const Color(0xFF006E2F)
-                            : const Color(0xFF374151),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+               onTap: _showSortSheet,
+               child: Container(
+                 color: Colors.transparent,
+                 padding: const EdgeInsets.symmetric(horizontal: 16),
+                 child: Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     Icon(
+                       Icons.tune_rounded,
+                       size: 18,
+                       color: _sortBy != 'newest'
+                           ? const Color(0xFF006E2F)
+                           : const Color(0xFF475569),
+                     ),
+                     const SizedBox(width: 6),
+                     Text(
+                       _sortBy == 'oldest' ? 'Cũ nhất' : 'Bộ lọc',
+                       style: TextStyle(
+                         fontSize: 13,
+                         fontWeight: FontWeight.w700,
+                         color: _sortBy != 'newest'
+                             ? const Color(0xFF006E2F)
+                             : const Color(0xFF475569),
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
             ),
           ],
         ),
@@ -323,9 +361,10 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
   Widget _buildTabBar() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         child: Row(
           children: _tabs.asMap().entries.map((e) {
             final isSelected = _tabController.index == e.key;
@@ -339,10 +378,30 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF006E2F) : const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(30),
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          colors: [Color(0xFF008A3B), Color(0xFF006E2F)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isSelected ? null : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF006E2F).withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -351,26 +410,26 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
                       e.value.label,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected ? Colors.white : const Color(0xFF64748B),
                       ),
                     ),
                     if (count > 0) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? Colors.white.withValues(alpha: 0.3)
-                              : const Color(0xFFE5E7EB),
-                          borderRadius: BorderRadius.circular(12),
+                              ? Colors.white.withValues(alpha: 0.25)
+                              : const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           '$count',
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: isSelected ? Colors.white : const Color(0xFF374151),
+                            fontWeight: FontWeight.w800,
+                            color: isSelected ? Colors.white : const Color(0xFF475569),
                           ),
                         ),
                       ),
@@ -483,7 +542,7 @@ class _WorkOrderListPageState extends State<WorkOrderListPage>
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: _statusColor(nextStatus)),
-            child: Text('Xác nhận'),
+            child: const Text('Xác nhận'),
           ),
         ],
       ),
@@ -552,58 +611,81 @@ class _WorkOrderCard extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
           color: nextColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              status == 'PENDING' ? Icons.play_arrow_rounded : status == 'COMPLETED' ? Icons.payments_rounded : Icons.check_circle_rounded,
-              color: Colors.white, size: 28,
+              status == 'PENDING'
+                  ? Icons.play_arrow_rounded
+                  : status == 'COMPLETED'
+                      ? Icons.payments_rounded
+                      : Icons.check_circle_rounded,
+              color: Colors.white,
+              size: 28,
             ),
             const SizedBox(height: 4),
-            Text(nextLabel,
-                style: const TextStyle(
-                    color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(
+              nextLabel,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                blurRadius: 24,
+                spreadRadius: -4,
+                offset: const Offset(0, 12),
+              ),
+              BoxShadow(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+                blurRadius: 8,
+                spreadRadius: -2,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: _statusColor(status).withValues(alpha: 0.04),
+                blurRadius: 16,
+                spreadRadius: 0,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
           child: IntrinsicHeight(
             child: Row(
               children: [
-                // ── Priority bar bên trái - theo màu STATUS ──
+                // ── Left status color bar ──
                 Container(
-                  width: 4,
+                  width: 5,
                   decoration: BoxDecoration(
                     color: _statusColor(status),
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
+                      topLeft: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
                     ),
                   ),
                 ),
                 // ── Nội dung ──
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -618,21 +700,21 @@ class _WorkOrderCard extends StatelessWidget {
                                   Text(
                                     orderNumber,
                                     style: const TextStyle(
-                                      fontSize: 17,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w900,
-                                      color: Color(0xFF111827),
-                                      letterSpacing: -0.3,
+                                      color: Color(0xFF0F172A),
+                                      letterSpacing: -0.5,
                                     ),
                                   ),
                                   if (serviceText.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
+                                    const SizedBox(height: 4),
                                     Text(
                                       serviceText,
                                       style: const TextStyle(
                                         fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF6B7280),
-                                        letterSpacing: 0.3,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF64748B),
+                                        letterSpacing: 0.1,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -647,45 +729,80 @@ class _WorkOrderCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
 
-                        // Row 2: Vehicle box - theo màu STATUS
+                        // Row 2: Vehicle box - authentic license plate widget
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: _statusColor(status).withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Row(
                             children: [
-                              // Icon xe tròn - theo màu STATUS
+                              // Vietnamese license plate container
                               Container(
-                                width: 44,
-                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: _statusColor(status).withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFF94A3B8), width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.04),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                child: Icon(Icons.electric_moped,
-                                    size: 22, color: _statusColor(status)),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(height: 1.5, width: 24, color: const Color(0xFFBA1A1A)),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      plate,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF1E293B),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      plate,
+                                    Row(
+                                      children: [
+                                        Icon(Icons.electric_moped_rounded,
+                                            size: 16, color: _statusColor(status)),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            vehicleModel.isNotEmpty ? vehicleModel : 'Xe điện',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF334155),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Phương tiện sửa chữa',
                                       style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w800,
-                                        color: _statusColor(status),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF94A3B8),
                                       ),
                                     ),
-                                    if (vehicleModel.isNotEmpty)
-                                      Text(
-                                        vehicleModel,
-                                        style: const TextStyle(
-                                            fontSize: 13, color: Color(0xFF6B7280)),
-                                      ),
                                   ],
                                 ),
                               ),
@@ -694,122 +811,165 @@ class _WorkOrderCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
 
-                        // Row 3: Khách hàng | Kỹ thuật viên (2 cột)
+                        // Row 3: Khách hàng | Kỹ thuật viên (2 columns, styled cards)
                         Row(
                           children: [
-                            // Cột trái: Khách hàng
+                            // Customer card
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'KHÁCH HÀNG',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF9CA3AF),
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.person_outline,
-                                          size: 14, color: Color(0xFF374151)),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          ownerName,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF1F2937),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.person_rounded,
+                                        size: 15, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'KHÁCH HÀNG',
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF94A3B8),
+                                              letterSpacing: 0.5,
+                                            ),
                                           ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            ownerName,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF334155),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            // Cột phải: KTV
+                            const SizedBox(width: 8),
+                            // Tech card
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'KỸ THUẬT VIÊN',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF9CA3AF),
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.build_outlined,
-                                          size: 14, color: Color(0xFF0058BE)),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          techName,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF0058BE),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.engineering_rounded,
+                                        size: 15, color: Color(0xFF2563EB)),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'KỸ THUẬT VIÊN',
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF3B82F6),
+                                              letterSpacing: 0.5,
+                                            ),
                                           ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            techName,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF1D4ED8),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
 
                         // Divider
-                        const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                        const SizedBox(height: 10),
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        const SizedBox(height: 12),
 
                         // Row 4: Thời gian + Chi tiết
                         Row(
                           children: [
                             const Icon(Icons.access_time_rounded,
-                                size: 13, color: Color(0xFF9CA3AF)),
-                            const SizedBox(width: 4),
+                                size: 14, color: Color(0xFF64748B)),
+                            const SizedBox(width: 6),
                             Text(
                               createdAt,
                               style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF9CA3AF)),
+                                  fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                             ),
                             const Spacer(),
                             if (canConfirm)
-                              Text(
-                                'Vuốt để $nextLabel',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: nextColor.withValues(alpha: 0.6)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: nextColor.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: nextColor.withValues(alpha: 0.25)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.keyboard_double_arrow_left_rounded,
+                                        size: 14, color: nextColor),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Vuốt: $nextLabel',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: nextColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               )
                             else
-                              Row(
-                                children: [
-                                  Text(
-                                    'Chi tiết',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF006E2F),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF006E2F).withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xFF006E2F).withValues(alpha: 0.2)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Chi tiết',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF006E2F),
+                                      ),
                                     ),
-                                  ),
-                                  const Icon(Icons.chevron_right_rounded,
-                                      size: 18, color: Color(0xFF006E2F)),
-                                ],
+                                    SizedBox(width: 4),
+                                    Icon(Icons.arrow_forward_rounded,
+                                        size: 14, color: Color(0xFF006E2F)),
+                                  ],
+                                ),
                               ),
                           ],
                         ),
@@ -841,54 +1001,84 @@ class _SortSheet extends StatelessWidget {
       ('newest', Icons.arrow_downward_rounded, 'Mới nhất trước'),
       ('oldest', Icons.arrow_upward_rounded, 'Cũ nhất trước'),
     ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 36),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
+              width: 40, height: 5,
+              margin: const EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB),
-                borderRadius: BorderRadius.circular(2),
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(2.5),
               ),
             ),
           ),
-          const Text('Sắp xếp theo',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          const SizedBox(height: 12),
+          const Text(
+            'Sắp xếp theo',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 16),
           ...options.map((opt) {
             final isSelected = current == opt.$1;
             return GestureDetector(
               onTap: () => onSelect(opt.$1),
               child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF006E2F).withValues(alpha: 0.08)
-                      : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(12),
-                  border: isSelected
-                      ? Border.all(color: const Color(0xFF006E2F).withValues(alpha: 0.3))
-                      : null,
+                      ? const Color(0xFF006E2F).withValues(alpha: 0.06)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF006E2F).withValues(alpha: 0.2)
+                        : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(opt.$2, size: 18,
-                        color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF6B7280)),
-                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF006E2F).withValues(alpha: 0.1)
+                            : const Color(0xFFE2E8F0),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(opt.$2, size: 18,
+                          color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF64748B)),
+                    ),
+                    const SizedBox(width: 14),
                     Text(opt.$3,
                         style: TextStyle(
                             fontSize: 14,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF374151))),
+                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                            color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF334155))),
                     const Spacer(),
                     if (isSelected)
-                      const Icon(Icons.check_rounded, size: 18, color: Color(0xFF006E2F)),
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF006E2F),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check_rounded, size: 14, color: Colors.white),
+                      ),
                   ],
                 ),
               ),
@@ -921,7 +1111,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
     _ctrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200))
       ..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 0.9)
+    _anim = Tween<double>(begin: 0.3, end: 0.7)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
@@ -940,18 +1130,71 @@ class _SkeletonCardState extends State<_SkeletonCard>
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+              blurRadius: 16,
+              spreadRadius: -4,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _bar(120, 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _bar(100, 16),
+                _bar(60, 20),
+              ],
+            ),
+            const SizedBox(height: 6),
+            _bar(150, 12),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  _bar(80, 36), // Plate skeleton
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _bar(120, 14),
+                        const SizedBox(height: 6),
+                        _bar(60, 10),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _bar(100, 28)),
+                const SizedBox(width: 12),
+                Expanded(child: _bar(100, 28)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
             const SizedBox(height: 12),
-            _bar(80, 10),
-            const SizedBox(height: 8),
-            _bar(160, 10),
-            const SizedBox(height: 8),
-            _bar(100, 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _bar(120, 12),
+                _bar(80, 24),
+              ],
+            ),
           ],
         ),
       ),
@@ -961,8 +1204,8 @@ class _SkeletonCardState extends State<_SkeletonCard>
   Widget _bar(double width, double height) => Container(
         width: width, height: height,
         decoration: BoxDecoration(
-          color: Color.fromRGBO(200, 200, 200, _anim.value),
-          borderRadius: BorderRadius.circular(6),
+          color: Color.fromRGBO(226, 232, 240, _anim.value),
+          borderRadius: BorderRadius.circular(8),
         ),
       );
 }
@@ -980,58 +1223,42 @@ class _StatusBadgeNew extends StatelessWidget {
     final label = _statusLabel(status);
     final color = _statusColor(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FF),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE0E7FF)),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.18), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F2937),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.2,
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Status Badge (cũ - giữ lại)
-// ─────────────────────────────────────────────────────────────
-
-class _StatusBadge extends StatelessWidget {
-  final String status;
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final label = _statusLabel(status);
-    final color = _statusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700,
-              color: color, letterSpacing: 0.1)),
     );
   }
 }

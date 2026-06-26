@@ -4,7 +4,12 @@ import 'package:auth/auth.dart';
 import 'package:design_system/design_system.dart';
 
 class CustomerAppBar extends StatelessWidget {
-  const CustomerAppBar({super.key});
+  final Color? backgroundColor;
+
+  const CustomerAppBar({
+    super.key,
+    this.backgroundColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +20,7 @@ class CustomerAppBar extends StatelessWidget {
 
         return Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          color: AppColors.surface,
+          color: backgroundColor ?? AppColors.surface,
           child: Row(
             children: [
               // Avatar

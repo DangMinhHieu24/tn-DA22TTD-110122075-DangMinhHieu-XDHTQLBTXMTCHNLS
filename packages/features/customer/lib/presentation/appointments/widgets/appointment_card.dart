@@ -7,299 +7,381 @@ class AppointmentCard extends StatelessWidget {
   final CustomerAppointment appointment;
   final VoidCallback? onCancel;
   final bool showTimeline;
-  final bool isFirst;
-  final bool isLast;
 
   const AppointmentCard({
     super.key,
     required this.appointment,
     this.onCancel,
     this.showTimeline = true,
-    this.isFirst = false,
-    this.isLast = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final day = DateFormat('dd').format(appointment.scheduledAt);
-    final month = DateFormat('MM').format(appointment.scheduledAt);
+    final day = DateFormat('d').format(appointment.scheduledAt);
+    final monthNames = [
+      '', 'Th 1', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6',
+      'Th 7', 'Th 8', 'Th 9', 'Th 10', 'Th 11', 'Th 12'
+    ];
+    final monthLabel = monthNames[appointment.scheduledAt.month];
+    final isCancelled = appointment.status == 'CANCELLED';
+    final isPending = appointment.status == 'PENDING';
+    final isConfirmed = appointment.status == 'CONFIRMED';
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Timeline column ──
-          if (showTimeline)
-            SizedBox(
-              width: 48,
-              child: Column(
-                children: [
-                  Text(
-                    'TH $month',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFEF4444),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    day,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.onSurface,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFFF59E0B),
-                    ),
-                  ),
-                  if (!isLast)
-                    Expanded(
-                      child: Container(
-                        width: 1.5,
-                        margin: const EdgeInsets.only(top: 6),
-                        color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+    Color statusColor;
+    if (isCancelled) {
+      statusColor = const Color(0xFF6D7B6C);
+    } else if (isPending) {
+      statusColor = const Color(0xFFBA1A1A);
+    } else {
+      statusColor = const Color(0xFF006E2F);
+    }
 
-          if (showTimeline) const SizedBox(width: 10),
-
-          // ── Card ──
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Status + Cancel
-                  Row(
-                    children: [
-                      _buildStatusBadge(),
-                      const Spacer(),
-                      if (appointment.canCancel && onCancel != null)
-                        GestureDetector(
-                          onTap: () => _showCancelDialog(context),
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: 20,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Time
-                  Row(
-                    children: [
-                      Text(
-                        DateFormat('HH:mm').format(appointment.scheduledAt),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.schedule_outlined,
-                        size: 16,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Vehicle
-                  if (appointment.hasVehicle) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.two_wheeler,
-                          size: 16,
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${appointment.vehicleBrand ?? ''} ${appointment.vehicleModel ?? ''} \u2022 ${appointment.vehicleLicensePlate}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.onSurface,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  // Service
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.edit_note_rounded,
-                        size: 16,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        appointment.serviceTypeLabel,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.onSurface,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Online badge
-                  ...[
-                    const SizedBox(height: 10),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date column (.w-14)
+            if (showTimeline)
+              SizedBox(
+                width: 56,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    // bg-surface w-full py-2
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.outlineVariant,
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      color: const Color(0xFFF7F9FB),
+                      child: Column(
                         children: [
-                          Icon(
-                            Icons.language,
-                            size: 14,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
                           Text(
-                            'LỊCH HẸN ONLINE',
+                            monthLabel,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontFamily: 'Manrope',
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.onSurfaceVariant,
-                              letterSpacing: 0.5,
+                              color: statusColor,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            day,
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF191C1E),
+                              height: 1,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-
-                  // Notes
-                  if (appointment.notes != null && appointment.notes!.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      appointment.notes!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                    // Dot
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isPending
+                            ? const Color(0xFFBA1A1A)
+                            : isConfirmed
+                                ? const Color(0xFF006E2F)
+                                : const Color(0xFF6D7B6C),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                ],
+                ),
+              ),
+
+            if (showTimeline) const SizedBox(width: 24),
+
+            // Card (.flex-1.deep-glass.rounded-lg.p-6)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF006E2F).withValues(alpha: 0.08),
+                      blurRadius: 40,
+                      offset: const Offset(0, 20),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      blurRadius: 0,
+                      offset: const Offset(0, 1),
+                      blurStyle: BlurStyle.inner,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Badge row
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: statusColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isPending
+                                      ? const Color(0xFFBA1A1A)
+                                      : isConfirmed
+                                          ? const Color(0xFF006E2F)
+                                          : const Color(0xFF6D7B6C),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                appointment.statusLabel.toUpperCase(),
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: statusColor,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        if (appointment.canCancel && onCancel != null)
+                          GestureDetector(
+                            onTap: () => _showCancelDialog(context),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 20,
+                                color: Color(0xFF3D4A3D),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Content
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Time
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              DateFormat('HH:mm').format(appointment.scheduledAt),
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
+                                fontSize: showTimeline ? 36 : 28,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF191C1E),
+                                height: 1,
+                                letterSpacing: showTimeline ? -1.8 : -1.0,
+                              ),
+                            ),
+                            if (!showTimeline) ...[
+                              const SizedBox(width: 10),
+                              Text(
+                                DateFormat('dd/MM/yyyy').format(appointment.scheduledAt),
+                                style: const TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF3D4A3D),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(width: 16),
+                            Icon(
+                              Icons.schedule_outlined,
+                              size: showTimeline ? 32 : 24,
+                              color: const Color(0xFF006E2F).withValues(alpha: 0.5),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Vehicle + Service
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (appointment.hasVehicle)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.two_wheeler,
+                                      size: 20,
+                                      color: Color(0xFF3D4A3D),
+                                    ),
+                                    const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: '${appointment.vehicleBrand ?? ''} ${appointment.vehicleModel ?? ''}',
+                                          style: TextStyle(
+                                            fontFamily: 'Manrope',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF191C1E),
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: '  |  ',
+                                          style: TextStyle(
+                                            fontFamily: 'Manrope',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w300,
+                                            color: const Color(0xFF191C1E)
+                                                .withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: appointment.vehicleLicensePlate ?? '',
+                                          style: TextStyle(
+                                            fontFamily: 'Manrope',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF3D4A3D),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                  ],
+                                ),
+                              ),
+                            Row(
+                              children: [
+                                Icon(
+                                  _getServiceIcon(),
+                                  size: 20,
+                                  color: const Color(0xFF3D4A3D),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  appointment.serviceTypeLabel,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF191C1E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Footer
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 1,
+                      color: const Color(0xFF191C1E).withValues(alpha: 0.1),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.language,
+                          size: 16,
+                          color: Color(0xFF3D4A3D),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Lịch hẹn online',
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF3D4A3D),
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
+          ],
+        ),
+        // Horizontal line (top-8 left-full w-4 h-px) connecting date → card
+        if (showTimeline)
+          Positioned(
+            top: 32,
+            left: 56,
+            child: Container(
+              width: 16,
+              height: 1,
+              color: statusColor.withValues(alpha: 0.5),
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
-  Widget _buildStatusBadge() {
-    Color dotColor;
-    Color bgColor;
-    Color textColor;
-    String label;
-
-    switch (appointment.status) {
-      case 'CONFIRMED':
-        dotColor = const Color(0xFF16A34A);
-        bgColor = const Color(0xFFDCFCE7);
-        textColor = const Color(0xFF16A34A);
-        label = 'ĐÃ XÁC NHẬN';
-        break;
-      case 'CANCELLED':
-        dotColor = const Color(0xFFDC2626);
-        bgColor = const Color(0xFFFEE2E2);
-        textColor = const Color(0xFFDC2626);
-        label = 'ĐÃ HỦY';
-        break;
+  IconData _getServiceIcon() {
+    switch (appointment.serviceType) {
+      case 'MAINTENANCE':
+        return Icons.build_outlined;
+      case 'BATTERY_CHECK':
+        return Icons.battery_charging_full_outlined;
+      case 'BRAKES_TIRES':
+        return Icons.tire_repair_outlined;
+      case 'OTHER_REPAIR':
+        return Icons.handyman_outlined;
       default:
-        dotColor = const Color(0xFFEA580C);
-        bgColor = const Color(0xFFFEE2E2);
-        textColor = const Color(0xFFEA580C);
-        label = 'CHỜ XÁC NHẬN';
+        return Icons.build_outlined;
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: dotColor,
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showCancelDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         title: const Text('Hủy lịch hẹn'),
         content: const Text('Bạn có chắc chắn muốn hủy lịch hẹn này?'),
         actions: [
@@ -312,7 +394,7 @@ class AppointmentCard extends StatelessWidget {
               Navigator.of(ctx).pop();
               onCancel?.call();
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFBA1A1A)),
             child: const Text('Hủy lịch'),
           ),
         ],

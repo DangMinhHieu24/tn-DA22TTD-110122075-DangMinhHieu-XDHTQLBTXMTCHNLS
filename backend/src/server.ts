@@ -10,6 +10,8 @@ import workOrderRoutes from './routes/work-order.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import appointmentRoutes from './routes/appointment.routes';
 import warrantyRoutes from './routes/warranty.routes';
+import chatRoutes from './routes/chat.routes';
+import notificationRoutes from './routes/notification.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 dotenv.config();
@@ -37,6 +39,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('dev'));
+app.use('/images', express.static('public/images'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -53,6 +56,8 @@ app.use('/api/work-orders', workOrderRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/warranties', warrantyRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling
 app.use(errorHandler);

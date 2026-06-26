@@ -81,6 +81,10 @@ class TechnicianLookupResult extends LookupResult {
   final int activeJobCount;
   final bool isOnline;
   final DateTime updatedAt;
+  final int thisMonthCompletedCount;
+  final num thisMonthRevenue;
+  final int lastMonthCompletedCount;
+  final num lastMonthRevenue;
 
   const TechnicianLookupResult({
     required super.id,
@@ -90,6 +94,10 @@ class TechnicianLookupResult extends LookupResult {
     this.activeJobCount = 0,
     this.isOnline = false,
     required this.updatedAt,
+    this.thisMonthCompletedCount = 0,
+    this.thisMonthRevenue = 0,
+    this.lastMonthCompletedCount = 0,
+    this.lastMonthRevenue = 0,
   });
 }
 

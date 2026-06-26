@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../../../domain/entities/lookup_result.dart';
 import '../../../data/datasources/remote/lookup_remote_datasource.dart';
 
@@ -271,7 +272,38 @@ class _TechnicianDetailSheetState extends State<TechnicianDetailSheet> {
                       ),
                       const SizedBox(height: 14),
 
-                      _buildStatusCard(t.isOnline, t.activeJobCount),
+                       _buildStatusCard(t.isOnline, t.activeJobCount),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Hiệu suất làm việc',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF191C1E),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPerformanceCard(
+                              title: 'Tháng này',
+                              completedCount: t.thisMonthCompletedCount,
+                              revenue: t.thisMonthRevenue,
+                              isCurrentMonth: true,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildPerformanceCard(
+                              title: 'Tháng trước',
+                              completedCount: t.lastMonthCompletedCount,
+                              revenue: t.lastMonthRevenue,
+                              isCurrentMonth: false,
+                            ),
+                          ),
+                        ],
+                      ),
 
                       if (_isEditing) ...[
                         const SizedBox(height: 28),
@@ -480,6 +512,92 @@ class _TechnicianDetailSheetState extends State<TechnicianDetailSheet> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceCard({
+    required String title,
+    required int completedCount,
+    required num revenue,
+    required bool isCurrentMonth,
+  }) {
+    final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    final formattedRevenue = currencyFormatter.format(revenue);
+
+    final mainColor = isCurrentMonth ? const Color(0xFF1A237E) : const Color(0xFF455A64);
+    final bgColor = isCurrentMonth
+        ? const Color(0xFFE8EAF6).withValues(alpha: 0.6)
+        : const Color(0xFFECEFF1).withValues(alpha: 0.6);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: mainColor.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isCurrentMonth ? Icons.trending_up : Icons.history,
+                size: 16,
+                color: mainColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: mainColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.check_circle_outline, size: 16, color: Color(0xFF2E7D32)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '$completedCount việc',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF191C1E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(Icons.attach_money, size: 16, color: Color(0xFFE65100)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  formattedRevenue,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF191C1E),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -31,6 +31,10 @@ import '../domain/repositories/lookup_repository.dart';
 import '../domain/repositories/inventory_repository.dart';
 import '../domain/usecases/search_lookup.dart';
 import '../presentation/lookup/bloc/lookup_bloc.dart';
+import '../presentation/profile/bloc/profile_bloc.dart';
+import '../domain/repositories/notification_repository.dart';
+import '../data/repositories/notification_repository_impl.dart';
+import '../presentation/profile/bloc/notification_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -38,10 +42,6 @@ void setupAdminDependencies() {
   print('🔧 Setting up Admin dependencies...');
   
   // Services
-  getIt.registerLazySingleton<ImageUploadService>(
-    () => ImageUploadService(),
-  );
-
   getIt.registerLazySingleton<QRScannerService>(
     () => QRScannerService(),
   );
@@ -205,5 +205,26 @@ void setupAdminDependencies() {
     ),
   );
   
+  // Presentation - Profile Bloc
+  getIt.registerFactory<ProfileBloc>(
+    () => ProfileBloc(
+      authBloc: getIt<AuthBloc>(),
+    ),
+  );
+
+  // Notification Repository
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(
+      dio: getIt<Dio>(),
+    ),
+  );
+
+  // Presentation - Notification Bloc
+  getIt.registerFactory<NotificationBloc>(
+    () => NotificationBloc(
+      repository: getIt<NotificationRepository>(),
+    ),
+  );
+
   print('✅ Admin dependencies setup completed!');
 }

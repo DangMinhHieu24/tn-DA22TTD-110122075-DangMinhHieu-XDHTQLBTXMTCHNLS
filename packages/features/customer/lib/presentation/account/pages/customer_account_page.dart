@@ -4,6 +4,7 @@ import 'package:auth/auth.dart';
 import '../../vehicles/widgets/customer_bottom_nav.dart';
 import '../../vehicles/pages/my_vehicles_page.dart';
 import '../../appointments/pages/appointments_page.dart';
+import '../../chat/widgets/chat_floating_bubble.dart';
 
 class CustomerAccountPage extends StatelessWidget {
   const CustomerAccountPage({super.key});
@@ -33,8 +34,10 @@ class CustomerAccountPage extends StatelessWidget {
 
           return Scaffold(
             backgroundColor: const Color(0xFFF5F7FA),
-            body: Column(
+            body: Stack(
               children: [
+                Column(
+                  children: [
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -252,7 +255,7 @@ class CustomerAccountPage extends StatelessWidget {
                                   _buildMenuItem(
                                     icon: Icons.support_agent_outlined,
                                     label: 'Hỗ trợ',
-                                    onTap: () {},
+                                    onTap: () => showChatPanel(context),
                                   ),
                                   _buildDivider(),
                                   _buildMenuItem(
@@ -339,6 +342,9 @@ class CustomerAccountPage extends StatelessWidget {
                   ),
                 ],
               ),
+              const ChatFloatingBubble(),
+            ],
+          ),
             );
           },
         ),

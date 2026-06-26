@@ -20,6 +20,7 @@ abstract class WorkRemoteDataSource {
   });
   Future<void> addParts(String workOrderId, List<Map<String, dynamic>> parts);
   Future<void> updateNotes(String workOrderId, String notes);
+  Future<void> addPhoto(String workOrderId, String photoUrl, {String? photoType, String? description});
   Future<List<WorkItemModel>> searchWorkItems(String query, {String? technicianId});
 }
 
@@ -151,6 +152,22 @@ class WorkRemoteDataSourceImpl implements WorkRemoteDataSource {
       await dio.patch(
         '/work-orders/$workOrderId/parts',
         data: {'partsUsed': normalizedParts},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> addPhoto(String workOrderId, String photoUrl, {String? photoType, String? description}) async {
+    try {
+      await dio.post(
+        '/work-orders/$workOrderId/photos',
+        data: {
+          'photoUrl': photoUrl,
+          'photoType': photoType ?? 'AFTER_REPAIR',
+          'description': description,
+        },
       );
     } catch (e) {
       rethrow;

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, WorkOrderStatus, PaymentMethod, ApprovalStatus } from '@prisma/client';
+import { createNotificationForAdmins, checkAndWarnLowStock } from './notification.controller';
 
 const prisma = new PrismaClient();
 
@@ -25,13 +26,8 @@ const buildScheduledTime = (estimatedHours?: number | null) => {
 };
 
 const computeWorkOrderRevenue = (workOrder: {
-  totalPrice?: number | null;
   partsUsed?: Array<{ quantity: number; unitPrice: number }>;
 }) => {
-  if (typeof workOrder.totalPrice === 'number' && Number.isFinite(workOrder.totalPrice)) {
-    return workOrder.totalPrice;
-  }
-
   return (workOrder.partsUsed ?? []).reduce((sum, part) => {
     const quantity = typeof part.quantity === 'number' ? part.quantity : 0;
     const unitPrice = typeof part.unitPrice === 'number' ? part.unitPrice : 0;
@@ -69,13 +65,22 @@ const computeWorkOrderTotalRevenue = (workOrder: {
  */
 export const getWorkOrders = async (req: Request, res: Response) => {
   try {
-    const { status, technicianId, vehicleId, sortBy } = req.query;
+    const { status, technicianId, vehicleId, sortBy, search } = req.query;
     const authUser = (req as any).user;
 
     const where: any = {};
     if (status) where.status = status;
     if (technicianId) where.technicianId = technicianId;
     if (vehicleId) where.vehicleId = vehicleId;
+
+    if (search && (search as string).trim()) {
+      const q = (search as string).trim();
+      where.OR = [
+        { orderNumber: { contains: q, mode: 'insensitive' } },
+        { vehicle: { licensePlate: { contains: q, mode: 'insensitive' } } },
+        { vehicle: { owner: { name: { contains: q, mode: 'insensitive' } } } },
+      ];
+    }
 
     if (authUser?.role === 'CUSTOMER') {
       if (vehicleId) {
@@ -371,6 +376,15 @@ export const createWorkOrder = async (req: Request, res: Response) => {
       }).catch(() => {});
     }
 
+    // Check and notify low stock
+    if (Array.isArray(partsUsed)) {
+      for (const part of partsUsed) {
+        if (part && part.partId) {
+          await checkAndWarnLowStock(part.partId);
+        }
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Work order created successfully',
@@ -459,6 +473,14 @@ export const addPartsToWorkOrder = async (req: Request, res: Response) => {
         },
       });
     });
+
+    // Check and notify low stock
+    const normalizedParts = Array.isArray(partsUsed) ? partsUsed : [];
+    for (const part of normalizedParts) {
+      if (part && part.partId) {
+        await checkAndWarnLowStock(part.partId);
+      }
+    }
 
     res.json({
       success: true,
@@ -784,6 +806,34 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
       },
     });
 
+    // Notify admins about the service approval request
+    try {
+      const wo = await prisma.workOrder.findUnique({
+        where: { id },
+        select: { orderNumber: true },
+      });
+      const orderNumber = wo?.orderNumber || 'N/A';
+      const mapServiceTypeLabel = (type: string) => {
+        switch (type) {
+          case 'MAINTENANCE': return 'Bảo dưỡng định kỳ';
+          case 'BATTERY_CHECK': return 'Kiểm tra pin/sạc';
+          case 'BRAKES_TIRES': return 'Phanh & Lốp';
+          case 'OTHER_REPAIR': return 'Sửa chữa khác';
+          default: return type;
+        }
+      };
+      const sName = serviceName || mapServiceTypeLabel(serviceType);
+
+      await createNotificationForAdmins(
+        'Yêu cầu phê duyệt',
+        `Kỹ thuật viên yêu cầu phê duyệt dịch vụ "${sName}" cho phiếu ${orderNumber}.`,
+        'APPROVAL_REQUEST',
+        { workOrderId: id, serviceId: service.id }
+      );
+    } catch (e) {
+      console.error('Failed to notify admin of service request:', e);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Service added successfully',
@@ -901,6 +951,174 @@ export const updateWorkOrder = async (req: Request, res: Response) => {
       success: false,
       message: 'Failed to update work order',
       error: error.message,
+    });
+  }
+};
+
+/**
+ * Update the price of a service or a part used in a work order
+ * PATCH /api/work-orders/:id/items/price
+ */
+/**
+ * Add a photo to a work order
+ * POST /api/work-orders/:id/photos
+ */
+export const addPhotoToWorkOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { photoUrl, photoType, description } = req.body;
+
+    if (!photoUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'photoUrl is required',
+      });
+    }
+
+    const photo = await prisma.workOrderPhoto.create({
+      data: {
+        workOrderId: id,
+        photoUrl,
+        photoType: photoType || 'AFTER_REPAIR',
+        description: description || null,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Photo added successfully',
+      data: photo,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add photo',
+      error: error.message,
+    });
+  }
+};
+
+export const updateItemPrice = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { itemType, itemId, price } = req.body;
+
+    if (!itemType || !itemId || typeof price !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing or invalid parameters: itemType, itemId, price are required.',
+      });
+    }
+
+    if (itemType !== 'SERVICE' && itemType !== 'PART') {
+      return res.status(400).json({
+        success: false,
+        message: 'itemType must be either SERVICE or PART',
+      });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (itemType === 'SERVICE') {
+        const service = await tx.workOrderService.findUnique({
+          where: { id: itemId },
+        });
+        if (!service || service.workOrderId !== id) {
+          throw new Error('Service not found or does not belong to this work order');
+        }
+        await tx.workOrderService.update({
+          where: { id: itemId },
+          data: { price },
+        });
+      } else {
+        const partUsed = await tx.partsUsed.findUnique({
+          where: { id: itemId },
+        });
+        if (!partUsed || partUsed.workOrderId !== id) {
+          throw new Error('Part used not found or does not belong to this work order');
+        }
+        await tx.partsUsed.update({
+          where: { id: itemId },
+          data: { unitPrice: price },
+        });
+      }
+
+      // Fetch the updated work order to recalculate total if necessary
+      const wo = await tx.workOrder.findUnique({
+        where: { id },
+        include: {
+          services: true,
+          partsUsed: true,
+        },
+      });
+
+      if (!wo) {
+        throw new Error('Work order not found');
+      }
+
+      // Recalculate totalPrice if it is already set (completed/paid) or status is COMPLETED/PAID
+      if (wo.totalPrice !== null || wo.status === 'COMPLETED' || wo.status === 'PAID') {
+        const serviceTotal = (wo.services ?? []).reduce((sum, s) => sum + (s.price ?? 0), 0);
+        const partsTotal = (wo.partsUsed ?? []).reduce((sum, p) => sum + (p.quantity * p.unitPrice), 0);
+        const newTotal = serviceTotal + partsTotal;
+
+        await tx.workOrder.update({
+          where: { id },
+          data: { totalPrice: newTotal },
+        });
+      }
+
+      // Return full updated work order
+      return tx.workOrder.findUnique({
+        where: { id },
+        include: {
+          vehicle: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phoneNumber: true,
+                  loyaltyPoints: true,
+                  treesPlanted: true,
+                },
+              },
+            },
+          },
+          technician: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phoneNumber: true,
+            },
+          },
+          services: true,
+          photos: true,
+          partsUsed: {
+            include: {
+              part: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+    });
+
+    res.json({
+      success: true,
+      message: 'Item price updated successfully',
+      data: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update item price',
     });
   }
 };

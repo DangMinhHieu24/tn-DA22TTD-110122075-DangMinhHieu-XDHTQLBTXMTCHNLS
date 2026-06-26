@@ -7,6 +7,7 @@ import '../bloc/lookup_bloc.dart';
 import '../pages/vehicle_lookup_page.dart';
 import '../pages/customer_lookup_page.dart';
 import '../pages/invoice_lookup_page.dart';
+import '../pages/warranty_lookup_page.dart';
 import '../../dashboard/pages/inventory_page.dart';
 import '../../dashboard/pages/work_order_list_page.dart';
 import 'connecting_line_painter.dart';
@@ -121,6 +122,11 @@ class _RadialLookupMenuState extends State<RadialLookupMenu>
 
     Widget page;
     switch (cat.id) {
+      case 'warranty':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WarrantyLookupPage()),
+        );
+        return;
       case 'vehicle':
         page = const VehicleLookupPage();
       case 'customer':

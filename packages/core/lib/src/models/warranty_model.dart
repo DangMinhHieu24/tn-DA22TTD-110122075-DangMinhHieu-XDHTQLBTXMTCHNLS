@@ -16,6 +16,7 @@ class WarrantyModel extends Equatable {
   final String? issuedBy;
   final int daysRemaining;
   final WarrantyStatus status;
+  final Map<String, dynamic>? vehicle;
 
   const WarrantyModel({
     required this.id,
@@ -27,6 +28,7 @@ class WarrantyModel extends Equatable {
     this.issuedBy,
     required this.daysRemaining,
     required this.status,
+    this.vehicle,
   });
 
   factory WarrantyModel.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class WarrantyModel extends Equatable {
       issuedBy: json['issuedBy'] as String?,
       daysRemaining: json['daysRemaining'] as int,
       status: _statusFromString(json['status'] as String),
+      vehicle: json['vehicle'] as Map<String, dynamic>?,
     );
   }
 
@@ -54,6 +57,7 @@ class WarrantyModel extends Equatable {
       'issuedBy': issuedBy,
       'daysRemaining': daysRemaining,
       'status': _statusToString(status),
+      if (vehicle != null) 'vehicle': vehicle,
     };
   }
 
@@ -91,6 +95,7 @@ class WarrantyModel extends Equatable {
     String? issuedBy,
     int? daysRemaining,
     WarrantyStatus? status,
+    Map<String, dynamic>? vehicle,
   }) {
     return WarrantyModel(
       id: id ?? this.id,
@@ -102,6 +107,7 @@ class WarrantyModel extends Equatable {
       issuedBy: issuedBy ?? this.issuedBy,
       daysRemaining: daysRemaining ?? this.daysRemaining,
       status: status ?? this.status,
+      vehicle: vehicle ?? this.vehicle,
     );
   }
 
@@ -116,6 +122,7 @@ class WarrantyModel extends Equatable {
         issuedBy,
         daysRemaining,
         status,
+        vehicle,
       ];
 }
 

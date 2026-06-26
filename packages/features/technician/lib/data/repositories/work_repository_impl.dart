@@ -174,6 +174,22 @@ class WorkRepositoryImpl implements WorkRepository {
   }
 
   @override
+  Future<Either<Failure, void>> addPhoto(
+    String workOrderId,
+    String photoUrl, {
+    String? photoType,
+    String? description,
+  }) async {
+    try {
+      await remoteDataSource.addPhoto(workOrderId, photoUrl,
+          photoType: photoType, description: description);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> updateNotes(
     String workOrderId,
     String notes,

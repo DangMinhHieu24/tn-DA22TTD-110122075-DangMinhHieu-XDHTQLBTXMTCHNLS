@@ -36,4 +36,7 @@ router.post('/logout', authenticate, authController.logout);
 // Get current user (protected)
 router.get('/me', authenticate, authController.getCurrentUser);
 
+// Change password (protected)
+router.post('/change-password', authenticate, authController.changePassword);
+
 export default router;

@@ -10,11 +10,22 @@ import '../widgets/dashboard_header.dart';
 import '../widgets/greeting_section.dart';
 import '../widgets/stats_card.dart';
 import '../widgets/work_card.dart';
-import '../widgets/draggable_fab.dart';
 import '../widgets/dashboard_bottom_nav.dart';
 import '../../../domain/entities/work_item.dart';
+import '../../../domain/entities/tech_lookup_category.dart';
+import '../../../domain/usecases/get_work_items_usecase.dart';
 import '../../settings/pages/settings_page.dart';
 import '../../work_detail/pages/work_detail_page.dart';
+import '../../lookup/widgets/technician_radial_menu.dart';
+import '../../lookup/bloc/vehicle_list_bloc.dart';
+import '../../lookup/bloc/parts_lookup_bloc.dart';
+import '../../lookup/bloc/vehicle_detail_bloc.dart';
+import '../../lookup/pages/vehicle_list_page.dart';
+import '../../lookup/pages/parts_lookup_page.dart';
+import '../../lookup/pages/vehicle_result_page.dart';
+import '../../lookup/bloc/work_order_search_bloc.dart';
+import '../../lookup/pages/work_order_search_page.dart';
+import '../../chat/widgets/tech_chat_floating_bubble.dart';
 
 class TechnicianDashboardPage extends StatelessWidget {
   const TechnicianDashboardPage({super.key});
@@ -102,29 +113,27 @@ class _DashboardViewState extends State<_DashboardView> {
 
                         // Scrollable content
                         Expanded(
-                          child: _buildContent(state, userName),
+                          child: _selectedIndex == 1
+                              ? const _LookupView()
+                              : _selectedIndex == 2
+                                  ? const _StatsView()
+                                  : _buildContent(state, userName),
                         ),
                       ],
                     ),
 
-                    // Floating Action Button
-                    DraggableFab(
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/admin/vehicle-intake',
-                      ),
-                    ),
+                    // Chat Floating Bubble
+                    const TechChatFloatingBubble(),
 
                     // Bottom Navigation
                     Positioned(
                       bottom: 0,
                       left: 0,
                       right: 0,
-                      child: DashboardBottomNav(
+                      child:                     DashboardBottomNav(
                         selectedIndex: _selectedIndex,
                         onItemSelected: (index) {
                           if (index == 3) {
-                            // Navigate to Settings page
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -368,6 +377,299 @@ class _DashboardViewState extends State<_DashboardView> {
         return AppColors.secondary;
       case WorkStatus.cancelled:
         return const Color(0xFFBA1A1A);
+    }
+  }
+}
+
+class _StatsView extends StatefulWidget {
+  const _StatsView();
+
+  @override
+  State<_StatsView> createState() => _StatsViewState();
+}
+
+class _StatsViewState extends State<_StatsView> {
+  List<WorkItem>? _items;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final authState = GetIt.instance<AuthBloc>().state;
+      String? userId;
+      if (authState is AuthAuthenticated) {
+        userId = authState.user.id;
+      }
+      final useCase = GetIt.instance<GetWorkItemsUseCase>();
+      final result = await useCase(GetWorkItemsParams(technicianId: userId));
+      result.fold(
+        (failure) {
+          if (mounted) setState(() { _error = 'Không thể tải dữ liệu'; _loading = false; });
+        },
+        (items) {
+          if (mounted) setState(() { _items = items; _loading = false; });
+        },
+      );
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF006E2F))),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline_rounded,
+                size: 48, color: Color(0xFFDC2626)),
+            const SizedBox(height: 16),
+            Text(_error!, style: const TextStyle(color: Color(0xFF6B7280))),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _load, child: const Text('Thử lại')),
+          ],
+        ),
+      );
+    }
+    return _buildContent();
+  }
+
+  Widget _buildContent() {
+    final items = _items!;
+    final total = items.length;
+    final completed = items.where((i) => i.status == WorkStatus.completed).length;
+    final inProgress = items.where((i) => i.status == WorkStatus.inProgress).length;
+    final revenue = items
+        .where((i) => i.status == WorkStatus.completed)
+        .fold<double>(0, (sum, i) => sum + i.services.fold<double>(0, (s, sv) => s + (sv.price ?? 0)));
+    final recentItems = items.where((i) => i.status == WorkStatus.completed).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+        children: [
+          _buildStatRow(total, completed, inProgress),
+          const SizedBox(height: 20),
+          _buildRevenueCard(revenue),
+          const SizedBox(height: 20),
+          if (recentItems.isNotEmpty) ...[
+            _buildSectionTitle('Phiếu hoàn thành gần đây'),
+            const SizedBox(height: 10),
+            ...recentItems.take(5).map(_buildRecentItem),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatRow(int total, int completed, int inProgress) {
+    return Row(
+      children: [
+        _statCard('Tổng việc', '$total', const Color(0xFF006E2F), Icons.work_history),
+        const SizedBox(width: 10),
+        _statCard('Hoàn tất', '$completed', const Color(0xFF16A34A), Icons.check_circle_outline),
+        const SizedBox(width: 10),
+        _statCard('Đang làm', '$inProgress', const Color(0xFF0058BE), Icons.build),
+      ],
+    );
+  }
+
+  Widget _statCard(String label, String value, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRevenueCard(double revenue) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF006E2F), Color(0xFF059669)]),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: const Color(0xFF006E2F).withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.monetization_on_rounded, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tổng doanh thu', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 2),
+              Text('${revenue.toStringAsFixed(0)}đ', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF191C1E)));
+  }
+
+  Widget _buildRecentItem(WorkItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.check_circle, color: Color(0xFF006E2F), size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.licensePlate, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF006E2F))),
+                const SizedBox(height: 2),
+                Text(item.customerName, style: const TextStyle(fontSize: 12, color: Color(0xFF191C1E))),
+              ],
+            ),
+          ),
+          Text(_formatDate(item.createdAt), style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dt) => '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}';
+}
+
+class _LookupView extends StatelessWidget {
+  const _LookupView();
+
+  static const _categories = [
+    TechLookupCategory(
+      id: 'vehicle',
+      label: 'Danh sách xe',
+      icon: Icons.directions_car,
+      color: Color(0xFF006E2F),
+      bgColor: Color(0xFFE8F5E9),
+    ),
+    TechLookupCategory(
+      id: 'part',
+      label: 'Tra cứu',
+      icon: Icons.search_rounded,
+      color: Color(0xFF7B1FA2),
+      bgColor: Color(0xFFF3E5F5),
+    ),
+    TechLookupCategory(
+      id: 'warranty',
+      label: 'Bảo hành',
+      icon: Icons.shield_outlined,
+      color: Color(0xFF0058BE),
+      bgColor: Color(0xFFE3F2FD),
+    ),
+    TechLookupCategory(
+      id: 'work_order',
+      label: 'Phiếu Sửa Chữa',
+      icon: Icons.receipt_long_rounded,
+      color: Color(0xFFD97706),
+      bgColor: Color(0xFFFFF7ED),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+        child: TechnicianRadialMenu(
+          categories: _categories,
+          onCategorySelected: (category) {
+            _handleCategorySelected(context, category);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _handleCategorySelected(
+      BuildContext context, TechLookupCategory category) {
+    switch (category.id) {
+      case 'vehicle':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (_) => GetIt.instance<VehicleListBloc>(),
+              child: const VehicleListPage(),
+            ),
+          ),
+        );
+      case 'part':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (_) => GetIt.instance<PartsLookupBloc>(),
+              child: const PartsLookupPage(),
+            ),
+          ),
+        );
+      case 'warranty':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (_) => GetIt.instance<VehicleDetailBloc>(),
+              child: const VehicleResultPage(initialMode: 'warranty'),
+            ),
+          ),
+        );
+      case 'work_order':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (_) => GetIt.instance<WorkOrderSearchBloc>(),
+              child: const WorkOrderSearchPage(),
+            ),
+          ),
+        );
     }
   }
 }

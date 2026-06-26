@@ -65,6 +65,8 @@ model User {
   assignedWorkOrders WorkOrder[] @relation("AssignedTechnician")
   createdWorkOrders  WorkOrder[] @relation("CreatedByAdmin")
   appointments       Appointment[]
+  chatConversations  ChatConversation[]
+  notifications      Notification[]
 
   @@map("users")
 }
@@ -266,6 +268,28 @@ model MaintenanceLog {
   @@map("maintenance_logs")
 }
 
+model ChatConversation {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  ChatMessage[]
+
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid())
+  conversationId String           @map("conversation_id")
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  createdAt      DateTime         @default(now())
+
+  @@map("chat_messages")
+}
+
 model Warranty {
   id           String   @id @default(uuid())
   vehicleId    String   @map("vehicle_id")
@@ -277,4 +301,18 @@ model Warranty {
   issuedBy     String?  @map("issued_by")
 
   @@map("warranties")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  type        String   // 'APPOINTMENT_NEW', 'APPOINTMENT_CANCELLED', 'INVENTORY_LOW', 'APPROVAL_REQUEST'
+  data        Json?    // Extra metadata (e.g. { "appointmentId": "...", "workOrderId": "..." })
+  isRead      Boolean  @default(false) @map("is_read")
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
 }

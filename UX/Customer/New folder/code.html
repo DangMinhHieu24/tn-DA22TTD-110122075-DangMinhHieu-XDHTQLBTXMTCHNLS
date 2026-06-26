@@ -1,221 +1,273 @@
 <!DOCTYPE html>
 
-<html lang="vi"><head>
+<html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>VoltFlow Pro - Vehicle Details</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<title>VoltFlow Pro - Appointments</title>
+<!-- Material Symbols -->
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
 <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "error-container": "#ffdad6",
-                    "secondary-fixed-dim": "#adc6ff",
-                    "primary-fixed": "#6bff8f",
-                    "surface-variant": "#e0e3e5",
-                    "secondary-fixed": "#d8e2ff",
-                    "on-secondary-container": "#fefcff",
-                    "outline": "#6d7b6c",
-                    "error": "#ba1a1a",
-                    "on-primary-fixed": "#002109",
-                    "inverse-primary": "#4ae176",
-                    "background": "#f7f9fb",
-                    "surface-dim": "#d8dadc",
-                    "on-error": "#ffffff",
-                    "on-primary": "#ffffff",
-                    "surface-container-high": "#e6e8ea",
-                    "inverse-on-surface": "#eff1f3",
-                    "primary-container": "#22c55e",
-                    "primary": "#006e2f",
-                    "outline-variant": "#bccbb9",
-                    "surface": "#f7f9fb",
-                    "on-error-container": "#93000a",
-                    "surface-container-highest": "#e0e3e5",
-                    "on-background": "#191c1e",
-                    "on-tertiary-fixed": "#410001",
-                    "on-primary-fixed-variant": "#005321",
-                    "tertiary-fixed-dim": "#ffb4a9",
-                    "on-tertiary": "#ffffff",
-                    "on-primary-container": "#004b1e",
-                    "surface-container-low": "#f2f4f6",
-                    "on-tertiary-fixed-variant": "#7f2a21",
-                    "surface-tint": "#006e2f",
-                    "on-secondary": "#ffffff",
-                    "inverse-surface": "#2d3133",
-                    "surface-container": "#eceef0",
-                    "surface-container-lowest": "#ffffff",
-                    "on-tertiary-container": "#76231b",
-                    "tertiary-container": "#ff8b7c",
-                    "tertiary": "#9e4036",
-                    "on-secondary-fixed": "#001a42",
-                    "tertiary-fixed": "#ffdad5",
-                    "secondary-container": "#2170e4",
-                    "on-surface-variant": "#3d4a3d",
-                    "on-surface": "#191c1e",
-                    "surface-bright": "#f7f9fb",
-                    "on-secondary-fixed-variant": "#004395",
-                    "secondary": "#0058be",
-                    "primary-fixed-dim": "#4ae176"
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#006e2f",
+                        "inverse-primary": "#4ae176",
+                        "on-primary": "#ffffff",
+                        "outline": "#6d7b6c",
+                        "primary-fixed-dim": "#4ae176",
+                        "on-tertiary-fixed-variant": "#7f2a21",
+                        "tertiary-fixed-dim": "#ffb4a9",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed": "#001a42",
+                        "tertiary": "#9e4036",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed": "#6bff8f",
+                        "on-surface": "#191c1e",
+                        "on-primary-container": "#004b1e",
+                        "primary-container": "#22c55e",
+                        "primary": "#006e2f",
+                        "on-primary-fixed": "#002109",
+                        "on-background": "#191c1e",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#e0e3e5",
+                        "secondary": "#0058be",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "error": "#ba1a1a",
+                        "surface-dim": "#d8dadc",
+                        "secondary-container": "#2170e4",
+                        "outline-variant": "#bccbb9",
+                        "on-tertiary-fixed": "#410001",
+                        "on-secondary-fixed-variant": "#004395",
+                        "tertiary-container": "#ff8b7c",
+                        "on-secondary-container": "#fefcff",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container": "#eceef0",
+                        "surface-bright": "#f7f9fb",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "background": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#e0e3e5",
+                        "on-primary-fixed-variant": "#005321",
+                        "tertiary-fixed": "#ffdad5",
+                        "on-tertiary-container": "#76231b",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-surface-variant": "#3d4a3d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {}
+                },
             },
-            "borderRadius": {
-                    "DEFAULT": "0.25rem",
-                    "lg": "0.5rem",
-                    "xl": "0.75rem",
-                    "full": "9999px"
-            },
-            "spacing": {},
-            "fontFamily": {
-                    "headline": ["Manrope", "sans-serif"],
-                    "display": ["Manrope", "sans-serif"],
-                    "body": ["Inter", "sans-serif"],
-                    "label": ["Inter", "sans-serif"]
-            },
-            "fontSize": {}
-          },
-        },
-      }
+        }
     </script>
-<style>
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .material-symbols-outlined.fill-icon {
-          font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-    </style>
 <style>
     body {
       min-height: max(884px, 100dvh);
     }
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+    .dark .glass-panel {
+        background: rgba(45, 49, 51, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .deep-glass {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 20px 40px rgba(0, 110, 47, 0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .premium-bg {
+        background-color: #f7f9fb;
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(145, 100%, 30%, 0.05) 0px, transparent 60%),
+            radial-gradient(at 100% 0%, hsla(210, 100%, 70%, 0.03) 0px, transparent 60%),
+            radial-gradient(at 100% 100%, hsla(145, 100%, 30%, 0.04) 0px, transparent 60%);
+    }
   </style>
 </head>
-<body class="bg-surface font-body text-on-surface antialiased min-h-screen pb-[72px]">
-<!-- TopAppBar -->
-<header class="sticky top-0 z-50 flex items-center justify-between px-6 py-4 w-full bg-surface/80 dark:bg-surface-container/80 backdrop-blur-xl shadow-sm shadow-on-surface/5"><div class="flex items-center justify-between w-full max-w-screen-md mx-auto">
-<button class="flex items-center justify-center w-11 h-11 rounded-full bg-surface-container-low hover:bg-surface-container-high transition-all text-on-surface">
-<span class="material-symbols-outlined text-2xl" style="color: #006e2f;">arrow_back</span>
+<body class="premium-bg font-body text-on-surface antialiased min-h-screen relative overflow-x-hidden pb-12">
+<!-- Immersive Header -->
+<header class="pt-16 pb-6 px-6 w-full flex items-center justify-between relative z-10 max-w-2xl mx-auto">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg overflow-hidden relative z-10 shadow-sm border border-white/60">
+<img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfOmx5RpeunFp48Ktnx69V0jR4WZSoCyYuOk_eui1FmQ1cYnUkUsYPwPITH7XOFHeevCvZQOxpV85PzecymEZl5FOy_6ahGjiu-8wQA4rV7Q-GLlj7VG3jEuEK9K_I73u1QKTqRIbHCpnV9fNE4isB24LEOk5B_ZrS57r1eQG1iOLCwYUzlFrvtx43iOUalPy1M2YoYI2T5lBIAE0ddRZa1NM4yxkfcsEG-_D4HlUn2q0a95Hendv-s8Cvkvw3HyU2ZYk3VcFYLYk"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body text-xs text-on-surface-variant mb-0.5 font-medium tracking-wide">Xin chào,</span>
+<span class="font-headline text-lg font-bold tracking-tight text-on-surface">Lê Thị C</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-lg glass-panel flex items-center justify-center hover:bg-white/80 transition-all text-on-surface">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 300;">notifications</span>
 </button>
-<h1 class="font-headline text-lg md:text-xl font-extrabold tracking-tight text-on-surface" style="color: #006e2f;">Chi tiết xe</h1>
-<button class="flex items-center justify-center w-11 h-11 rounded-full bg-surface-container-low hover:bg-surface-container-high transition-all text-on-surface relative">
-<span class="material-symbols-outlined text-2xl" style="color: #006e2f;">notifications</span>
-<span class="absolute top-3 right-3 w-2 h-2 bg-error rounded-full ring-2 ring-surface"></span>
+</header>
+<!-- Main Content -->
+<main class="px-6 max-w-2xl mx-auto space-y-8">
+<!-- Interactive Map Hero -->
+<section class="relative w-full h-72 rounded-lg overflow-hidden shadow-2xl shadow-primary/10 group cursor-pointer">
+<img alt="Bản đồ trạm dịch vụ" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGalaFzE5JiHrUzcKaVjGJNBsoQqe36oQRCGiup61wgkRYFzAufWmi3rPMZmGbnX4fQQ2lrol_MSLxLQnqzBKCKAy0zscYBCTvAP_aE675fEsLtHqB90H3zdTy0Od1klCTQyYuPhpcjXlowj9eeg-ClygqsNq-lJ8kGgTCHZ3EndnyzE_tojVO54NlC6_3I8bB_kQ4GdgO93D0sMprXkEfB0TzoremeVED9N3AelYbrX8b87bTXGS1N4WN04kLjSMVMpJIcMKM1ng"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 deep-glass rounded-lg p-5 flex items-center justify-between">
+<div class="flex flex-col">
+<h3 class="font-headline text-lg font-extrabold text-on-surface">Trạm Dịch Vụ EV</h3>
+<div class="flex items-center gap-1.5 text-on-surface-variant mt-1">
+<span class="material-symbols-outlined" style="font-size: 16px;">near_me</span>
+<span class="font-body text-sm font-medium">Cách đây 2.5 km</span>
+</div>
+</div>
+<button class="bg-primary text-white w-12 h-12 rounded-lg flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors">
+<span class="material-symbols-outlined">directions</span>
 </button>
-</div></header>
-<main class="max-w-screen-md mx-auto px-4 md:px-6 mt-4 space-y-6">
-<!-- Hero Section & Vehicle Identity -->
-<section class="relative rounded-3xl overflow-hidden bg-surface-container-lowest shadow-sm border border-outline-variant/20 group">
-<div class="aspect-[16/9] w-full relative overflow-hidden bg-surface-container-low">
-<img alt="Electric Motorcycle" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" data-alt="A sleek, modern electric motorcycle finished in matte black, parked in a minimalist, brightly lit studio environment. The high-key lighting emphasizes the sharp, engineered lines and high-tech components of the vehicle. The overall aesthetic is clean, premium, and sophisticated, perfectly matching an advanced EV management interface with subtle hints of deep kinetic green in the background reflections." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDveHpcsdOytmcGNstF5d_QgYTzhd-urm1ssTmjtGikRXVLyaORmjAXZU2guyH6lkUVl8Wx6oAo5GOcMGVP4EAv2BcfXTzuzERjh4oNe6GN4yVV9nSxPhv5JlQSrPrDRBF_SlB3wIGxqv6H3TsaWs70vYzdwY30HWn8vq9xOsW1SUMR2BOsHfasCcM4Gj2FvDMAXiTEyKjplueDTb-eF4Eu9if8PCzTwgPo_Z9adgkV3XNgXPTz9ufe0uNE2MNIcgxBYkTrkjr7QsE"/>
-<!-- Warranty Badge Overlay -->
-<div class="absolute top-4 right-4 bg-surface-container-lowest/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-outline-variant/20 flex items-center gap-2">
-<span class="material-symbols-outlined text-primary text-xl">security</span>
-<span class="font-label text-sm font-semibold text-on-surface">Còn bảo hành: 245 ngày</span>
-</div>
-</div>
-<div class="p-6">
-<div class="flex justify-between items-end mb-6">
-<div>
-<h2 class="font-headline text-2xl md:text-3xl font-bold tracking-tight text-on-surface">VinFast Theon S</h2>
-<p class="font-body text-base text-on-surface-variant mt-1">Biển số: <span class="text-on-surface font-medium">29A1-123.45</span></p>
-</div>
-<div class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
-<span class="material-symbols-outlined text-2xl">two_wheeler</span>
-</div>
-</div>
-<!-- Quick Info Grid -->
-<div class="grid grid-cols-3 gap-3"><div class="bg-surface-container-lowest rounded-2xl p-3 flex flex-col items-center shadow-sm border border-outline-variant/10">
-<div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center mb-1.5">
-<span class="material-symbols-outlined text-emerald-600 text-lg">speed</span>
-</div>
-<span class="font-headline font-extrabold text-base text-on-surface">12,500</span>
-<span class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">KM ODO</span>
-</div>
-<div class="bg-surface-container-lowest rounded-2xl p-3 flex flex-col items-center shadow-sm border border-outline-variant/10">
-<div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mb-1.5">
-<span class="material-symbols-outlined text-blue-600 text-lg">palette</span>
-</div>
-<span class="font-headline font-extrabold text-base text-on-surface">Đen</span>
-<span class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">MÀU SẮC</span>
-</div>
-<div class="bg-surface-container-lowest rounded-2xl p-3 flex flex-col items-center shadow-sm border border-outline-variant/10">
-<div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center mb-1.5">
-<span class="material-symbols-outlined text-orange-600 text-lg">calendar_month</span>
-</div>
-<span class="font-headline font-extrabold text-base text-on-surface">2023</span>
-<span class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">NĂM SX</span>
-</div></div>
 </div>
 </section>
-<!-- Maintenance History Section -->
-<section class="mt-8 space-y-4">
-<div class="flex items-center justify-between px-1">
-<h3 class="font-headline text-xl font-bold text-on-surface">Lịch sử sửa chữa</h3>
-<button class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors text-sm font-medium">
-<span class="material-symbols-outlined text-[20px]">filter_list</span>
-                    Lọc theo trạng thái
-                </button>
+<!-- Enhanced Featured Action: Book Appointment -->
+<section class="relative group cursor-pointer">
+<div class="deep-glass rounded-lg p-6 relative overflow-hidden transition-all duration-500 hover:shadow-[0_16px_48px_rgba(0,110,47,0.12)]">
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl"></div>
+<div class="flex items-center justify-between relative z-10">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+<span class="material-symbols-outlined" style="font-size: 28px; font-variation-settings: 'wght' 400;">calendar_add_on</span>
 </div>
-<!-- List of repair cards -->
-<div class="space-y-4"><div class="bg-surface-container-lowest rounded-[2rem] p-6 shadow-sm border relative overflow-hidden border-error/20 bg-error-container/10"><div class="flex justify-between items-start mb-4">
 <div>
-<span class="inline-block px-3 py-1 rounded-full bg-error/10 text-error text-[10px] font-bold uppercase tracking-wider mb-2">#PSC-10024</span>
-<h4 class="font-headline text-lg font-bold text-on-surface">Sửa chữa đột xuất</h4>
-<p class="font-body text-sm text-on-surface-variant">02/11/2023</p>
-</div>
-<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-error text-on-error shadow-lg shadow-error/10">
-<span class="material-symbols-outlined text-[16px] fill-icon">pending</span>
-<span class="font-label text-[11px] font-bold uppercase tracking-wide">Đang xử lý</span>
+<h2 class="font-headline text-xl font-bold text-on-surface mb-0.5">Đặt lịch mới</h2>
+<p class="font-body text-sm text-on-surface-variant font-medium">Sắp xếp thời gian bảo dưỡng</p>
 </div>
 </div>
-<p class="font-body text-sm text-on-surface-variant mb-6 leading-relaxed border-l-2 border-error/20 pl-4">Kiểm tra lỗi hiển thị màn hình, Cập nhật phần mềm</p>
-<button class="w-full flex items-center justify-center gap-2 bg-error text-on-error font-headline text-sm font-bold py-3.5 rounded-2xl shadow-lg shadow-error/20 hover:scale-[1.02] active:scale-95 transition-all">
-    Xem chi tiết phiếu
-    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-</button></div>
-<div class="bg-surface-container-lowest rounded-[2rem] p-6 shadow-sm border border-outline-variant/20 relative overflow-hidden group">
-<div class="flex justify-between items-start mb-4">
-<div>
-<span class="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-2">#PSC-9982</span>
-<h4 class="font-headline text-lg font-bold text-on-surface">Bảo dưỡng định kỳ</h4>
-<p class="font-body text-sm text-on-surface-variant">15/10/2023</p>
-</div>
-<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-on-primary shadow-lg shadow-primary/10">
-<span class="material-symbols-outlined text-[16px] fill-icon">check_circle</span>
-<span class="font-label text-[11px] font-bold uppercase tracking-wide">Hoàn thành</span>
+<div class="w-10 h-10 rounded-lg bg-primary text-white shadow-md flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined" style="font-size: 20px; font-variation-settings: 'wght' 500;">arrow_forward</span>
 </div>
 </div>
-<p class="font-body text-sm text-on-surface-variant mb-6 leading-relaxed border-l-2 border-primary/20 pl-4">Thay má phanh, Kiểm tra pin, Vệ sinh tổng thể</p>
-<button class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-headline text-sm font-bold py-3.5 rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
-    Xem chi tiết phiếu
-    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</div>
+</section>
+<!-- Upcoming Appointments - Avant-Garde Layout -->
+<section class="space-y-6">
+<div class="flex items-center justify-between px-2">
+<h3 class="font-headline text-2xl font-extrabold text-on-surface tracking-tight">Lịch trình</h3>
+<button class="text-primary font-headline text-sm font-bold uppercase hover:underline tracking-widest">Xem tất cả</button>
+</div>
+<div class="relative space-y-6 before:absolute before:inset-y-0 before:left-[4.5rem] before:w-px before:bg-gradient-to-b before:from-primary/30 before:via-outline/20 before:to-transparent">
+<!-- Appointment Item 1 -->
+<article class="relative flex items-stretch gap-6 group">
+<!-- Date Column -->
+<div class="w-14 flex flex-col items-center justify-start pt-4 relative z-10">
+<div class="bg-surface w-full py-2 flex flex-col items-center">
+<span class="font-headline text-xs font-bold text-error uppercase tracking-widest mb-1">Th 6</span>
+<span class="font-headline text-4xl font-extrabold text-on-surface">23</span>
+</div>
+<div class="absolute top-8 left-full w-4 h-px bg-error/50"></div>
+</div>
+<!-- Card -->
+<div class="flex-1 deep-glass rounded-lg p-6 shadow-xl transition-all duration-300 group-hover:-translate-y-1">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-error/10 border border-error/20">
+<div class="w-2 h-2 rounded-full bg-error animate-pulse"></div>
+<span class="font-headline text-xs font-bold text-error tracking-widest uppercase">Chờ xác nhận</span>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-error/10 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">close</span>
 </button>
-</div></div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<span class="font-headline text-4xl font-extrabold text-on-surface tracking-tighter">07:00</span>
+<span class="material-symbols-outlined text-primary/50" style="font-size: 32px; font-variation-settings: 'wght' 200;">schedule</span>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-3 text-on-surface">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">two_wheeler</span>
+<span class="font-headline text-base font-bold">Dat Bike Weaver 200 <span class="mx-2 opacity-30 font-light">|</span> <span class="font-medium text-on-surface-variant">51H-456.78</span></span>
+</div>
+<div class="flex items-center gap-3 text-on-surface">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">battery_charging_full</span>
+<span class="font-body text-sm font-medium">Kiểm tra pin/sạc</span>
+</div>
+</div>
+</div>
+<div class="pt-4 mt-2 border-t border-on-surface/10 flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined" style="font-size: 16px;">language</span>
+<span class="font-headline text-xs font-bold uppercase tracking-widest">Lịch hẹn online</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Appointment Item 2 -->
+<article class="relative flex items-stretch gap-6 group">
+<!-- Date Column -->
+<div class="w-14 flex flex-col items-center justify-start pt-4 relative z-10">
+<div class="bg-surface w-full py-2 flex flex-col items-center">
+<span class="font-headline text-xs font-bold text-primary uppercase tracking-widest mb-1">Th 6</span>
+<span class="font-headline text-4xl font-extrabold text-on-surface">25</span>
+</div>
+<div class="absolute top-8 left-full w-4 h-px bg-primary/50"></div>
+</div>
+<!-- Card -->
+<div class="flex-1 deep-glass rounded-lg p-6 shadow-xl transition-all duration-300 group-hover:-translate-y-1">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-primary/10 border border-primary/20">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="font-headline text-xs font-bold text-primary tracking-widest uppercase">Đã xác nhận</span>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-error/10 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+</button>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<span class="font-headline text-4xl font-extrabold text-on-surface tracking-tighter">14:30</span>
+<span class="material-symbols-outlined text-primary/50" style="font-size: 32px; font-variation-settings: 'wght' 200;">schedule</span>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-3 text-on-surface">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">two_wheeler</span>
+<span class="font-headline text-base font-bold">VinFast Feliz S <span class="mx-2 opacity-30 font-light">|</span> <span class="font-medium text-on-surface-variant">29A-123.45</span></span>
+</div>
+<div class="flex items-center gap-3 text-on-surface">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">build</span>
+<span class="font-body text-sm font-medium">Bảo dưỡng định kỳ 5000km</span>
+</div>
+</div>
+</div>
+<div class="pt-4 mt-2 border-t border-on-surface/10 flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined" style="font-size: 16px;">storefront</span>
+<span class="font-headline text-xs font-bold uppercase tracking-widest">Đặt tại cửa hàng</span>
+</div>
+</div>
+</div>
+</article>
+</div>
 </section>
 </main>
-<!-- BottomNavBar (Shared Component) -->
-<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-md z-50 flex justify-around items-center px-4 py-3 bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,110,47,0.12)] rounded-2xl border border-white/20">
-<a class="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300" href="#">
-<div class="flex flex-col items-center text-primary">
-<span class="material-symbols-outlined text-2xl transition-transform group-active:scale-90" style="font-variation-settings: 'FILL' 1, 'wght' 400;">motorcycle</span>
-<span class="text-[10px] font-headline font-semibold uppercase tracking-wider">Xe của tôi</span>
-</div>
-<div class="absolute -bottom-1 w-1 h-1 rounded-full bg-primary shadow-[0_0_8px_#22c55e]"></div>
-</a>
-<a class="flex flex-col items-center justify-center gap-1 group transition-all duration-300 text-on-surface-variant hover:text-primary" href="#">
-<span class="material-symbols-outlined text-2xl transition-transform group-active:scale-90">build</span>
-<span class="text-[10px] font-headline font-medium uppercase tracking-wider">Dịch vụ</span>
-</a>
-<a class="flex flex-col items-center justify-center gap-1 group transition-all duration-300 text-on-surface-variant hover:text-primary" href="#">
-<span class="material-symbols-outlined text-2xl transition-transform group-active:scale-90">history</span>
-<span class="text-[10px] font-headline font-medium uppercase tracking-wider">Lịch sử</span>
-</a>
-<a class="flex flex-col items-center justify-center gap-1 group transition-all duration-300 text-on-surface-variant hover:text-primary" href="#">
-<span class="material-symbols-outlined text-2xl transition-transform group-active:scale-90">person</span>
-<span class="text-[10px] font-headline font-medium uppercase tracking-wider">Tài khoản</span>
-</a>
-</nav>
 </body></html>

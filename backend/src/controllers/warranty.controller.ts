@@ -140,29 +140,45 @@ export const getAllWarranties = async (req: Request, res: Response) => {
   try {
     const { status, expiringSoon } = req.query;
 
-    const where: any = {};
     const now = new Date();
+    const whereWarranty: any = {};
+    const whereVehicle: any = {
+      warrantyExpiry: {
+        not: null,
+      },
+    };
 
     if (expiringSoon === 'true') {
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(now.getDate() + 30);
       
-      where.expiryDate = {
+      whereWarranty.expiryDate = {
+        gte: now,
+        lte: thirtyDaysFromNow,
+      };
+      whereVehicle.warrantyExpiry = {
         gte: now,
         lte: thirtyDaysFromNow,
       };
     } else if (status === 'EXPIRED') {
-      where.expiryDate = {
+      whereWarranty.expiryDate = {
+        lt: now,
+      };
+      whereVehicle.warrantyExpiry = {
         lt: now,
       };
     } else if (status === 'ACTIVE') {
-      where.expiryDate = {
+      whereWarranty.expiryDate = {
+        gte: now,
+      };
+      whereVehicle.warrantyExpiry = {
         gte: now,
       };
     }
 
+    // 1. Fetch manual warranties
     const warranties = await prisma.warranty.findMany({
-      where,
+      where: whereWarranty,
       include: {
         vehicle: {
           select: {
@@ -181,13 +197,25 @@ export const getAllWarranties = async (req: Request, res: Response) => {
           },
         },
       },
-      orderBy: {
-        expiryDate: 'asc',
+    });
+
+    // 2. Fetch vehicles with warrantyExpiry
+    const vehiclesWithWarranty = await prisma.vehicle.findMany({
+      where: whereVehicle,
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+          },
+        },
       },
     });
 
-    // Calculate status and days remaining
-    const warrantiesWithStatus = warranties.map((warranty) => {
+    // Map manual warranties with calculated status
+    const manualWarrantiesWithStatus = warranties.map((warranty) => {
       const expiryDate = new Date(warranty.expiryDate);
       const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
@@ -207,10 +235,48 @@ export const getAllWarranties = async (req: Request, res: Response) => {
       };
     });
 
+    // Map vehicle general warranties into unified Warranty format
+    const vehicleWarrantiesMapped = vehiclesWithWarranty.map((vehicle) => {
+      const expiryDate = new Date(vehicle.warrantyExpiry!);
+      const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let calculatedStatus: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
+      if (daysRemaining < 0) {
+        calculatedStatus = 'EXPIRED';
+      } else if (daysRemaining <= 30) {
+        calculatedStatus = 'EXPIRING_SOON';
+      } else {
+        calculatedStatus = 'ACTIVE';
+      }
+
+      return {
+        id: `veh-gen-${vehicle.id}`,
+        vehicleId: vehicle.id,
+        warrantyType: 'Bảo hành chung của xe',
+        startDate: vehicle.createdAt,
+        expiryDate: vehicle.warrantyExpiry!,
+        terms: 'Điều khoản bảo hành tổng thể xe điện theo tiêu chuẩn.',
+        issuedBy: vehicle.brand || 'Hãng sản xuất',
+        daysRemaining,
+        status: calculatedStatus,
+        vehicle: {
+          id: vehicle.id,
+          licensePlate: vehicle.licensePlate,
+          brand: vehicle.brand,
+          model: vehicle.model,
+          owner: vehicle.owner,
+        },
+      };
+    });
+
+    // Combine both lists and sort by expiry date ascending
+    const combinedWarranties = [...manualWarrantiesWithStatus, ...vehicleWarrantiesMapped];
+    combinedWarranties.sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+
     res.json({
       success: true,
-      data: warrantiesWithStatus,
-      count: warrantiesWithStatus.length,
+      data: combinedWarranties,
+      count: combinedWarranties.length,
     });
   } catch (error: any) {
     res.status(500).json({

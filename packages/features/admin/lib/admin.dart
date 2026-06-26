@@ -10,6 +10,7 @@ export 'domain/entities/revenue_report.dart';
 export 'domain/repositories/admin_appointment_repository.dart';
 export 'domain/repositories/dashboard_repository.dart';
 export 'domain/repositories/revenue_report_repository.dart';
+export 'domain/repositories/notification_repository.dart';
 export 'domain/usecases/get_dashboard_stats.dart';
 export 'domain/usecases/get_revenue_report.dart';
 export 'domain/usecases/get_upcoming_appointments.dart';
@@ -20,6 +21,7 @@ export 'data/models/dashboard_stats_model.dart';
 export 'data/models/revenue_report_model.dart';
 export 'data/models/vehicle_model.dart';
 export 'data/models/work_order_model.dart';
+export 'data/models/notification_model.dart';
 
 // Data - DataSources
 export 'data/datasources/remote/admin_appointment_remote_datasource.dart';
@@ -33,6 +35,7 @@ export 'data/repositories/admin_appointment_repository_impl.dart';
 export 'data/repositories/dashboard_repository_impl.dart';
 export 'data/repositories/revenue_report_repository_impl.dart';
 export 'data/repositories/vehicle_intake_repository.dart';
+export 'data/repositories/notification_repository_impl.dart';
 
 // Presentation - Dashboard
 export 'presentation/dashboard/bloc/dashboard_bloc.dart';
@@ -61,6 +64,10 @@ export 'presentation/dashboard/widgets/shortcut_button.dart';
 export 'presentation/dashboard/widgets/alert_item.dart';
 export 'presentation/dashboard/widgets/technician_item.dart';
 export 'presentation/dashboard/widgets/bottom_nav_item.dart';
+export 'presentation/profile/bloc/notification_bloc.dart';
+export 'presentation/profile/bloc/notification_event.dart';
+export 'presentation/profile/bloc/notification_state.dart';
+export 'presentation/profile/pages/notification_list_page.dart';
 
 // Presentation - Vehicle Intake
 export 'presentation/vehicle_intake/bloc/vehicle_intake_bloc.dart';

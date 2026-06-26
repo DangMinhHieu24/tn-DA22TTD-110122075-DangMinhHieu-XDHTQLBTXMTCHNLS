@@ -160,6 +160,10 @@ class LookupRemoteDataSourceImpl implements LookupRemoteDataSource {
                 activeJobCount: json['vehicleCount'] as int? ?? 0,
                 isOnline: json['isOnline'] as bool? ?? false,
                 updatedAt: DateTime.now(),
+                thisMonthCompletedCount: json['thisMonthCompletedCount'] as int? ?? 0,
+                thisMonthRevenue: json['thisMonthRevenue'] as num? ?? 0,
+                lastMonthCompletedCount: json['lastMonthCompletedCount'] as int? ?? 0,
+                lastMonthRevenue: json['lastMonthRevenue'] as num? ?? 0,
               ))
           .toList();
     }

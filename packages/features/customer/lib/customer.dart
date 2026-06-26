@@ -51,3 +51,9 @@ export 'presentation/vehicles/widgets/customer_work_order_card.dart';
 // Presentation - Appointments
 export 'presentation/appointments/bloc/appointment_bloc.dart';
 export 'presentation/appointments/widgets/appointment_card.dart';
+
+// Presentation - Chat
+export 'presentation/chat/bloc/chat_bloc.dart';
+export 'presentation/chat/bloc/chat_event.dart';
+export 'presentation/chat/bloc/chat_state.dart';
+export 'presentation/chat/widgets/chat_floating_bubble.dart';

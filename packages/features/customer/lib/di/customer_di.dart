@@ -17,6 +17,13 @@ import '../domain/usecases/get_vehicle_work_orders.dart';
 import '../presentation/appointments/bloc/appointment_bloc.dart';
 import '../presentation/vehicles/bloc/customer_vehicle_bloc.dart';
 import '../presentation/vehicles/bloc/customer_work_order_bloc.dart';
+import '../presentation/chat/bloc/chat_bloc.dart';
+import '../presentation/chat/bloc/chat_event.dart';
+import '../presentation/chat/bloc/chat_state.dart';
+import '../presentation/chat/data/datasources/chat_remote_datasource.dart';
+import '../presentation/chat/data/repositories/chat_repository_impl.dart';
+import '../presentation/chat/domain/repositories/chat_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -105,6 +112,22 @@ void setupCustomerDependencies() {
       clearHistory: getIt<ClearHistory>(),
     ),
   );
+
+  // Chat
+  getIt.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(dio: getIt<Dio>()),
+  );
+  getIt.registerLazySingleton<ChatRepository>(
+    () => ChatRepositoryImpl(remoteDataSource: getIt<ChatRemoteDataSource>()),
+  );
+  // Dùng ChatBloc thật với Gemini API
+  getIt.registerLazySingleton<Bloc<ChatEvent, ChatState>>(
+    () => ChatBloc(repository: getIt<ChatRepository>()),
+  );
+  // Dùng mock chat để test UI (không cần API key)
+  // getIt.registerLazySingleton<Bloc<ChatEvent, ChatState>>(
+  //   () => MockChatBloc(),
+  // );
 
   // Restore previous setting
   GetIt.instance.allowReassignment = previousAllowReassignment;

@@ -16,8 +16,10 @@ import {
   getInvoices,
   recordPayment,
   redeemPoints,
+  updateItemPrice,
+  addPhotoToWorkOrder,
 } from '../controllers/work-order.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -68,6 +70,12 @@ router.patch('/:id/services/:serviceId/approval', approveWorkOrderService);
 
 // PUT /api/work-orders/:id - Update work order
 router.put('/:id', updateWorkOrder);
+
+// PATCH /api/work-orders/:id/items/price - Update service or part price
+router.patch('/:id/items/price', requireRole('STAFF', 'ADMIN'), updateItemPrice);
+
+// POST /api/work-orders/:id/photos - Add a photo to a work order
+router.post('/:id/photos', addPhotoToWorkOrder);
 
 // DELETE /api/work-orders/:id - Delete work order
 router.delete('/:id', deleteWorkOrder);

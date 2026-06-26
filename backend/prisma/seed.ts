@@ -31,6 +31,8 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // Clear old data so seed is deterministic
+  await prisma.chatMessage.deleteMany();
+  await prisma.chatConversation.deleteMany();
   await prisma.maintenanceLog.deleteMany();
   await prisma.warranty.deleteMany();
   await prisma.partsUsed.deleteMany();
@@ -169,7 +171,7 @@ async function main() {
     data: [
       {
         partName: 'Pin Li-ion 60V 20Ah (pack)',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/18650_cell.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/pin_lion_60V_20Ah.jpg',
         quantity: 10,
         minThreshold: 2,
         unitPrice: 4200000,
@@ -178,7 +180,7 @@ async function main() {
       },
       {
         partName: 'BMS 60V 30A',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/19/PCB_Macro_2.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/BMS_60V_30A.jpg',
         quantity: 14,
         minThreshold: 3,
         unitPrice: 450000,
@@ -187,7 +189,7 @@ async function main() {
       },
       {
         partName: 'Sạc 60V 5A',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6a/Power_adapter.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/sac_60V_5A.jpg',
         quantity: 16,
         minThreshold: 4,
         unitPrice: 520000,
@@ -196,7 +198,7 @@ async function main() {
       },
       {
         partName: 'Động cơ hub 1500W',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/4d/Hub_motor.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/dong_co_hub_1500W.jpg',
         quantity: 6,
         minThreshold: 1,
         unitPrice: 2800000,
@@ -205,7 +207,7 @@ async function main() {
       },
       {
         partName: 'Bộ điều khiển 60V 35A',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/46/Motor_controller.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/bo_dieu_khien_60V35A.jpg',
         quantity: 9,
         minThreshold: 2,
         unitPrice: 900000,
@@ -214,7 +216,7 @@ async function main() {
       },
       {
         partName: 'Tay ga điện (Hall)',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Throttle.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/tay_ga_dien.jpg',
         quantity: 25,
         minThreshold: 6,
         unitPrice: 90000,
@@ -223,7 +225,7 @@ async function main() {
       },
       {
         partName: 'Má phanh trước (đĩa)',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Disc_brake_pads.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/ma_phanh_truoc.jpg',
         quantity: 30,
         minThreshold: 6,
         unitPrice: 120000,
@@ -232,7 +234,7 @@ async function main() {
       },
       {
         partName: 'Đĩa phanh trước 220mm',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/67/Brake_disc.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/dia_phanh_truoc_220mm.jpg',
         quantity: 12,
         minThreshold: 3,
         unitPrice: 180000,
@@ -241,7 +243,7 @@ async function main() {
       },
       {
         partName: 'Lốp không săm 90/90-12',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2d/Tire_2000px.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/lop_khong_sam_9090-12.jpg',
         quantity: 18,
         minThreshold: 4,
         unitPrice: 650000,
@@ -250,7 +252,7 @@ async function main() {
       },
       {
         partName: 'Cảm biến phanh (cut-off)',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Brake_lever.jpg',
+        imageUrl: 'http://10.0.2.2:3000/images/cam_bien_phanh_cutoff.jpg',
         quantity: 20,
         minThreshold: 5,
         unitPrice: 60000,

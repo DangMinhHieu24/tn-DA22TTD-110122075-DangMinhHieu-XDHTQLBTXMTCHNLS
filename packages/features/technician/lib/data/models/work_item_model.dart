@@ -10,6 +10,7 @@ class WorkItemModel extends WorkItem {
     required super.vehicleModel,
     super.imageUrl,
     super.photoUrls,
+    super.afterRepairPhotoUrls,
     super.services,
     required super.customerName,
     required super.description,
@@ -26,6 +27,10 @@ class WorkItemModel extends WorkItem {
       vehicleModel: json['vehicleModel'] as String? ?? '',
       imageUrl: json['imageUrl'] as String?,
       photoUrls: (json['photoUrls'] as List<dynamic>?)
+          ?.map((item) => item.toString())
+          .toList() ??
+          const [],
+      afterRepairPhotoUrls: (json['afterRepairPhotoUrls'] as List<dynamic>?)
           ?.map((item) => item.toString())
           .toList() ??
           const [],
@@ -64,6 +69,11 @@ class WorkItemModel extends WorkItem {
           .map((item) => (item as Map<String, dynamic>)['photoUrl'] as String?)
           .whereType<String>()
           .toList(),
+      afterRepairPhotoUrls: photos
+          .where((item) => (item as Map<String, dynamic>)['photoType'] == 'AFTER_REPAIR')
+          .map((item) => (item as Map<String, dynamic>)['photoUrl'] as String?)
+          .whereType<String>()
+          .toList(),
       services: services
           .map((item) => WorkItemServiceModel.fromApiJson(item as Map<String, dynamic>).toEntity())
           .toList(),
@@ -83,6 +93,7 @@ class WorkItemModel extends WorkItem {
       'vehicleModel': vehicleModel,
       'imageUrl': imageUrl,
       'photoUrls': photoUrls,
+      'afterRepairPhotoUrls': afterRepairPhotoUrls,
       'services': services.map((service) => {
         'id': service.id,
         'serviceType': service.serviceType,
@@ -109,6 +120,7 @@ class WorkItemModel extends WorkItem {
       vehicleModel: vehicleModel,
       imageUrl: imageUrl,
       photoUrls: photoUrls,
+      afterRepairPhotoUrls: afterRepairPhotoUrls,
       services: services,
       customerName: customerName,
       description: description,
@@ -126,6 +138,7 @@ class WorkItemModel extends WorkItem {
       vehicleModel: entity.vehicleModel,
       imageUrl: entity.imageUrl,
       photoUrls: entity.photoUrls,
+      afterRepairPhotoUrls: entity.afterRepairPhotoUrls,
       services: entity.services,
       customerName: entity.customerName,
       description: entity.description,

@@ -34,4 +34,10 @@ abstract class WorkRepository {
     String workOrderId,
     String notes,
   );
+  Future<Either<Failure, void>> addPhoto(
+    String workOrderId,
+    String photoUrl, {
+    String? photoType,
+    String? description,
+  });
 }

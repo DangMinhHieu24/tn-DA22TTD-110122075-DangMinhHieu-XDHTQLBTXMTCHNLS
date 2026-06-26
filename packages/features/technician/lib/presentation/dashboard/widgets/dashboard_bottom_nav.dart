@@ -38,13 +38,13 @@ class DashboardBottomNav extends StatelessWidget {
                 index: 0,
               ),
               _buildNavItem(
-                icon: Icons.assignment_outlined,
-                label: 'Phiếu sửa',
+                icon: Icons.search_rounded,
+                label: 'Tra cứu',
                 index: 1,
               ),
               _buildNavItem(
-                icon: Icons.precision_manufacturing_outlined,
-                label: 'Kho PT',
+                icon: Icons.bar_chart_rounded,
+                label: 'Thống kê',
                 index: 2,
               ),
               _buildNavItem(

@@ -17,6 +17,7 @@ class AppRouter {
   static const String adminLookup = '/admin/lookup';
   static const String technicianDashboard = '/technician/dashboard';
   static const String technicianWorkList = '/technician/work-list';
+  static const String technicianLookup = '/technician/lookup';
   static const String customerDashboard = '/customer/dashboard';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -57,9 +58,24 @@ class AppRouter {
           builder: (_) => const tech.TechnicianWorkListPage(),
         );
 
+      case technicianLookup:
+        return MaterialPageRoute(
+          builder: (_) => const tech.TechnicianLookupPage(),
+        );
+
       case adminDashboard:
         return MaterialPageRoute(
-          builder: (_) => const admin.AdminDashboardPage(),
+          builder: (context) => BlocProvider(
+            create: (_) {
+              final authState = context.read<AuthBloc>().state;
+              final bloc = GetIt.instance<admin.NotificationBloc>();
+              if (authState is AuthAuthenticated) {
+                bloc.add(admin.LoadNotifications(userId: authState.user.id));
+              }
+              return bloc;
+            },
+            child: const admin.AdminDashboardPage(),
+          ),
         );
 
       case adminWorkOrderList:

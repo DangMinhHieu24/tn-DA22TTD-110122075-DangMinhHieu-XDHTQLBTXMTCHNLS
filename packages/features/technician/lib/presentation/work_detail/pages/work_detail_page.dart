@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 import '../../../domain/repositories/work_repository.dart';
@@ -48,6 +50,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
   late final WorkOrderRealtimeService _realtimeService;
   // Local photo URLs to allow cache-busting retries
   late List<String> _photoUrls;
+  late List<String> _afterRepairPhotoUrls;
   List<WorkItemService> _serviceItems = const [];
   
   // Parts inventory
@@ -539,6 +542,9 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     _photoUrls = widget.workItem.photoUrls.isNotEmpty
         ? List<String>.from(widget.workItem.photoUrls)
         : <String>[];
+    _afterRepairPhotoUrls = widget.workItem.afterRepairPhotoUrls.isNotEmpty
+        ? List<String>.from(widget.workItem.afterRepairPhotoUrls)
+        : <String>[];
     _startRealtime();
     _fetchInventory();
   }
@@ -628,6 +634,108 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
     if (mounted) setState(() => _savingNotes = false);
   }
 
+  Future<void> _pickAndUploadPhoto() async {
+    final service = GetIt.instance<ImageUploadService>();
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Thêm ảnh sau sửa',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Chụp ảnh'),
+                subtitle: const Text('Dùng camera chụp ảnh thực tế'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Chọn từ thư viện'),
+                subtitle: const Text('Chọn ảnh có sẵn trong máy'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null || !mounted) return;
+
+    setState(() => _savingNotes = true);
+
+    try {
+      final File? imageFile = source == ImageSource.camera
+          ? await service.takePhoto()
+          : await service.pickImage();
+
+      if (imageFile == null) {
+        if (mounted) setState(() => _savingNotes = false);
+        return;
+      }
+
+      final imageUrl = await service.uploadImage(
+        imageFile: imageFile,
+        folder: 'work_orders/${_currentItem.id}',
+      );
+
+      final result = await _workRepository.addPhoto(
+        _currentItem.id,
+        imageUrl,
+        photoType: 'AFTER_REPAIR',
+        description: 'Ảnh sau sửa - ${DateTime.now().toString().substring(0, 16)}',
+      );
+
+      result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi: ${failure.message}')),
+            );
+          }
+        },
+        (_) {
+          _refreshWorkItem();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã thêm ảnh sau sửa'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi upload ảnh: $e')),
+        );
+      }
+    }
+
+    if (mounted) setState(() => _savingNotes = false);
+  }
+
   void _startRealtime() {
     _realtimeService.subscribeToWorkOrder(
       workOrderId: widget.workItem.id,
@@ -647,6 +755,9 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
           _serviceItems = List<WorkItemService>.from(item.services);
           _photoUrls = item.photoUrls.isNotEmpty
               ? List<String>.from(item.photoUrls)
+              : const <String>[];
+          _afterRepairPhotoUrls = item.afterRepairPhotoUrls.isNotEmpty
+              ? List<String>.from(item.afterRepairPhotoUrls)
               : const <String>[];
         });
       },
@@ -1959,9 +2070,64 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
+          // Uploaded after-repair photos preview
+          if (_afterRepairPhotoUrls.isNotEmpty) ...[
+            const Text(
+              'Ảnh sau sửa đã thêm:',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF3D4A3D),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 80,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _afterRepairPhotoUrls.length,
+                itemBuilder: (context, index) {
+                  final url = _afterRepairPhotoUrls[index];
+                  return GestureDetector(
+                    onTap: () => _showFullscreenImage(url),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE0E3E5)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Image.network(
+                          url,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image, size: 24, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           // Photo row
           InkWell(
-            onTap: () {},
+            onTap: _savingNotes ? null : _pickAndUploadPhoto,
             borderRadius: BorderRadius.circular(10),
             child: Container(
               width: double.infinity,
@@ -1985,6 +2151,45 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showFullscreenImage(String url) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(child: CircularProgressIndicator(color: Colors.white));
+                },
+              ),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: CircleAvatar(
+                backgroundColor: Colors.black.withOpacity(0.5),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

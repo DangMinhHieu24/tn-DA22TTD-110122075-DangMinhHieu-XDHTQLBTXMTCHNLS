@@ -17,6 +17,13 @@ import '../../lookup/pages/customer_lookup_page.dart';
 import '../../lookup/bloc/lookup_bloc.dart';
 import '../../lookup/bloc/lookup_event.dart';
 import 'admin_alerts_page.dart';
+import '../../profile/pages/admin_profile_page.dart';
+import '../../profile/bloc/profile_bloc.dart';
+import '../../profile/bloc/profile_event.dart';
+import '../../profile/bloc/notification_bloc.dart';
+import '../../profile/bloc/notification_event.dart';
+import '../../profile/bloc/notification_state.dart';
+import '../../profile/pages/notification_list_page.dart';
 
 /// Admin Dashboard - 100% converted from HTML design
 /// Follows Material Design 3 color system and Tailwind spacing
@@ -72,8 +79,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => _dashboardBloc,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<DashboardBloc>(
+          create: (_) => _dashboardBloc,
+        ),
+        BlocProvider<NotificationBloc>(
+          create: (ctx) {
+            final authState = ctx.read<AuthBloc>().state;
+            final bloc = GetIt.instance<NotificationBloc>();
+            if (authState is AuthAuthenticated) {
+              bloc.add(LoadNotifications(userId: authState.user.id));
+            }
+            return bloc;
+          },
+        ),
+      ],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthUnauthenticated) {
@@ -93,6 +114,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
             // Ensure dashboard stats are reloaded after authentication so API call includes token
             _dashboardBloc.add(LoadDashboardStats());
+
+            // Also ensure notifications are loaded for this user
+            context.read<NotificationBloc>().add(LoadNotifications(userId: state.user.id));
           }
         },
         child: BlocBuilder<AuthBloc, AuthState>(
@@ -102,58 +126,71 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             final userEmail = authState is AuthAuthenticated ? authState.user.email : '';
             final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'A';
 
-            return Scaffold(
-              backgroundColor: const Color(0xFFF7F9FB), // surface
-              body: SafeArea(
+            Widget bodyWidget;
+            if (_selectedNavIndex == 0) {
+              bodyWidget = SafeArea(
+                bottom: false,
                 child: Column(
                   children: [
-                    // Only show dashboard header on HOME and PROFILE tabs
-                    if (_selectedNavIndex == 0 || _selectedNavIndex == 3)
-                      _buildTopAppBar(userInitial, userName),
+                    _buildTopAppBar(userInitial, userName),
                     Expanded(
-                      child: _selectedNavIndex == 1
-                        ? const AdminLookupPage()
-                        : _selectedNavIndex == 2
-                        ? _buildVehicleIntakePage()
-                        : _selectedNavIndex == 3 
-                        ? _buildProfilePage(userName, userEmail, context)
-                        : RefreshIndicator(
-                            onRefresh: () async {
-                              await Future.wait([
-                                _loadTechnicians(),
-                                Future(() => _dashboardBloc.add(LoadDashboardStats())),
-                              ]);
-                            },
-                            child: SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.only(bottom: 96), // pb-24 (24*4=96)
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 24, 16, 32), // pt-6 px-4 pb-8 (reduced from pt-20)
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildPageHeader(),
-                                    const SizedBox(height: 32), // mb-8
-                                    BlocBuilder<DashboardBloc, DashboardState>(
-                                      builder: (context, dashboardState) {
-                                        return Column(
-                                          children: [
-                                            _buildQuickStatsGrid(dashboardState),
-                                            const SizedBox(height: 24),
-                                            _buildMainContent(dashboardState),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ],
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          await Future.wait([
+                            _loadTechnicians(),
+                            Future(() => _dashboardBloc.add(LoadDashboardStats())),
+                          ]);
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 96), // pb-24 (24*4=96)
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 32), // pt-6 px-4 pb-8 (reduced from pt-20)
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildPageHeader(),
+                                const SizedBox(height: 32), // mb-8
+                                BlocBuilder<DashboardBloc, DashboardState>(
+                                  builder: (context, dashboardState) {
+                                    return Column(
+                                      children: [
+                                        _buildQuickStatsGrid(dashboardState),
+                                        const SizedBox(height: 24),
+                                        _buildMainContent(dashboardState),
+                                      ],
+                                    );
+                                  },
                                 ),
-                              ),
+                              ],
                             ),
                           ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
+              );
+            } else if (_selectedNavIndex == 1) {
+              bodyWidget = const SafeArea(
+                bottom: false,
+                child: AdminLookupPage(),
+              );
+            } else if (_selectedNavIndex == 2) {
+              bodyWidget = SafeArea(
+                bottom: false,
+                child: _buildVehicleIntakePage(),
+              );
+            } else {
+              bodyWidget = BlocProvider(
+                create: (_) => GetIt.instance<ProfileBloc>()..add(LoadProfile()),
+                child: const AdminProfilePage(),
+              );
+            }
+
+            return Scaffold(
+              backgroundColor: const Color(0xFFF7F9FB), // surface
+              body: bodyWidget,
               bottomNavigationBar: _buildBottomNavBar(),
             );
           },
@@ -210,16 +247,62 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           const Spacer(),
           // Notification button
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFE6E8EA).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.notifications_outlined, size: 22),
-              color: const Color(0xFF006E2F),
-              onPressed: () {},
-            ),
+          BlocBuilder<NotificationBloc, NotificationState>(
+            builder: (context, state) {
+              final unreadCount = state is NotificationLoaded ? state.unreadCount : 0;
+              return Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6E8EA).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined, size: 22),
+                      color: const Color(0xFF006E2F),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => BlocProvider.value(
+                              value: context.read<NotificationBloc>(),
+                              child: const NotificationListPage(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadCount > 99 ? '99+' : '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1661,91 +1744,5 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return const ReceptionHubPage();
   }
 
-  /// Profile Page - Simple profile with logout button
-  Widget _buildProfilePage(String userName, String userEmail, BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          // Avatar
-          Container(
-            width: 100,
-            height: 100,
-            decoration: const BoxDecoration(
-              color: Color(0xFF22C55E),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
-                style: const TextStyle(
-                  color: Color(0xFF004B1E),
-                  fontSize: 40,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Name
-          Text(
-            userName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF191C1E),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Email
-          Text(
-            userEmail,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF3D4A3D),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Role badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF22C55E).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'Admin',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF006E2F),
-              ),
-            ),
-          ),
-          const SizedBox(height: 48),
-          // Logout button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                context.read<AuthBloc>().add(const AuthLogoutRequested());
-              },
-              icon: const Icon(Icons.logout, size: 20),
-              label: const Text('Đăng xuất'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFBA1A1A),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 }

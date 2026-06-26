@@ -16,6 +16,11 @@ export const getTechnicians = async (req: Request, res: Response) => {
       ];
     }
 
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
     const technicians = await prisma.user.findMany({
       where,
       select: {
@@ -38,12 +43,85 @@ export const getTechnicians = async (req: Request, res: Response) => {
       // Simple presence heuristic: consider online if they have any active work orders
       const isOnline = activeCount > 0;
 
+      // This Month Stats
+      const thisMonthWorkOrders = await prisma.workOrder.findMany({
+        where: {
+          technicianId: t.id,
+          status: { in: ['COMPLETED', 'PAID'] },
+          completedAt: {
+            gte: startOfThisMonth,
+            lt: startOfNextMonth,
+          },
+        },
+        select: {
+          totalPrice: true,
+          partsUsed: {
+            select: {
+              quantity: true,
+              unitPrice: true,
+            },
+          },
+          services: {
+            select: {
+              price: true,
+            },
+          },
+        },
+      });
+
+      // Last Month Stats
+      const lastMonthWorkOrders = await prisma.workOrder.findMany({
+        where: {
+          technicianId: t.id,
+          status: { in: ['COMPLETED', 'PAID'] },
+          completedAt: {
+            gte: startOfLastMonth,
+            lt: startOfThisMonth,
+          },
+        },
+        select: {
+          totalPrice: true,
+          partsUsed: {
+            select: {
+              quantity: true,
+              unitPrice: true,
+            },
+          },
+          services: {
+            select: {
+              price: true,
+            },
+          },
+        },
+      });
+
+      const computeRevenue = (orders: typeof thisMonthWorkOrders) => {
+        return orders.reduce((sum, wo) => {
+          if (typeof wo.totalPrice === 'number' && Number.isFinite(wo.totalPrice)) {
+            return sum + wo.totalPrice;
+          }
+          const partsTotal = (wo.partsUsed ?? []).reduce((s, p) => s + (p.quantity * p.unitPrice), 0);
+          const servicesTotal = (wo.services ?? []).reduce((s, ser) => s + (ser.price ?? 0), 0);
+          return sum + partsTotal + servicesTotal;
+        }, 0);
+      };
+
+      const thisMonthCompletedCount = thisMonthWorkOrders.length;
+      const thisMonthRevenue = computeRevenue(thisMonthWorkOrders);
+
+      const lastMonthCompletedCount = lastMonthWorkOrders.length;
+      const lastMonthRevenue = computeRevenue(lastMonthWorkOrders);
+
       return {
         id: t.id,
         name: t.name,
         phoneNumber: t.phoneNumber,
         vehicleCount: activeCount,
         isOnline,
+        thisMonthCompletedCount,
+        thisMonthRevenue,
+        lastMonthCompletedCount,
+        lastMonthRevenue,
       };
     }));
 

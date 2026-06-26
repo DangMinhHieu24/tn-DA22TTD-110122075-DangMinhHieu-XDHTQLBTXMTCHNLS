@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { checkAndWarnLowStock } from './notification.controller';
 
 const prisma = new PrismaClient();
 
@@ -98,6 +99,8 @@ export const updateInventoryItem = async (req: Request, res: Response) => {
       },
     });
 
+    await checkAndWarnLowStock(id);
+
     res.json({
       success: true,
       message: 'Inventory item updated successfully',
@@ -130,6 +133,8 @@ export const adjustInventoryQuantity = async (req: Request, res: Response) => {
         quantity: { increment: delta },
       },
     });
+
+    await checkAndWarnLowStock(id);
 
     res.json({
       success: true,
