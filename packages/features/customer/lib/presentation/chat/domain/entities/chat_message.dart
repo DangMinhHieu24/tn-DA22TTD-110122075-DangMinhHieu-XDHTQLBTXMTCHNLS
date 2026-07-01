@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum MessageRole { user, bot, system }
+enum MessageRole { user, bot, system, customer, technician }
 
 class ChatMessage extends Equatable {
   final String id;

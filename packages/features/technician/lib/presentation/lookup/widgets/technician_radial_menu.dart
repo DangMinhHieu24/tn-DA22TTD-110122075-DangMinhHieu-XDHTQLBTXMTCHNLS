@@ -30,9 +30,9 @@ class _TechnicianRadialMenuState extends State<TechnicianRadialMenu>
   bool _isDragging = false;
   Offset _dragOffset = Offset.zero;
 
-  static const double _centerRadius = 40.0;
-  static const double _categoryRadius = 30.0;
-  static const double _orbitRadius = 130.0;
+  static const double _centerRadius = 44.0;
+  static const double _categoryRadius = 32.0;
+  static const double _orbitRadius = 125.0;
 
   @override
   void initState() {
@@ -107,61 +107,68 @@ class _TechnicianRadialMenuState extends State<TechnicianRadialMenu>
 
   Widget _buildRadialMenu() {
     const size = (_orbitRadius + _categoryRadius + 40) * 2;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onPanStart: (d) {
-          final center = Offset(size / 2, size / 2);
-          final rel = d.localPosition - center;
-          if (rel.distance < _centerRadius + 20) {
+    return Transform.translate(
+      offset: Offset.zero,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (d) {
+            final center = Offset(size / 2, size / 2);
+            final rel = d.localPosition - center;
+            if (rel.distance < _centerRadius + 20) {
+              setState(() {
+                _isDragging = true;
+                _dragOffset = rel;
+                _hoveredIndex = _hitTest(rel);
+              });
+              HapticFeedback.lightImpact();
+            }
+          },
+          onPanUpdate: (d) {
+            if (!_isDragging) return;
+            final center = Offset(size / 2, size / 2);
+            final rel = d.localPosition - center;
+            final newHovered = _hitTest(rel);
+            if (newHovered != _hoveredIndex && newHovered >= 0) {
+              HapticFeedback.selectionClick();
+            }
             setState(() {
-              _isDragging = true;
               _dragOffset = rel;
-              _hoveredIndex = _hitTest(rel);
+              _hoveredIndex = newHovered;
             });
-            HapticFeedback.lightImpact();
-          }
-        },
-        onPanUpdate: (d) {
-          if (!_isDragging) return;
-          final center = Offset(size / 2, size / 2);
-          final rel = d.localPosition - center;
-          final newHovered = _hitTest(rel);
-          if (newHovered != _hoveredIndex && newHovered >= 0) {
-            HapticFeedback.selectionClick();
-          }
-          setState(() {
-            _dragOffset = rel;
-            _hoveredIndex = newHovered;
-          });
-        },
-        onPanEnd: (_) {
-          if (_isDragging && _hoveredIndex >= 0) {
-            _onCategoryTapped(_hoveredIndex);
-          }
-          setState(() {
-            _isDragging = false;
-            _hoveredIndex = -1;
-            _dragOffset = Offset.zero;
-          });
-        },
-        onPanCancel: () {
-          setState(() {
-            _isDragging = false;
-            _hoveredIndex = -1;
-            _dragOffset = Offset.zero;
-          });
-        },
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            ..._buildGlowRings(),
-            if (_isDragging) _buildConnectingLine(),
-            ..._buildCategoryIcons(),
-            _buildCenterButton(),
-          ],
+          },
+          onPanEnd: (_) {
+            if (_isDragging && _hoveredIndex >= 0) {
+              _onCategoryTapped(_hoveredIndex);
+            }
+            setState(() {
+              _isDragging = false;
+              _hoveredIndex = -1;
+              _dragOffset = Offset.zero;
+            });
+          },
+          onPanCancel: () {
+            setState(() {
+              _isDragging = false;
+              _hoveredIndex = -1;
+              _dragOffset = Offset.zero;
+            });
+          },
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ..._buildGlowRings(),
+              if (_isDragging) _buildConnectingLine(),
+              ..._buildCategoryIcons(),
+              Positioned(
+                left: (_orbitRadius + _categoryRadius + 40) - _centerRadius,
+                top: (_orbitRadius + _categoryRadius + 40) - _centerRadius,
+                child: _buildCenterButton(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -170,31 +177,40 @@ class _TechnicianRadialMenuState extends State<TechnicianRadialMenu>
   List<Widget> _buildGlowRings() {
     final rings = <Widget>[];
     const ringRadii = [_centerRadius + 16, _centerRadius + 34];
+    final center = _orbitRadius + _categoryRadius + 40;
 
     for (final r in ringRadii) {
-      rings.add(Container(
-        width: r * 2,
-        height: r * 2,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: const Color(0xFF22C55E).withValues(alpha: 0.15),
-            width: 1.0,
+      rings.add(Positioned(
+        left: center - r,
+        top: center - r,
+        child: Container(
+          width: r * 2,
+          height: r * 2,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+              width: 1.0,
+            ),
           ),
         ),
       ));
     }
 
-    rings.add(Transform.rotate(
-      angle: _glowAnimation.value * 2 * math.pi,
-      child: SizedBox(
-        width: ringRadii[1] * 2,
-        height: ringRadii[1] * 2,
-        child: CustomPaint(
-          painter: _ArcPainter(
-            color: const Color(0xFF006E2F),
-            strokeWidth: 2,
-            arcSweep: math.pi * 0.35,
+    rings.add(Positioned(
+      left: center - ringRadii[1],
+      top: center - ringRadii[1],
+      child: Transform.rotate(
+        angle: _glowAnimation.value * 2 * math.pi,
+        child: SizedBox(
+          width: ringRadii[1] * 2,
+          height: ringRadii[1] * 2,
+          child: CustomPaint(
+            painter: _ArcPainter(
+              color: const Color(0xFF006E2F),
+              strokeWidth: 2,
+              arcSweep: math.pi * 0.35,
+            ),
           ),
         ),
       ),
@@ -221,7 +237,7 @@ class _TechnicianRadialMenuState extends State<TechnicianRadialMenu>
   }
 
   List<Widget> _buildCategoryIcons() {
-    const labelWidth = 80.0;
+    const labelWidth = 110.0;
     return List.generate(widget.categories.length, (i) {
       final cat = widget.categories[i];
       final offset = _categoryOffset(i);
@@ -235,10 +251,13 @@ class _TechnicianRadialMenuState extends State<TechnicianRadialMenu>
 
       final scale = isHovered ? 1.2 : 1.0;
       final iconSize = isHovered ? 28.0 : 24.0;
+      final isTop = i == 0;
 
       return Positioned(
         left: (_orbitRadius + _categoryRadius + 40) + offset.dx - labelWidth / 2,
-        top: (_orbitRadius + _categoryRadius + 40) + offset.dy - _categoryRadius,
+        top: isTop
+            ? (_orbitRadius + _categoryRadius + 40) + offset.dy - _categoryRadius - 26
+            : (_orbitRadius + _categoryRadius + 40) + offset.dy - _categoryRadius,
         child: Transform.scale(
           scale: entryProgress * scale,
           child: GestureDetector(
@@ -249,69 +268,15 @@ class _TechnicianRadialMenuState extends State<TechnicianRadialMenu>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    width: _categoryRadius * 2,
-                    height: _categoryRadius * 2,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color.lerp(
-                              cat.bgColor, cat.color, isHovered ? 0.7 : 0.0)!,
-                          Color.lerp(
-                              cat.bgColor, cat.color, isHovered ? 1.0 : 0.15)!,
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: cat.color
-                            .withValues(alpha: isHovered ? 0.6 : 0.2),
-                        width: isHovered ? 2.0 : 1.0,
-                      ),
-                      boxShadow: [
-                        if (isHovered)
-                          BoxShadow(
-                            color: cat.color.withValues(alpha: 0.35),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                            offset: const Offset(0, 4),
-                          )
-                        else
-                          BoxShadow(
-                            color: cat.color.withValues(alpha: 0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          ),
-                      ],
-                    ),
-                    child: Icon(
-                      cat.icon,
-                      color: isHovered ? Colors.white : cat.color,
-                      size: iconSize,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 80,
-                    child: AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 200),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: isHovered ? 13 : 11.5,
-                        fontWeight:
-                            isHovered ? FontWeight.w700 : FontWeight.w600,
-                        color: isHovered
-                            ? cat.color
-                            : const Color(0xFF3D4A3D),
-                        letterSpacing: 0.2,
-                        height: 1.2,
-                      ),
-                      child: Text(cat.label),
-                    ),
-                  ),
+                  if (isTop) ...[
+                    _buildLabelWidget(cat, isHovered),
+                    const SizedBox(height: 8),
+                  ],
+                  _buildIconWidget(cat, isHovered, iconSize),
+                  if (!isTop) ...[
+                    const SizedBox(height: 8),
+                    _buildLabelWidget(cat, isHovered),
+                  ],
                 ],
               ),
             ),
@@ -319,6 +284,68 @@ class _TechnicianRadialMenuState extends State<TechnicianRadialMenu>
         ),
       );
     });
+  }
+
+  Widget _buildLabelWidget(TechLookupCategory cat, bool isHovered) {
+    return SizedBox(
+      width: 110,
+      child: AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 200),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: isHovered ? 13 : 11.5,
+          fontWeight: isHovered ? FontWeight.w700 : FontWeight.w600,
+          color: isHovered ? cat.color : const Color(0xFF3D4A3D),
+          letterSpacing: 0.2,
+          height: 1.2,
+        ),
+        child: Text(cat.label),
+      ),
+    );
+  }
+
+  Widget _buildIconWidget(TechLookupCategory cat, bool isHovered, double iconSize) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      width: _categoryRadius * 2,
+      height: _categoryRadius * 2,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(cat.bgColor, cat.color, isHovered ? 0.7 : 0.0)!,
+            Color.lerp(cat.bgColor, cat.color, isHovered ? 1.0 : 0.15)!,
+          ],
+        ),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: cat.color.withValues(alpha: isHovered ? 0.6 : 0.2),
+          width: isHovered ? 2.0 : 1.0,
+        ),
+        boxShadow: [
+          if (isHovered)
+            BoxShadow(
+              color: cat.color.withValues(alpha: 0.35),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, 4),
+            )
+          else
+            BoxShadow(
+              color: cat.color.withValues(alpha: 0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+        ],
+      ),
+      child: Icon(
+        cat.icon,
+        color: isHovered ? Colors.white : cat.color,
+        size: iconSize,
+      ),
+    );
   }
 
   Widget _buildCenterButton() {

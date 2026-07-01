@@ -5,6 +5,8 @@ import '../../vehicles/widgets/customer_bottom_nav.dart';
 import '../../vehicles/pages/my_vehicles_page.dart';
 import '../../appointments/pages/appointments_page.dart';
 import '../../chat/widgets/chat_floating_bubble.dart';
+import 'change_password_page.dart';
+import 'terms_of_service_page.dart';
 
 class CustomerAccountPage extends StatelessWidget {
   const CustomerAccountPage({super.key});
@@ -34,321 +36,304 @@ class CustomerAccountPage extends StatelessWidget {
 
           return Scaffold(
             backgroundColor: const Color(0xFFF5F7FA),
-            body: Stack(
-              children: [
-                Column(
-                  children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            body: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Profile Header ──
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 28),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF006E2F),
+                          Color(0xFF059669),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(28),
+                      ),
+                    ),
+                    child: Row(
                       children: [
-                        // ── Profile Header ──
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 28),
-                          decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF006E2F),
-                                  Color(0xFF059669),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.vertical(
-                                bottom: Radius.circular(28),
-                              ),
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          child: Text(
+                            user != null ? _initials(user.name) : '??',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 32,
-                                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user?.name ?? 'Khách hàng',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                user?.email ?? '',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
+                              ),
+                              if (user != null && user.phoneNumber != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
                                   child: Text(
-                                    user != null ? _initials(user.name) : '??',
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
+                                    user.phoneNumber!,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withValues(alpha: 0.75),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        user?.name ?? 'Khách hàng',
-                                        style: const TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        user?.email ?? '',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white.withValues(alpha: 0.85),
-                                        ),
-                                      ),
-                                      if (user != null && user.phoneNumber != null)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 2),
-                                          child: Text(
-                                            user.phoneNumber!,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.white.withValues(alpha: 0.75),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                          // ── Trees Impact (forest scene) ──
-                          if (user != null)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  height: 280,
-                                  child: Stack(
-                                    children: [
-                                      Positioned.fill(
-                                        child: CustomPaint(
-                                          painter: _ForestPainter(),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: 24,
-                                        right: 24,
-                                        bottom: 20,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              '${user.treesPlanted}',
-                                              style: const TextStyle(
-                                                fontSize: 48,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.white,
-                                                height: 1,
-                                                letterSpacing: -1,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  'cây xanh đã được trồng',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Colors.white.withValues(alpha: 0.9),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 6),
-                                                GestureDetector(
-                                                  onTap: () => _showTreePolicy(context),
-                                                  child: Container(
-                                                    width: 18,
-                                                    height: 18,
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: Colors.white.withValues(alpha: 0.2),
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons.info_outline,
-                                                      size: 12,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'Cảm ơn bạn đã góp phần xây dựng một hành tinh xanh',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w400,
-                                                color: Colors.white.withValues(alpha: 0.55),
-                                                fontStyle: FontStyle.italic,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            const SizedBox(height: 14),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withValues(alpha: 0.12),
-                                                borderRadius: BorderRadius.circular(30),
-                                                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.eco, size: 16, color: Colors.white.withValues(alpha: 0.8)),
-                                                  const SizedBox(width: 6),
-                                                  Text(
-                                                    '${user.loyaltyPoints} điểm quà tặng',
-                                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.85)),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                  // ── Trees Impact (forest scene) ──
+                  if (user != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 280,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _ForestPainter(),
                                 ),
                               ),
-                            ),
-
-                          // ── Menu Items ──
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  _buildMenuItem(
-                                    icon: Icons.assignment_outlined,
-                                    label: 'Lịch sử sửa chữa',
-                                    onTap: () {},
-                                  ),
-                                  _buildDivider(),
-                                  _buildMenuItem(
-                                    icon: Icons.calendar_month_outlined,
-                                    label: 'Lịch hẹn của tôi',
-                                    onTap: () {
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                          builder: (_) => const AppointmentsPage(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  _buildDivider(),
-                                  _buildMenuItem(
-                                    icon: Icons.support_agent_outlined,
-                                    label: 'Hỗ trợ',
-                                    onTap: () => showChatPanel(context),
-                                  ),
-                                  _buildDivider(),
-                                  _buildMenuItem(
-                                    icon: Icons.info_outline,
-                                    label: 'Điều khoản sử dụng',
-                                    onTap: () {},
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          // ── Logout ──
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
+                              Positioned(
+                                left: 24,
+                                right: 24,
+                                bottom: 20,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${user.treesPlanted}',
+                                      style: const TextStyle(
+                                        fontSize: 48,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        height: 1,
+                                        letterSpacing: -1,
                                       ),
-                                      title: const Text('Đăng xuất'),
-                                      content: const Text('Bạn có chắc muốn đăng xuất khỏi tài khoản?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('Huỷ'),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.pop(ctx);
-                                            context.read<AuthBloc>().add(const AuthLogoutRequested());
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFFDC2626),
-                                            foregroundColor: Colors.white,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'cây xanh đã được trồng',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white.withValues(alpha: 0.9),
                                           ),
-                                          child: const Text('Đăng xuất'),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        GestureDetector(
+                                          onTap: () => _showTreePolicy(context),
+                                          child: Container(
+                                            width: 18,
+                                            height: 18,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.white.withValues(alpha: 0.2),
+                                            ),
+                                            child: const Icon(
+                                              Icons.info_outline,
+                                              size: 12,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  );
-                                },
-                                icon: const Icon(Icons.logout, size: 20, color: Color(0xFFDC2626)),
-                                label: const Text(
-                                  'Đăng xuất',
-                                  style: TextStyle(color: Color(0xFFDC2626)),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFFFCA5A5)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Cảm ơn bạn đã góp phần xây dựng một hành tinh xanh',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.white.withValues(alpha: 0.55),
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(30),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.eco, size: 16, color: Colors.white.withValues(alpha: 0.8)),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '${user.loyaltyPoints} điểm quà tặng',
+                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.85)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // ── Menu Items ──
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildMenuItem(
+                            icon: Icons.lock_reset_rounded,
+                            label: 'Đổi mật khẩu',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ChangePasswordPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                          _buildMenuItem(
+                            icon: Icons.calendar_month_outlined,
+                            label: 'Lịch hẹn của tôi',
+                            onTap: () {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => const AppointmentsPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                          _buildMenuItem(
+                            icon: Icons.support_agent_outlined,
+                            label: 'Hỗ trợ',
+                            onTap: () => showChatPanel(context),
+                          ),
+                          _buildDivider(),
+                          _buildMenuItem(
+                            icon: Icons.info_outline,
+                            label: 'Điều khoản sử dụng',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const TermsOfServicePage(),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
                   ),
-                  CustomerBottomNav(
-                    selectedIndex: 3,
-                    onItemSelected: (index) {
-                      if (index == 0) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => const MyVehiclesPage(),
+
+                  // ── Logout ──
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              title: const Text('Đăng xuất'),
+                              content: const Text('Bạn có chắc muốn đăng xuất khỏi tài khoản?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('Huỷ'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    context.read<AuthBloc>().add(const AuthLogoutRequested());
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFDC2626),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Đăng xuất'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.logout, size: 20, color: Color(0xFFDC2626)),
+                        label: const Text(
+                          'Đăng xuất',
+                          style: TextStyle(color: Color(0xFFDC2626)),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFFCA5A5)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      } else if (index == 1) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => const AppointmentsPage(),
-                          ),
-                        );
-                      }
-                    },
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const ChatFloatingBubble(),
-            ],
-          ),
-            );
-          },
-        ),
-      );
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildMenuItem({

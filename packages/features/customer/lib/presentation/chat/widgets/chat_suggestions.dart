@@ -18,41 +18,58 @@ class ChatSuggestions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Gợi ý nhanh',
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.onSurfaceVariant,
-              fontSize: 11,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 3.5,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Gợi ý nhanh cho bạn',
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: AppColors.onSurface,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: suggestions.map((s) {
-              return ActionChip(
-                label: Text(
-                  s,
-                  style: AppTextStyles.labelMedium.copyWith(
-                    fontSize: 12,
-                    color: AppColors.primary,
+              return InkWell(
+                onTap: () => onTap(s),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Text(
+                    s,
+                    style: AppTextStyles.labelMedium.copyWith(
+                      fontSize: 11.5,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                onPressed: () => onTap(s),
-                backgroundColor: AppColors.primary.withValues(alpha: 0.08),
-                side: BorderSide(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               );
             }).toList(),
           ),

@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -15,6 +16,7 @@ import '../bloc/appointment_bloc.dart';
 import '../widgets/appointment_card.dart';
 import '../../../domain/entities/customer_appointment.dart';
 import '../data/service_station.dart';
+import '../data/routing_service.dart';
 import 'create_appointment_page.dart';
 import 'full_screen_map_page.dart';
 import '../widgets/map_markers.dart';
@@ -29,59 +31,117 @@ class AppointmentsPage extends StatefulWidget {
 class _AppointmentsPageState extends State<AppointmentsPage> {
   late final AppointmentBloc _appointmentBloc;
   final MapController _mapController = MapController();
-  final Distance _distance = Distance();
+  final Distance _distance = const Distance();
   LatLng? _userLocation;
   ServiceStation? _selectedStation;
   String? _distanceText;
   bool _isLoadingLocation = true;
+  List<ServiceStation> _stations = [];
+  final RoutingService _routingService = RoutingService();
+  List<LatLng> _routePoints = [];
 
   @override
   void initState() {
     super.initState();
     _appointmentBloc = GetIt.instance<AppointmentBloc>();
     _appointmentBloc.add(LoadAppointments());
+    _stations = List.from(mockStations);
+    _selectedStation = _stations.isNotEmpty ? _stations.first : null;
     _initLocation();
   }
 
   Future<void> _initLocation() async {
+    LatLng userLoc;
+    bool isFallback = false;
     try {
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
-        setState(() => _isLoadingLocation = false);
-        return;
+        throw Exception('Location service disabled');
       }
-      final permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        final req = await Geolocator.requestPermission();
-        if (req == LocationPermission.denied) {
-          setState(() => _isLoadingLocation = false);
-          return;
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permission denied');
         }
       }
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permission permanently denied');
+      }
+      
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
       );
-      final userLoc = LatLng(pos.latitude, pos.longitude);
-      ServiceStation nearest = mockStations.first;
-      double minDist = double.infinity;
-      for (final s in mockStations) {
-        final d = _distance(userLoc, s.location);
-        if (d < minDist) {
-          minDist = d;
-          nearest = s;
-        }
-      }
+      userLoc = LatLng(pos.latitude, pos.longitude);
+    } catch (_) {
+      // Fallback to mock location at Tra Vinh University for emulator testing/demo
+      userLoc = const LatLng(9.92345, 106.34652);
+      isFallback = true;
+    }
+
+    final List<ServiceStation> userCityStations;
+    if (isFallback) {
+      // Use original static mock stations (Chi nhánh Trà Vinh at the old location)
+      userCityStations = List.from(mockStations);
+    } else {
+      // Dynamically generate a single EV Repair headquarters near the user's location
+      userCityStations = [
+        ServiceStation(
+          id: 'st-1',
+          name: 'Xanh EV Repair - Trụ sở chính',
+          address: 'Khu trung tâm thành phố',
+          location: LatLng(userLoc.latitude + 0.0018, userLoc.longitude + 0.0022),
+          phone: '1900 1234',
+        ),
+      ];
+    }
+
+    final nearest = userCityStations.first;
+    final minDist = _distance(userLoc, nearest.location);
+    
+    setState(() {
+      _userLocation = userLoc;
+      _stations = userCityStations;
+      _selectedStation = nearest;
+      _distanceText = 'Cách đây ${(minDist / 1000).toStringAsFixed(1)} km';
+      _isLoadingLocation = false;
+    });
+  }
+
+  Future<void> _updateRoute() async {
+    if (_userLocation == null || _selectedStation == null) return;
+    try {
+      final routeInfo = await _routingService.getRoute(
+        _userLocation!,
+        _selectedStation!.location,
+      );
+      
+      final distKm = (routeInfo.distance / 1000).toStringAsFixed(1);
+      final durMin = (routeInfo.duration / 60).round();
+      
       setState(() {
-        _userLocation = userLoc;
-        _selectedStation = nearest;
-        _distanceText = 'Cách đây ${(minDist / 1000).toStringAsFixed(1)} km';
-        _isLoadingLocation = false;
+        _routePoints = routeInfo.points;
+        _distanceText = '$distKm km • $durMin phút';
       });
     } catch (_) {
-      setState(() => _isLoadingLocation = false);
+      final d = _distance(_userLocation!, _selectedStation!.location);
+      setState(() {
+        _routePoints = [_userLocation!, _selectedStation!.location];
+        _distanceText = 'Cách đây ${(d / 1000).toStringAsFixed(1)} km';
+      });
     }
+  }
+
+  void _clearRoute() {
+    setState(() {
+      _routePoints = [];
+      if (_selectedStation != null && _userLocation != null) {
+        final d = _distance(_userLocation!, _selectedStation!.location);
+        _distanceText = 'Cách đây ${(d / 1000).toStringAsFixed(1)} km';
+      }
+    });
   }
 
   @override
@@ -110,81 +170,76 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
             ),
           ),
           child: SafeArea(
-            child: Stack(
+            child: Column(
               children: [
-                Column(
-                  children: [
-                    const CustomerAppBar(backgroundColor: Colors.transparent),
-                    Expanded(
-                    child: BlocConsumer<AppointmentBloc, AppointmentState>(
-                  listener: (context, state) {
-                    if (state is AppointmentCreated) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Đặt lịch hẹn thành công!'),
-                          backgroundColor: const Color(0xFF22C55E),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                const CustomerAppBar(backgroundColor: Colors.transparent),
+                Expanded(
+                  child: BlocConsumer<AppointmentBloc, AppointmentState>(
+                    listener: (context, state) {
+                      if (state is AppointmentCreated) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Đặt lịch hẹn thành công!'),
+                            backgroundColor: const Color(0xFF22C55E),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                    if (state is AppointmentCancelled) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Đã hủy lịch hẹn'),
-                          backgroundColor: AppColors.onSurfaceVariant,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                        );
+                      }
+                      if (state is AppointmentCancelled) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Đã hủy lịch hẹn'),
+                            backgroundColor: AppColors.onSurfaceVariant,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                    if (state is AppointmentHistoryCleared) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Đã xoá lịch sử lịch hẹn'),
-                          backgroundColor: const Color(0xFF22C55E),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                        );
+                      }
+                      if (state is AppointmentHistoryCleared) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Đã xoá lịch sử lịch hẹn'),
+                            backgroundColor: const Color(0xFF22C55E),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                    if (state is AppointmentError) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(state.message),
-                          backgroundColor: AppColors.error,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                        );
+                      }
+                      if (state is AppointmentError) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(state.message),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                  },
-                  builder: (context, state) {
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        _appointmentBloc.add(LoadAppointments());
-                        await Future.delayed(const Duration(milliseconds: 500));
-                      },
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 672),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 0,
-                              ),
-                              child: Column(
-                                children: [
+                        );
+                      }
+                    },
+                    builder: (context, state) {
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          _appointmentBloc.add(LoadAppointments());
+                          await Future.delayed(const Duration(milliseconds: 500));
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 672),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                                child: Column(
+                                  children: [
                                     const SizedBox(height: 24),
 
                                     // Map section
@@ -211,17 +266,10 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                     },
                   ),
                 ),
-              CustomerBottomNav(
-                selectedIndex: 1,
-                onItemSelected: (index) => _handleNavigation(context, index),
-              ),
-            ],
+              ],
+            ),
           ),
-          const ChatFloatingBubble(),
-        ],
-      ),
-      ),
-      ),
+        ),
       ),
     );
   }
@@ -238,13 +286,18 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
       height: 288,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF006E2F).withValues(alpha: 0.1),
-            blurRadius: 50,
-            offset: const Offset(0, 25),
-            spreadRadius: -12,
+            color: const Color(0xFF006E2F).withValues(alpha: 0.16),
+            blurRadius: 36,
+            offset: const Offset(0, 16),
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -264,7 +317,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               onTap: (_, latlng) {
                 ServiceStation? nearest;
                 double minDist = double.infinity;
-                for (final s in mockStations) {
+                for (final s in _stations) {
                   final d = _distance(latlng, s.location);
                   if (d < minDist) {
                     minDist = d;
@@ -285,7 +338,15 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               ),
               PolylineLayer(
                 polylines: [
-                  if (_userLocation != null && _selectedStation != null)
+                  if (_routePoints.isNotEmpty)
+                    Polyline(
+                      points: _routePoints,
+                      color: const Color(0xFF006E2F),
+                      strokeWidth: 4,
+                      borderColor: const Color(0xFF004D20),
+                      borderStrokeWidth: 1,
+                    )
+                  else if (_userLocation != null && _selectedStation != null)
                     Polyline(
                       points: [_userLocation!, _selectedStation!.location],
                       color: const Color(0xFF006E2F).withValues(alpha: 0.35),
@@ -297,7 +358,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               MarkerLayer(
                 markers: [
                   ...buildStationMarkers(
-                    stations: mockStations,
+                    stations: _stations,
                     selectedStationId: _selectedStation?.id,
                     onStationTap: _selectStation,
                   ),
@@ -367,85 +428,157 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               ),
             ),
           ),
+          // Clear route button (floating)
+          if (_routePoints.isNotEmpty)
+            Positioned(
+              top: 52,
+              right: 8,
+              child: GestureDetector(
+                onTap: _clearRoute,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Color(0xFFBA1A1A),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
           // Deep-glass overlay with station info
           Positioned(
             left: 16,
             right: 16,
             bottom: 16,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF006E2F).withValues(alpha: 0.08),
-                    blurRadius: 40,
-                    offset: const Offset(0, 20),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    blurRadius: 0,
-                    offset: const Offset(0, 1),
-                    blurStyle: BlurStyle.inner,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedStation?.name ?? 'Trạm Dịch Vụ EV',
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF191C1E),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.near_me,
-                              size: 16,
-                              color: Color(0xFF3D4A3D),
-                            ),
-                            const SizedBox(width: 6),
                             Text(
-                              _distanceText ?? 'Đang xác định...',
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF3D4A3D),
+                              _selectedStation?.name ?? 'Trạm Dịch Vụ EV',
+                              style: const TextStyle(
+                                fontFamily: 'Manrope',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF191C1E),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.near_me,
+                                  size: 14,
+                                  color: Color(0xFF3D4A3D),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _distanceText ?? 'Đang xác định...',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF3D4A3D),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _openDirections,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF006E2F),
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
-                        Icons.directions,
-                        color: Colors.white,
+
+                      GestureDetector(
+                        onTap: _openDirections,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF008B3A), Color(0xFF006E2F)],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF006E2F).withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.directions,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Dẫn đường',
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ),
+          ),
+          // Border overlay for premium finish
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF006E2F).withValues(alpha: 0.25),
+                    width: 2.0,
+                  ),
+                ),
               ),
             ),
           ),
@@ -455,37 +588,55 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
     );
   }
 
-  void _openFullScreenMap() {
-    Navigator.push(
+  void _openFullScreenMap() async {
+    final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
         builder: (_) => FullScreenMapPage(
-          stations: mockStations,
+          stations: _stations,
           userLocation: _userLocation,
           initialStation: _selectedStation,
+          initialRoutePoints: _routePoints,
+          initialDistanceText: _distanceText,
         ),
       ),
     );
+
+    if (result != null && mounted) {
+      setState(() {
+        _selectedStation = result['selectedStation'] as ServiceStation?;
+        _routePoints = List<LatLng>.from(result['routePoints'] as Iterable);
+        _distanceText = result['distanceText'] as String?;
+      });
+      if (_selectedStation != null) {
+        _mapController.move(_selectedStation!.location, 14);
+      }
+    }
   }
 
   void _selectStation(ServiceStation station) {
     setState(() {
       _selectedStation = station;
-      if (_userLocation != null) {
-        final d = _distance(_userLocation!, station.location);
-        _distanceText = 'Cách đây ${(d / 1000).toStringAsFixed(1)} km';
-      }
     });
     _mapController.move(station.location, 14);
+    _updateRoute();
   }
 
   void _openDirections() {
     if (_selectedStation == null) return;
     final lat = _selectedStation!.location.latitude;
     final lng = _selectedStation!.location.longitude;
-    final url = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
-    );
+    
+    final String urlString;
+    if (_userLocation != null) {
+      urlString = 'https://www.google.com/maps/dir/?api=1'
+          '&origin=${_userLocation!.latitude},${_userLocation!.longitude}'
+          '&destination=$lat,$lng';
+    } else {
+      urlString = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+    }
+    
+    final url = Uri.parse(urlString);
     launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
@@ -926,16 +1077,4 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
     }
   }
 
-  void _handleNavigation(BuildContext context, int index) {
-    if (index == 1) return;
-    if (index == 0) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MyVehiclesPage()),
-      );
-    } else if (index == 3) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const CustomerAccountPage()),
-      );
-    }
-  }
 }

@@ -77,19 +77,43 @@ class _ChatInputBarState extends State<ChatInputBar> {
               ),
             ),
           ),
-          const SizedBox(width: 4),
-          Material(
-            color: _hasText ? AppColors.primary : AppColors.primary.withValues(alpha: 0.4),
-            shape: const CircleBorder(),
-            child: InkWell(
-              onTap: _hasText ? _send : null,
-              customBorder: const CircleBorder(),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Icon(
-                  Icons.send_rounded,
-                  size: 20,
-                  color: Colors.white,
+          const SizedBox(width: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              gradient: _hasText
+                  ? const LinearGradient(
+                      colors: [Color(0xFF006E2F), Color(0xFF059669)],
+                    )
+                  : LinearGradient(
+                      colors: [
+                        const Color(0xFF006E2F).withValues(alpha: 0.4),
+                        const Color(0xFF059669).withValues(alpha: 0.4),
+                      ],
+                    ),
+              shape: BoxShape.circle,
+              boxShadow: _hasText
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF006E2F).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      )
+                    ]
+                  : null,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _hasText ? _send : null,
+                customBorder: const CircleBorder(),
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(
+                    Icons.send_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

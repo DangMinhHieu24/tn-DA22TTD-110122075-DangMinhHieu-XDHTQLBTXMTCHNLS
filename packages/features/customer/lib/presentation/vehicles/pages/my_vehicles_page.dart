@@ -61,71 +61,48 @@ class _MyVehiclesPageState extends State<MyVehiclesPage> {
             ),
           ),
           child: SafeArea(
-            child: Stack(
+            child: Column(
               children: [
-                Column(
-                  children: [
-                    const CustomerAppBar(backgroundColor: Colors.transparent),
-                    Expanded(
-                    child: BlocListener<AuthBloc, AuthState>(
-                      listenWhen: (previous, current) =>
-                          previous.runtimeType != current.runtimeType,
-                      listener: (context, state) {
-                        if (state is AuthAuthenticated && !_hasLoaded) {
-                          _hasLoaded = true;
-                          _vehicleBloc.add(LoadCustomerVehicles(ownerId: state.user.id));
-                        }
-                        if (state is AuthUnauthenticated) {
-                          _hasLoaded = false;
-                        }
-                      },
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Xe của tôi',
-                              style: AppTextStyles.titleLarge.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                const CustomerAppBar(backgroundColor: Colors.transparent),
+                Expanded(
+                  child: BlocListener<AuthBloc, AuthState>(
+                    listenWhen: (previous, current) =>
+                        previous.runtimeType != current.runtimeType,
+                    listener: (context, state) {
+                      if (state is AuthAuthenticated && !_hasLoaded) {
+                        _hasLoaded = true;
+                        _vehicleBloc.add(LoadCustomerVehicles(ownerId: state.user.id));
+                      }
+                      if (state is AuthUnauthenticated) {
+                        _hasLoaded = false;
+                      }
+                    },
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Xe của tôi',
+                            style: AppTextStyles.titleLarge.copyWith(
+                              fontWeight: FontWeight.w800,
                             ),
-                            const SizedBox(height: 16),
-                            BlocBuilder<CustomerVehicleBloc, CustomerVehicleState>(
-                              builder: (context, state) {
-                                return _buildVehicleList(state);
-                              },
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 16),
+                          BlocBuilder<CustomerVehicleBloc, CustomerVehicleState>(
+                            builder: (context, state) {
+                              return _buildVehicleList(state);
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  CustomerBottomNav(
-                    selectedIndex: 0,
-                    onItemSelected: (index) {
-                      if (index == 1) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => const AppointmentsPage(),
-                          ),
-                        );
-                      } else if (index == 3) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => const CustomerAccountPage(),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
-                const ChatFloatingBubble(),
+                ),
               ],
             ),
-      ),
-      ),
+          ),
+        ),
       ),
     );
 }

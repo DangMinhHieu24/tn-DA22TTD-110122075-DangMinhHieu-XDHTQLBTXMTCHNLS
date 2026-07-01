@@ -1,8 +1,30 @@
 import { Request, Response } from 'express';
 import { PrismaClient, WorkOrderStatus, PaymentMethod, ApprovalStatus } from '@prisma/client';
-import { createNotificationForAdmins, checkAndWarnLowStock } from './notification.controller';
+import { createNotificationForAdmins, checkAndWarnLowStock, createNotificationForUser } from './notification.controller';
 
 const prisma = new PrismaClient();
+
+const sendSystemChatMessage = async (customerId: string, text: string) => {
+  try {
+    let conv = await prisma.chatConversation.findFirst({
+      where: { userId: customerId },
+    });
+    if (!conv) {
+      conv = await prisma.chatConversation.create({
+        data: { userId: customerId },
+      });
+    }
+    await prisma.chatMessage.create({
+      data: {
+        conversationId: conv.id,
+        role: 'system',
+        content: text,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to send system chat message:', error);
+  }
+};
 
 const buildServiceSummary = (services: Array<{ serviceType: string; description?: string | null; serviceName?: string | null }>) => {
   return services
@@ -385,6 +407,36 @@ export const createWorkOrder = async (req: Request, res: Response) => {
       }
     }
 
+    // Notify the technician of new assignment
+    if (workOrder.technicianId) {
+      try {
+        await createNotificationForUser(
+          workOrder.technicianId,
+          'Yêu cầu sửa chữa mới',
+          `Bạn được phân công phụ trách xe ${workOrder.vehicle.licensePlate} (${workOrder.vehicle.model}).`,
+          'WORK_ORDER_ASSIGNED',
+          { workOrderId: workOrder.id }
+        );
+      } catch (e) {
+        console.error('Failed to notify assigned technician of new work order:', e);
+      }
+    }
+
+    // Notify the customer of the new work order
+    if (workOrder.vehicle && workOrder.vehicle.owner) {
+      try {
+        await createNotificationForUser(
+          workOrder.vehicle.owner.id,
+          'Yêu cầu dịch vụ mới',
+          `Phiếu sửa chữa ${workOrder.orderNumber} cho xe ${workOrder.vehicle.licensePlate} (${workOrder.vehicle.model}) đã được khởi tạo thành công.`,
+          'CUSTOMER_WORK_ORDER_CREATED',
+          { workOrderId: workOrder.id }
+        );
+      } catch (e) {
+        console.error('Failed to notify customer of new work order:', e);
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Work order created successfully',
@@ -735,6 +787,61 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
       return updatedWorkOrder;
     });
 
+    // Send system chat message on session start / end and trigger customer notifications
+    try {
+      if (workOrder.vehicleId) {
+        const vehicle = await prisma.vehicle.findUnique({
+          where: { id: workOrder.vehicleId },
+          select: { ownerId: true, licensePlate: true, model: true },
+        });
+        if (vehicle?.ownerId) {
+          if (normalizedStatus === 'IN_PROGRESS') {
+            const techName = workOrder.technician?.name || 'Kỹ thuật viên';
+            await sendSystemChatMessage(
+              vehicle.ownerId,
+              `Hệ thống: Kênh chat trực tiếp với KTV ${techName} đã được thiết lập. KTV đang tiến hành kiểm tra xe của bạn.`
+            );
+
+            // Notify customer of IN_PROGRESS
+            await createNotificationForUser(
+              vehicle.ownerId,
+              'Bắt đầu sửa chữa',
+              `Xe ${vehicle.licensePlate || ''} của bạn đang được tiến hành sửa chữa bởi KTV.`,
+              'CUSTOMER_WORK_ORDER_IN_PROGRESS',
+              { workOrderId: workOrder.id }
+            );
+
+          } else if (normalizedStatus === 'COMPLETED' || normalizedStatus === 'PAID') {
+            await sendSystemChatMessage(
+              vehicle.ownerId,
+              'Hệ thống: Phiếu sửa chữa đã hoàn thành thanh toán. Phiếu chat trực tiếp đã đóng. Cảm ơn quý khách!'
+            );
+
+            if (normalizedStatus === 'COMPLETED') {
+              const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(workOrder.totalPrice || 0);
+              await createNotificationForUser(
+                vehicle.ownerId,
+                'Sửa chữa hoàn tất',
+                `Xe ${vehicle.licensePlate || ''} đã hoàn thành sửa chữa. Tổng chi phí: ${formattedPrice}. Vui lòng kiểm tra và thanh toán.`,
+                'CUSTOMER_WORK_ORDER_COMPLETED',
+                { workOrderId: workOrder.id }
+              );
+            } else if (normalizedStatus === 'PAID') {
+              await createNotificationForUser(
+                vehicle.ownerId,
+                'Thanh toán thành công',
+                `Cảm ơn quý khách đã thanh toán phiếu sửa chữa ${workOrder.orderNumber} cho xe ${vehicle.licensePlate || ''}.`,
+                'CUSTOMER_WORK_ORDER_PAID',
+                { workOrderId: workOrder.id }
+              );
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('System chat and notification error:', err);
+    }
+
     res.json({
       success: true,
       message: 'Work order status updated successfully',
@@ -775,6 +882,21 @@ export const assignTechnician = async (req: Request, res: Response) => {
         services: true,
       },
     });
+
+    // Notify the technician
+    if (technicianId) {
+      try {
+        await createNotificationForUser(
+          technicianId,
+          'Yêu cầu sửa chữa mới',
+          `Bạn được phân công phụ trách xe ${workOrder.vehicle.licensePlate} (${workOrder.vehicle.model}).`,
+          'WORK_ORDER_ASSIGNED',
+          { workOrderId: workOrder.id }
+        );
+      } catch (e) {
+        console.error('Failed to notify assigned technician:', e);
+      }
+    }
 
     res.json({
       success: true,
@@ -893,6 +1015,27 @@ export const approveWorkOrderService = async (req: Request, res: Response) => {
       where: { id: serviceId },
       data: { approvalStatus: approvalStatus as ApprovalStatus },
     });
+
+    // Notify the technician of service approval/rejection status
+    try {
+      const wo = await prisma.workOrder.findUnique({
+        where: { id },
+        select: { technicianId: true, orderNumber: true },
+      });
+      if (wo?.technicianId) {
+        const statusLabel = approvalStatus === 'APPROVED' ? 'được phê duyệt' : 'bị từ chối';
+        const serviceLabel = existingService.serviceName || existingService.serviceType;
+        await createNotificationForUser(
+          wo.technicianId,
+          `Dịch vụ đã ${statusLabel}`,
+          `Dịch vụ "${serviceLabel}" trong phiếu ${wo.orderNumber} đã ${statusLabel} bởi Staff.`,
+          'SERVICE_APPROVAL',
+          { workOrderId: id, serviceId: service.id }
+        );
+      }
+    } catch (e) {
+      console.error('Failed to notify technician of service approval:', e);
+    }
 
     res.json({
       success: true,
@@ -1644,6 +1787,18 @@ export const recordPayment = async (req: Request, res: Response) => {
         },
       },
     });
+
+    // Send system chat message
+    try {
+      if (workOrder.vehicle?.owner?.id) {
+        await sendSystemChatMessage(
+          workOrder.vehicle.owner.id,
+          'Hệ thống: Phiếu sửa chữa đã hoàn thành thanh toán. Phiếu chat trực tiếp đã đóng. Cảm ơn quý khách!'
+        );
+      }
+    } catch (err) {
+      console.error('System chat notification error in recordPayment:', err);
+    }
 
     res.json({ success: true, data: workOrder });
   } catch (error: any) {

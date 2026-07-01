@@ -220,6 +220,18 @@ export const updateUser = async (req: Request, res: Response) => {
     if (error.code === 'P2025') {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    if (error.code === 'P2002') {
+      const target = error.meta?.target || [];
+      const field = target.includes('phone') || target.includes('phoneNumber') 
+        ? 'Số điện thoại' 
+        : target.includes('email') 
+          ? 'Email' 
+          : 'Thông tin';
+      return res.status(400).json({
+        success: false,
+        message: `${field} đã được sử dụng bởi tài khoản khác.`,
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to update user',

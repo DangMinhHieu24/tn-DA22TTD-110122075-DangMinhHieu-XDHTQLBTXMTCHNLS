@@ -5,6 +5,9 @@ abstract class ChatRemoteDataSource {
   Future<List<ChatMessageModel>> getHistory();
   Future<ChatMessageModel> sendMessage(String content);
   Future<void> clearHistory();
+  Future<Map<String, dynamic>> getDirectConversation();
+  Future<ChatMessageModel> sendDirectMessage(String content, String conversationId);
+  Future<List<ChatMessageModel>> getDirectHistory(String conversationId);
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
@@ -52,5 +55,30 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   @override
   Future<void> clearHistory() async {
     await dio.delete('/chat/history');
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDirectConversation() async {
+    final res = await dio.get('/chat/direct/conversation');
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
+  @override
+  Future<ChatMessageModel> sendDirectMessage(String content, String conversationId) async {
+    final res = await dio.post('/chat/direct/message', data: {
+      'content': content,
+      'conversationId': conversationId,
+    });
+    final data = res.data['data'] as Map<String, dynamic>;
+    return ChatMessageModel.fromJson(data);
+  }
+
+  @override
+  Future<List<ChatMessageModel>> getDirectHistory(String conversationId) async {
+    final res = await dio.get('/chat/direct/history/$conversationId');
+    final data = res.data['data'] as List;
+    return data
+        .map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

@@ -38,7 +38,7 @@ export const getNotifications = async (req: Request, res: Response) => {
           total,
           page: Number(page),
           limit: Number(limit),
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(total / Number(limit)),
         },
         unreadCount,
       },
@@ -221,5 +221,30 @@ export const checkAndWarnLowStock = async (partId: string) => {
     }
   } catch (error) {
     console.error('Failed to check and warn low stock:', error);
+  }
+};
+
+/**
+ * Helper to automatically create a system notification for a specific user ID.
+ */
+export const createNotificationForUser = async (
+  userId: string,
+  title: string,
+  content: string,
+  type: string,
+  data?: any
+) => {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        title,
+        content,
+        type,
+        data: data || undefined,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to create notification for user:', error);
   }
 };

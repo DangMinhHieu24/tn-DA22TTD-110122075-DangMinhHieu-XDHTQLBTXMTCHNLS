@@ -10,9 +10,23 @@ class ChatMessageModel extends ChatMessage {
   });
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
+    final roleStr = (json['role'] as String).toLowerCase();
+    MessageRole mappedRole;
+    if (roleStr == 'user') {
+      mappedRole = MessageRole.user;
+    } else if (roleStr == 'customer') {
+      mappedRole = MessageRole.customer;
+    } else if (roleStr == 'technician') {
+      mappedRole = MessageRole.technician;
+    } else if (roleStr == 'system') {
+      mappedRole = MessageRole.system;
+    } else {
+      mappedRole = MessageRole.bot;
+    }
+
     return ChatMessageModel(
       id: json['id'] as String,
-      role: MessageRole.values.firstWhere((e) => e.name == json['role']),
+      role: mappedRole,
       content: json['content'] as String,
       timestamp: DateTime.parse(json['createdAt'] as String),
     );

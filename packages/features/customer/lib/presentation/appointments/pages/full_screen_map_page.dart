@@ -1,20 +1,26 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/service_station.dart';
+import '../data/routing_service.dart';
 import '../widgets/map_markers.dart';
 
 class FullScreenMapPage extends StatefulWidget {
   final List<ServiceStation> stations;
   final LatLng? userLocation;
   final ServiceStation? initialStation;
+  final List<LatLng> initialRoutePoints;
+  final String? initialDistanceText;
 
   const FullScreenMapPage({
     super.key,
     required this.stations,
     this.userLocation,
     this.initialStation,
+    this.initialRoutePoints = const [],
+    this.initialDistanceText,
   });
 
   @override
@@ -23,15 +29,21 @@ class FullScreenMapPage extends StatefulWidget {
 
 class _FullScreenMapPageState extends State<FullScreenMapPage> {
   final MapController _mapController = MapController();
-  final Distance _distance = Distance();
+  final Distance _distance = const Distance();
   late ServiceStation? _selectedStation;
   String? _distanceText;
+  final RoutingService _routingService = RoutingService();
+  List<LatLng> _routePoints = [];
 
   @override
   void initState() {
     super.initState();
     _selectedStation = widget.initialStation;
-    _updateDistance();
+    _routePoints = List.from(widget.initialRoutePoints);
+    _distanceText = widget.initialDistanceText;
+    if (_distanceText == null) {
+      _updateDistance();
+    }
   }
 
   void _updateDistance() {
@@ -41,24 +53,63 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
     }
   }
 
-  void _selectStation(ServiceStation station) {
+  Future<void> _updateRoute() async {
+    if (widget.userLocation == null || _selectedStation == null) return;
+    try {
+      final routeInfo = await _routingService.getRoute(
+        widget.userLocation!,
+        _selectedStation!.location,
+      );
+      
+      final distKm = (routeInfo.distance / 1000).toStringAsFixed(1);
+      final durMin = (routeInfo.duration / 60).round();
+      
+      setState(() {
+        _routePoints = routeInfo.points;
+        _distanceText = '$distKm km • $durMin phút';
+      });
+    } catch (_) {
+      final d = _distance(widget.userLocation!, _selectedStation!.location);
+      setState(() {
+        _routePoints = [widget.userLocation!, _selectedStation!.location];
+        _distanceText = 'Cách đây ${(d / 1000).toStringAsFixed(1)} km';
+      });
+    }
+  }
+
+  void _clearRoute() {
     setState(() {
-      _selectedStation = station;
-      if (widget.userLocation != null) {
-        final d = _distance(widget.userLocation!, station.location);
+      _routePoints = [];
+      if (_selectedStation != null && widget.userLocation != null) {
+        final d = _distance(widget.userLocation!, _selectedStation!.location);
         _distanceText = 'Cách đây ${(d / 1000).toStringAsFixed(1)} km';
       }
     });
+  }
+
+  void _selectStation(ServiceStation station) {
+    setState(() {
+      _selectedStation = station;
+    });
     _mapController.move(station.location, 14);
+    _updateRoute();
   }
 
   void _openDirections() {
     if (_selectedStation == null) return;
     final lat = _selectedStation!.location.latitude;
     final lng = _selectedStation!.location.longitude;
-    final url = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
-    );
+    
+    final String urlString;
+    if (widget.userLocation != null) {
+      urlString = 'https://www.google.com/maps/dir/?api=1'
+          '&origin=${widget.userLocation!.latitude},${widget.userLocation!.longitude}'
+          '&destination=$lat,$lng';
+    } else {
+      urlString = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+    }
+    
+    final url = Uri.parse(urlString);
     launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
@@ -106,7 +157,15 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
               ),
               PolylineLayer(
                 polylines: [
-                  if (widget.userLocation != null && _selectedStation != null)
+                  if (_routePoints.isNotEmpty)
+                    Polyline(
+                      points: _routePoints,
+                      color: const Color(0xFF006E2F),
+                      strokeWidth: 4,
+                      borderColor: const Color(0xFF004D20),
+                      borderStrokeWidth: 1,
+                    )
+                  else if (widget.userLocation != null && _selectedStation != null)
                     Polyline(
                       points: [widget.userLocation!, _selectedStation!.location],
                       color: const Color(0xFF006E2F).withValues(alpha: 0.35),
@@ -151,81 +210,110 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
             left: 16,
             right: 16,
             bottom: MediaQuery.of(context).padding.bottom + 16,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF006E2F).withValues(alpha: 0.08),
-                    blurRadius: 40,
-                    offset: const Offset(0, 20),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    blurRadius: 0,
-                    offset: const Offset(0, 1),
-                    blurStyle: BlurStyle.inner,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _selectedStation?.name ?? 'Trạm Dịch Vụ EV',
-                          style: const TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF191C1E),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
-                              Icons.near_me,
-                              size: 16,
-                              color: Color(0xFF3D4A3D),
-                            ),
-                            const SizedBox(width: 6),
                             Text(
-                              _distanceText ?? 'Đang xác định...',
+                              _selectedStation?.name ?? 'Trạm Dịch Vụ EV',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF3D4A3D),
+                                fontFamily: 'Manrope',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF191C1E),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.near_me,
+                                  size: 14,
+                                  color: Color(0xFF3D4A3D),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _distanceText ?? 'Đang xác định...',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF3D4A3D),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _openDirections,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF006E2F),
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
-                        Icons.directions,
-                        color: Colors.white,
+
+                      GestureDetector(
+                        onTap: _openDirections,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF008B3A), Color(0xFF006E2F)],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF006E2F).withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.directions,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Dẫn đường',
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -234,7 +322,11 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
             top: MediaQuery.of(context).padding.top + 8,
             left: 12,
             child: GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () => Navigator.pop(context, {
+                'selectedStation': _selectedStation,
+                'routePoints': _routePoints,
+                'distanceText': _distanceText,
+              }),
               child: Container(
                 width: 42,
                 height: 42,
@@ -257,6 +349,35 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
               ),
             ),
           ),
+          // Clear route button (floating on top right)
+          if (_routePoints.isNotEmpty)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 12,
+              child: GestureDetector(
+                onTap: _clearRoute,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(21),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Color(0xFFBA1A1A),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

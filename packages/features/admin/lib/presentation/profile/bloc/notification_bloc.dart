@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../data/models/notification_model.dart';
-import '../../../../domain/repositories/notification_repository.dart';
+import '../../../data/models/notification_model.dart';
+import '../../../domain/repositories/notification_repository.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
 

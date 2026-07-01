@@ -129,7 +129,7 @@ void setupTechnicianDependencies() {
     ),
   );
 
-  getIt.registerFactory<TechChatBloc>(
+  getIt.registerLazySingleton<TechChatBloc>(
     () => TechChatBloc(repository: getIt<TechChatRepository>()),
   );
 }

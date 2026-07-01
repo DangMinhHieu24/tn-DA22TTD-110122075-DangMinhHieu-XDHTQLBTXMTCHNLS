@@ -65,6 +65,40 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
         opacity: _fadeIn,
         child: Scaffold(
           backgroundColor: const Color(0xFFF7F9FB),
+          appBar: Navigator.canPop(context)
+              ? AppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  leadingWidth: 72,
+                  leading: Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 15,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                    ),
+                  ),
+                  title: const Text(
+                    'Tiếp nhận lịch hẹn',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  centerTitle: false,
+                )
+              : null,
           body: SafeArea(
             child: Column(
               children: [

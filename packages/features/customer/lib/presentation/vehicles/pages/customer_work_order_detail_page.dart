@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../domain/entities/customer_maintenance_log.dart';
 import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
@@ -10,6 +11,8 @@ import '../../../domain/repositories/customer_repository.dart';
 import '../widgets/customer_bottom_nav.dart';
 import 'my_vehicles_page.dart';
 import '../../account/pages/customer_account_page.dart';
+import '../../chat/widgets/chat_floating_bubble.dart';
+import '../../notifications/pages/customer_notification_list_page.dart';
 
 String _serviceLabel(String type) => switch (type) {
       'MAINTENANCE' => 'Bảo dưỡng định kỳ',
@@ -204,7 +207,7 @@ class _CustomerWorkOrderDetailPageState
             _buildTopAppBar(context),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -258,26 +261,6 @@ class _CustomerWorkOrderDetailPageState
                 ),
               ),
             ),
-            CustomerBottomNav(
-              selectedIndex: 0,
-              onItemSelected: (index) {
-                if (index == 0) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (_) => const MyVehiclesPage(),
-                    ),
-                    (route) => false,
-                  );
-                } else if (index == 3) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (_) => const CustomerAccountPage(),
-                    ),
-                    (route) => false,
-                  );
-                }
-              },
-            ),
           ],
         ),
       ),
@@ -312,32 +295,41 @@ class _CustomerWorkOrderDetailPageState
               color: AppColors.primary,
             ),
           ),
-          Stack(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(999),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const CustomerNotificationListPage(),
                 ),
-                child: const Icon(Icons.notifications_outlined,
-                    color: AppColors.primary, size: 24),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
+              );
+            },
+            child: Stack(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.error,
+                    color: AppColors.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.surface, width: 1.5),
+                  ),
+                  child: const Icon(Icons.notifications_outlined,
+                      color: AppColors.primary, size: 24),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: AppColors.surface, width: 1.5),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -812,17 +804,19 @@ class _CustomerWorkOrderDetailPageState
               ],
             ),
           ),
-          if (wo.technicianPhone != null)
+          if (wo.technicianName != null)
             Container(
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: IconButton(
-                icon:
-                    const Icon(Icons.phone_outlined, color: AppColors.primary),
+                icon: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: AppColors.primary,
+                ),
                 onPressed: () {
-                  // TODO: launch phone call
+                  showChatPanel(context, initialTab: 1);
                 },
               ),
             ),

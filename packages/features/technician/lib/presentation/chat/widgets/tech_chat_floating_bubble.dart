@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:dio/dio.dart';
 import 'package:design_system/design_system.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../work_detail/widgets/tech_customer_chat_sheet.dart';
 import '../bloc/tech_chat_bloc.dart';
 import '../bloc/tech_chat_event.dart';
 import '../bloc/tech_chat_state.dart';
@@ -231,11 +235,58 @@ class _TechChatFloatingBubbleState extends State<TechChatFloatingBubble>
   }
 }
 
-class _TechChatPanel extends StatelessWidget {
+class _TechChatPanel extends StatefulWidget {
   final ScrollController scrollController;
   const _TechChatPanel({required this.scrollController});
 
-  TechChatBloc get _chatBloc => GetIt.instance<TechChatBloc>();
+  @override
+  State<_TechChatPanel> createState() => _TechChatPanelState();
+}
+
+class _TechChatPanelState extends State<_TechChatPanel> {
+  int _activeTab = 0; // 0 = Trợ lý AI, 1 = Khách hàng
+  final Dio _dio = GetIt.instance<Dio>();
+  late final TechChatBloc _chatBloc;
+
+  List<dynamic> _techConversations = [];
+  bool _loadingConversations = true;
+  String? _conversationsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _chatBloc = GetIt.instance<TechChatBloc>();
+    _chatBloc.stream.listen((_) {
+      if (mounted) _scrollToBottom();
+    });
+    _fetchConversations();
+  }
+
+  Future<void> _fetchConversations() async {
+    try {
+      setState(() {
+        _loadingConversations = true;
+        _conversationsError = null;
+      });
+      
+      final res = await _dio.get('/chat/direct/conversations/tech');
+      final list = res.data['data'] as List;
+      
+      if (mounted) {
+        setState(() {
+          _techConversations = list;
+          _loadingConversations = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _conversationsError = 'Không thể tải danh sách hội thoại: $e';
+          _loadingConversations = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -255,80 +306,306 @@ class _TechChatPanel extends StatelessWidget {
         child: Column(
           children: [
             _TechPanelHeader(),
+            _buildTabBar(),
             Divider(height: 0, color: AppColors.onSurface.withValues(alpha: 0.08)),
             Expanded(
-              child: BlocBuilder<TechChatBloc, TechChatState>(
+              child: _activeTab == 0 
+                  ? _buildAIView() 
+                  : _buildCustomerListView(),
+            ),
+            if (_activeTab == 0) ...[
+              BlocBuilder<TechChatBloc, TechChatState>(
                 bloc: _chatBloc,
                 builder: (context, state) {
-                  if (state is TechChatLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Color(0xFF006E2F)),
-                      ),
-                    );
-                  }
-                  if (state is TechChatError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.error_outline_rounded,
-                                size: 48, color: AppColors.error),
-                            const SizedBox(height: 16),
-                            Text(
-                              state.message,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.error,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  if (state is TechChatLoaded) {
-                    final messages = state.messages;
-                    if (messages.isEmpty) {
-                      return _buildEmptyState();
-                    }
-                    return ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      itemCount: messages.length,
-                      itemBuilder: (_, i) =>
-                          TechChatBubble(message: messages[i]),
+                  final showSuggestions =
+                      state is TechChatLoaded && state.messages.length <= 2;
+                  if (showSuggestions) {
+                    return TechChatSuggestions(
+                      onTap: (text) => _chatBloc.add(TechChatSendMessage(text)),
                     );
                   }
                   return const SizedBox.shrink();
                 },
               ),
-            ),
-            BlocBuilder<TechChatBloc, TechChatState>(
-              bloc: _chatBloc,
-              builder: (context, state) {
-                final showSuggestions =
-                    state is TechChatLoaded && state.messages.length <= 2;
-                if (showSuggestions) {
-                  return TechChatSuggestions(
-                    onTap: (text) => _chatBloc.add(TechChatSendMessage(text)),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            _buildSafeArea(),
-            TechChatInputBar(
-              onSend: (text) => _chatBloc.add(TechChatSendMessage(text)),
-            ),
+              _buildSafeArea(),
+              TechChatInputBar(
+                onSend: (text) => _chatBloc.add(TechChatSendMessage(text)),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      height: 38,
+      decoration: BoxDecoration(
+        color: AppColors.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            alignment: Alignment(_activeTab == 0 ? -1.0 : 1.0, 0.0),
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                margin: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _activeTab = 0),
+                  behavior: HitTestBehavior.opaque,
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.smart_toy_outlined,
+                          size: 16,
+                          color: _activeTab == 0 ? AppColors.primary : AppColors.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Trợ lý AI',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            fontWeight: _activeTab == 0 ? FontWeight.w700 : FontWeight.w500,
+                            color: _activeTab == 0 ? AppColors.primary : AppColors.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _activeTab = 1);
+                    _fetchConversations();
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.people_alt_outlined,
+                          size: 16,
+                          color: _activeTab == 1 ? AppColors.primary : AppColors.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Khách hàng',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            fontWeight: _activeTab == 1 ? FontWeight.w700 : FontWeight.w500,
+                            color: _activeTab == 1 ? AppColors.primary : AppColors.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAIView() {
+    return BlocBuilder<TechChatBloc, TechChatState>(
+      bloc: _chatBloc,
+      builder: (context, state) {
+        if (state is TechChatLoading) {
+          return const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF006E2F)),
+            ),
+          );
+        }
+        if (state is TechChatError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  Text(
+                    state.message,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.error,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        if (state is TechChatLoaded) {
+          final messages = state.messages;
+          if (messages.isEmpty) {
+            return _buildEmptyState();
+          }
+          return ListView.builder(
+            controller: widget.scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            itemCount: messages.length,
+            itemBuilder: (_, i) => TechChatBubble(message: messages[i]),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildCustomerListView() {
+    if (_loadingConversations) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF006E2F)),
+        ),
+      );
+    }
+
+    if (_conversationsError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.error, size: 40),
+              const SizedBox(height: 12),
+              Text(
+                _conversationsError!,
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _fetchConversations,
+                child: const Text('Thử lại', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_techConversations.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.people_outline_rounded,
+                size: 48,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Không có khách hàng nào đang sửa chữa.',
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: _techConversations.length,
+      separatorBuilder: (_, __) => Divider(height: 1, color: AppColors.onSurface.withValues(alpha: 0.06)),
+      itemBuilder: (context, index) {
+        final conv = _techConversations[index];
+        final user = conv['user'] as Map<String, dynamic>;
+        final lastMsgList = conv['messages'] as List?;
+        final lastMsg = (lastMsgList != null && lastMsgList.isNotEmpty) ? lastMsgList[0] : null;
+        
+        String lastMsgText = 'Nhấn để bắt đầu trò chuyện';
+        if (lastMsg != null) {
+          final content = lastMsg['content'] as String? ?? '';
+          try {
+            final decoded = jsonDecode(content) as Map<String, dynamic>;
+            lastMsgText = decoded['text'] as String? ?? content;
+          } catch (_) {
+            lastMsgText = content;
+          }
+        }
+
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(vertical: 4),
+          leading: Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF006E2F), Color(0xFF059669)],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 20),
+          ),
+          title: Text(
+            user['name'] as String? ?? 'Khách hàng',
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF191C1E)),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              lastMsgText,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.onSurfaceVariant,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF6B7280)),
+          onTap: () {
+            showTechCustomerChatSheet(
+              context,
+              customerId: user['id'] as String,
+              customerName: user['name'] as String? ?? 'Khách hàng',
+              isSessionActive: true,
+            );
+          },
+        );
+      },
     );
   }
 
@@ -386,6 +663,18 @@ class _TechChatPanel extends StatelessWidget {
       color: AppColors.surface,
       height: 0,
     );
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.scrollController.hasClients) {
+        widget.scrollController.animateTo(
+          widget.scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 }
 

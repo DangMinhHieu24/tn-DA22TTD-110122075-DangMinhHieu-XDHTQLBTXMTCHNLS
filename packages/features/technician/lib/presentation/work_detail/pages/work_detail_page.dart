@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 import '../../../domain/repositories/work_repository.dart';
 import '../../../domain/entities/work_item.dart';
 import '../../../domain/entities/work_item_service.dart';
+import '../widgets/tech_customer_chat_sheet.dart';
 
 const _serviceTypes = ['MAINTENANCE', 'BATTERY_CHECK', 'BRAKES_TIRES', 'OTHER_REPAIR'];
 
@@ -392,32 +394,51 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.person,
-                          size: 18,
-                          color: Color(0xFF3D4A3D),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${widget.workItem.customerName} (Khách hàng)',
-                          style: const TextStyle(
-                            fontSize: 14,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.person,
+                            size: 18,
                             color: Color(0xFF3D4A3D),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${widget.workItem.customerName} (Khách hàng)',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF3D4A3D),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     TextButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        if (widget.workItem.customerId != null) {
+                          showTechCustomerChatSheet(
+                            context,
+                            customerId: widget.workItem.customerId!,
+                            customerName: widget.workItem.customerName,
+                            isSessionActive: widget.workItem.status != WorkStatus.completed,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Không tìm thấy ID khách hàng để chat')),
+                          );
+                        }
+                      },
                       icon: const Icon(
-                        Icons.call,
+                        Icons.chat_bubble_outline_rounded,
                         size: 18,
                         color: Color(0xFF006E2F),
                       ),
                       label: const Text(
-                        'Gọi',
+                        'Chat',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -425,7 +446,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                         ),
                       ),
                       style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                       ),
                     ),
                   ],

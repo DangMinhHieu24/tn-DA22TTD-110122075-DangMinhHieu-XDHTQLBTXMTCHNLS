@@ -121,7 +121,7 @@ void setupCustomerDependencies() {
     () => ChatRepositoryImpl(remoteDataSource: getIt<ChatRemoteDataSource>()),
   );
   // Dùng ChatBloc thật với Gemini API
-  getIt.registerLazySingleton<Bloc<ChatEvent, ChatState>>(
+  getIt.registerLazySingleton<ChatBloc>(
     () => ChatBloc(repository: getIt<ChatRepository>()),
   );
   // Dùng mock chat để test UI (không cần API key)

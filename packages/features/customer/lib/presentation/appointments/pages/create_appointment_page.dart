@@ -345,7 +345,7 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
     }
 
     return SizedBox(
-      height: 100,
+      height: 110,
       child: ListView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -412,7 +412,7 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
         duration: const Duration(milliseconds: 200),
         width: 155,
         margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.08)

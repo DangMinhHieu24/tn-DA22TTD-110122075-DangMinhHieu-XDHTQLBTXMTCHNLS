@@ -4,12 +4,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../data/service_station.dart';
 
-const kToken = ''; // TODO: add Mapbox token
-
 final kTileUrl =
-    'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=$kToken';
+    'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
 const kAttribution = '';
-const kSubdomains = <String>[];
+const kSubdomains = <String>['a', 'b', 'c'];
 
 class StationMarker extends StatefulWidget {
   final ServiceStation station;

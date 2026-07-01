@@ -44,12 +44,14 @@ export 'presentation/dashboard/bloc/dashboard_state.dart';
 // Presentation - Dashboard Pages
 export 'presentation/dashboard/pages/technician_dashboard_page.dart';
 export 'presentation/dashboard/pages/technician_work_list_page.dart';
+export 'presentation/dashboard/pages/notification_list_page.dart';
 
 // Presentation - Work Detail Pages
 export 'presentation/work_detail/pages/work_detail_page.dart';
 
 // Presentation - Settings Pages
 export 'presentation/settings/pages/settings_page.dart';
+export 'presentation/settings/pages/personal_info_page.dart';
 
 // Presentation - Lookup
 export 'presentation/lookup/pages/technician_lookup_page.dart';

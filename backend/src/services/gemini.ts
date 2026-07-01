@@ -154,6 +154,11 @@ export async function processChatMessage(
     },
   });
 
+  if (role === 'technician') {
+    const reply = await processNvidiaChatMessage(userId, message, conv.id);
+    return { reply, conversationId: conv.id };
+  }
+
   const history = await prisma.chatMessage.findMany({
     where: { conversationId: conv.id },
     orderBy: { createdAt: 'asc' },
@@ -204,6 +209,161 @@ export async function processChatMessage(
   });
 
   return { reply, conversationId: conv.id };
+}
+
+async function processNvidiaChatMessage(
+  userId: string,
+  message: string,
+  conversationId: string,
+): Promise<string> {
+  const history = await prisma.chatMessage.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: 'asc' },
+    take: 20,
+  });
+
+  const messages: any[] = history.map((m) => ({
+    role: m.role === 'user' ? 'user' : 'assistant',
+    content: m.content,
+  }));
+
+  // Add system instruction for Nvidia Llama assistant
+  messages.unshift({
+    role: 'system',
+    content: `Bạn là trợ lý kỹ thuật viên (KTV) của Xanh EV.
+Bạn giúp KTV tra cứu thông tin xe, phụ tùng, và phiếu sửa chữa.
+Bạn BẮT BUỘC phải sử dụng các công cụ (tools) được cung cấp để tra cứu thông tin thực tế từ cơ sở dữ liệu:
+1. Tra cứu xe theo biển số (lookupVehicle)
+2. Kiểm tra tồn kho phụ tùng theo tên (checkInventory)
+3. Tra cứu phiếu sửa chữa (searchWorkOrders)
+
+Chỉ trả lời dựa trên kết quả trả về của công cụ. Không được tự bịa ra dữ liệu hoặc mô tả cấu trúc dữ liệu JSON. Luôn trả lời bằng tiếng Việt, ngắn gọn, chính xác.`,
+  });
+
+  const tools = [
+    {
+      type: 'function',
+      function: {
+        name: 'lookupVehicle',
+        description: 'Tra cứu thông tin xe theo biển số',
+        parameters: {
+          type: 'object',
+          properties: {
+            licensePlate: { type: 'string', description: 'Biển số xe (VD: 59A-12345)' },
+          },
+          required: ['licensePlate'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'checkInventory',
+        description: 'Kiểm tra tồn kho phụ tùng theo tên',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Tên phụ tùng cần tìm' },
+          },
+          required: ['query'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'searchWorkOrders',
+        description: 'Tra cứu phiếu sửa chữa theo biển số hoặc tên khách hàng',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Biển số hoặc tên khách hàng' },
+          },
+          required: ['query'],
+        },
+      },
+    },
+  ];
+
+  const apiKey = process.env.NVIDIA_API_KEY || '';
+  const apiUrl = `${process.env.NVIDIA_API_URL || 'https://integrate.api.nvidia.com/v1'}/chat/completions`;
+  const model = process.env.NVIDIA_MODEL || 'meta/llama-3.1-8b-instruct';
+
+  let loopCount = 0;
+  let finalReply = '';
+
+  while (loopCount < 5) {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        tools,
+        tool_choice: 'auto',
+        temperature: 0.2,
+        max_tokens: 1024,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Nvidia API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json() as any;
+    const choice = data.choices?.[0];
+    if (!choice) {
+      throw new Error('Nvidia API returned empty choices');
+    }
+
+    const assistantMessage = choice.message;
+    const toolCalls = assistantMessage.tool_calls;
+
+    if (toolCalls && toolCalls.length > 0) {
+      // Push the assistant message (with tool calls) to local history context
+      messages.push(assistantMessage);
+
+      // Execute each function call and push results
+      for (const tc of toolCalls) {
+        let args = {};
+        try {
+          args = typeof tc.function.arguments === 'string'
+            ? JSON.parse(tc.function.arguments)
+            : tc.function.arguments;
+        } catch (e) {
+          console.error('Failed to parse tool arguments:', tc.function.arguments);
+        }
+
+        const fnResult = await executeFunction(tc.function.name, args, userId);
+
+        messages.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          name: tc.function.name,
+          content: JSON.stringify(fnResult),
+        });
+      }
+      loopCount++;
+    } else {
+      finalReply = assistantMessage.content || '';
+      break;
+    }
+  }
+
+  // Save the final response as bot message
+  await prisma.chatMessage.create({
+    data: {
+      conversationId,
+      role: 'bot',
+      content: finalReply,
+    },
+  });
+
+  return finalReply;
 }
 
 async function executeFunction(name: string, args: Record<string, any>, userId: string): Promise<Record<string, any>> {

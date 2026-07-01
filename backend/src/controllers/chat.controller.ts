@@ -78,3 +78,168 @@ export const getConversation = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: 'Lỗi lấy hội thoại' });
   }
 };
+
+// Get or create direct conversation for a customer
+export const getDirectConversation = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any).user;
+    const targetUserId = (req.query.customerId as string) || authUser.userId;
+    
+    // Find or create conversation for this target user (customer)
+    let conv = await prisma.chatConversation.findFirst({
+      where: { userId: targetUserId },
+      include: {
+        messages: { orderBy: { createdAt: 'asc' } }
+      }
+    });
+
+    if (!conv) {
+      conv = await prisma.chatConversation.create({
+        data: { userId: targetUserId },
+        include: {
+          messages: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+    }
+
+    // Find the technician currently assigned to this customer's vehicle
+    const activeWorkOrder = await prisma.workOrder.findFirst({
+      where: {
+        vehicle: { ownerId: targetUserId },
+        status: { in: ['PENDING', 'IN_PROGRESS', 'INSPECTION'] }
+      },
+      include: {
+        technician: true
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        conversationId: conv.id,
+        messages: conv.messages,
+        technician: activeWorkOrder?.technician ? {
+          id: activeWorkOrder.technician.id,
+          name: activeWorkOrder.technician.name,
+          phoneNumber: activeWorkOrder.technician.phoneNumber,
+          avatarUrl: activeWorkOrder.technician.avatarUrl
+        } : null
+      }
+    });
+  } catch (error) {
+    console.error('Get direct conversation error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi lấy hội thoại trực tiếp' });
+  }
+};
+
+// Send a message in direct conversation
+export const sendDirectMessage = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any).user;
+    const { content, conversationId } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Nội dung không được để trống' });
+    }
+
+    // Get sender's name
+    const sender = await prisma.user.findUnique({
+      where: { id: authUser.userId }
+    });
+    const senderName = sender?.name || 'Người dùng';
+
+    // Package as JSON to support sender meta without schema changes
+    const payload = JSON.stringify({
+      senderId: authUser.userId,
+      senderName,
+      text: content.trim()
+    });
+
+    const msg = await prisma.chatMessage.create({
+      data: {
+        conversationId,
+        role: authUser.role.toLowerCase(), // 'customer' or 'technician'
+        content: payload
+      }
+    });
+
+    // Update conversation updatedAt
+    await prisma.chatConversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() }
+    });
+
+    res.json({ success: true, data: msg });
+  } catch (error) {
+    console.error('Send direct message error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi gửi tin nhắn trực tiếp' });
+  }
+};
+
+// Get conversations list for a technician
+export const getTechConversations = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any).user;
+
+    // Find all active work orders for this technician to identify the customers
+    const workOrders = await prisma.workOrder.findMany({
+      where: {
+        technicianId: authUser.userId,
+        status: { in: ['PENDING', 'IN_PROGRESS', 'INSPECTION'] }
+      },
+      include: {
+        vehicle: {
+          include: {
+            owner: true
+          }
+        }
+      }
+    });
+
+    const customerIds = Array.from(new Set(workOrders.map(wo => wo.vehicle.ownerId)));
+
+    // Fetch the conversations for these customers
+    const conversations = await prisma.chatConversation.findMany({
+      where: {
+        userId: { in: customerIds }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+            phoneNumber: true
+          }
+        },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    res.json({ success: true, data: conversations });
+  } catch (error) {
+    console.error('Get tech conversations error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi lấy danh sách hội thoại của KTV' });
+  }
+};
+
+// Get direct messages history
+export const getDirectHistory = async (req: Request, res: Response) => {
+  try {
+    const { conversationId } = req.params;
+
+    const messages = await prisma.chatMessage.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    res.json({ success: true, data: messages });
+  } catch (error) {
+    console.error('Get direct history error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi lấy lịch sử tin nhắn trực tiếp' });
+  }
+};

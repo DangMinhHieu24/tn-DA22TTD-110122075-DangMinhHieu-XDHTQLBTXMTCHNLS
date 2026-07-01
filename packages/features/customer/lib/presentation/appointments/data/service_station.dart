@@ -21,7 +21,7 @@ class ServiceStation {
 final List<ServiceStation> mockStations = [
   ServiceStation(
     id: 'st-1',
-    name: 'Xanh EV Repair - Trà Vinh',
+    name: 'Xanh EV Repair - Chi nhánh Trà Vinh',
     address: '123 Nguyễn Thị Minh Khai, P.7, TP. Trà Vinh',
     location: const LatLng(9.9328, 106.3353),
     phone: '0294 123 456',

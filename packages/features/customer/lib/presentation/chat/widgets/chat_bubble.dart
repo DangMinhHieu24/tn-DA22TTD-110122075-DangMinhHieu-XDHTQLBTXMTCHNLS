@@ -5,16 +5,20 @@ import '../domain/entities/chat_message.dart';
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
   final bool showTimestamp;
+  final String? senderName;
+  final IconData? senderIcon;
 
   const ChatBubble({
     super.key,
     required this.message,
     this.showTimestamp = true,
+    this.senderName,
+    this.senderIcon,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isUser = message.role == MessageRole.user;
+    final isUser = message.role == MessageRole.user || message.role == MessageRole.customer;
     final isTyping = message.isTyping;
 
     if (message.role == MessageRole.system) {
@@ -59,14 +63,14 @@ class ChatBubble extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.support_agent,
+                        senderIcon ?? Icons.support_agent,
                         size: 12,
                         color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Xanh EV Bot',
+                      senderName ?? 'Xanh EV Bot',
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.onSurfaceVariant,
                         fontSize: 11,
@@ -88,8 +92,15 @@ class ChatBubble extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isUser
-                      ? AppColors.primary
+                      ? null
                       : AppColors.surfaceContainerHighest,
+                  gradient: isUser
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF006E2F), Color(0xFF059669)],
+                        )
+                      : null,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
                     topRight: const Radius.circular(18),
@@ -99,9 +110,9 @@ class ChatBubble extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: (isUser
-                              ? AppColors.primary
+                              ? const Color(0xFF006E2F)
                               : AppColors.onSurface)
-                          .withValues(alpha: 0.08),
+                          .withValues(alpha: isUser ? 0.12 : 0.06),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),

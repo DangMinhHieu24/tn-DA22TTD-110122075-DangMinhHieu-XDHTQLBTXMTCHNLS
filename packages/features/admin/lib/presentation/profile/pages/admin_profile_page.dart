@@ -67,72 +67,78 @@ class AdminProfilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            ProfileMenuCard(
-                              icon: Icons.analytics_outlined,
-                              title: 'Báo cáo doanh thu',
-                              subtitle: 'Xem biểu đồ & số liệu',
-                              color: AppColors.primary,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const AdminRevenueReportPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 16),
-                            ProfileMenuCard(
-                              icon: Icons.inventory_2_outlined,
-                              title: 'Quản lý tồn kho',
-                              subtitle: 'Kiểm tra & nhập phụ tùng',
-                              color: const Color(0xFFD97706),
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const InventoryPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ProfileMenuCard(
+                                icon: Icons.analytics_outlined,
+                                title: 'Báo cáo doanh thu',
+                                subtitle: 'Xem biểu đồ & số liệu',
+                                color: AppColors.primary,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const AdminRevenueReportPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 16),
+                              ProfileMenuCard(
+                                icon: Icons.inventory_2_outlined,
+                                title: 'Quản lý tồn kho',
+                                subtitle: 'Kiểm tra & nhập phụ tùng',
+                                color: const Color(0xFFD97706),
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const InventoryPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            ProfileMenuCard(
-                              icon: Icons.people_outline_rounded,
-                              title: 'Kỹ thuật viên',
-                              subtitle: 'Danh sách nhân viên xưởng',
-                              color: const Color(0xFF2563EB),
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => BlocProvider(
-                                      create: (_) => GetIt.instance<LookupBloc>()
-                                        ..add(LoadLookupCategories()),
-                                      child: const CustomerLookupPage(initialTab: 1),
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ProfileMenuCard(
+                                icon: Icons.people_outline_rounded,
+                                title: 'Kỹ thuật viên',
+                                subtitle: 'Danh sách nhân viên xưởng',
+                                color: const Color(0xFF2563EB),
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => BlocProvider(
+                                        create: (_) => GetIt.instance<LookupBloc>()
+                                          ..add(LoadLookupCategories()),
+                                        child: const CustomerLookupPage(initialTab: 1),
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 16),
-                            ProfileMenuCard(
-                              icon: Icons.calendar_today_outlined,
-                              title: 'Lịch hẹn hôm nay',
-                              subtitle: 'Tổng hợp danh sách hẹn',
-                              color: const Color(0xFF7C3AED),
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const ReceptionHubPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 16),
+                              ProfileMenuCard(
+                                icon: Icons.calendar_today_outlined,
+                                title: 'Lịch hẹn hôm nay',
+                                subtitle: 'Tổng hợp danh sách hẹn',
+                                color: const Color(0xFF7C3AED),
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const ReceptionHubPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
 
                         const SizedBox(height: 28),
@@ -216,7 +222,7 @@ class AdminProfilePage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 120),
                       ],
                     ),
                   ),

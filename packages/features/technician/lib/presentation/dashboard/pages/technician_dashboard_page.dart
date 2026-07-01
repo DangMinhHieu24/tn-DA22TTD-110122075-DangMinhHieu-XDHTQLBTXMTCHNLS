@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:design_system/design_system.dart';
 import 'package:auth/auth.dart';
 import 'package:get_it/get_it.dart';
+import 'package:fl_chart/fl_chart.dart';
+
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
@@ -26,6 +28,7 @@ import '../../lookup/pages/vehicle_result_page.dart';
 import '../../lookup/bloc/work_order_search_bloc.dart';
 import '../../lookup/pages/work_order_search_page.dart';
 import '../../chat/widgets/tech_chat_floating_bubble.dart';
+import 'notification_list_page.dart';
 
 class TechnicianDashboardPage extends StatelessWidget {
   const TechnicianDashboardPage({super.key});
@@ -105,11 +108,20 @@ class _DashboardViewState extends State<_DashboardView> {
                     Column(
                       children: [
                         // Fixed Header
-                        DashboardHeader(
-                          onNotificationTap: () {
-                            // TODO: Handle notification tap
-                          },
-                        ),
+                        if (_selectedIndex != 3)
+                          DashboardHeader(
+                            userInitials: userName.isNotEmpty ? userName[0].toUpperCase() : 'TA',
+                            onNotificationTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationListPage(),
+                                ),
+                              ).then((_) {
+                                // Refresh dashboard data when coming back
+                                context.read<DashboardBloc>().add(const LoadDashboardData());
+                              });
+                            },
+                          ),
 
                         // Scrollable content
                         Expanded(
@@ -117,7 +129,9 @@ class _DashboardViewState extends State<_DashboardView> {
                               ? const _LookupView()
                               : _selectedIndex == 2
                                   ? const _StatsView()
-                                  : _buildContent(state, userName),
+                                  : _selectedIndex == 3
+                                      ? const SettingsPage()
+                                      : _buildContent(state, userName),
                         ),
                       ],
                     ),
@@ -125,26 +139,17 @@ class _DashboardViewState extends State<_DashboardView> {
                     // Chat Floating Bubble
                     const TechChatFloatingBubble(),
 
-                    // Bottom Navigation
+                    // Premium Floating Glassmorphic Bottom Navigation Bar
                     Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child:                     DashboardBottomNav(
+                      left: 20,
+                      right: 20,
+                      bottom: 24,
+                      child: DashboardBottomNav(
                         selectedIndex: _selectedIndex,
                         onItemSelected: (index) {
-                          if (index == 3) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SettingsPage(),
-                              ),
-                            );
-                          } else {
-                            setState(() {
-                              _selectedIndex = index;
-                            });
-                          }
+                          setState(() {
+                            _selectedIndex = index;
+                          });
                         },
                       ),
                     ),
@@ -392,6 +397,7 @@ class _StatsViewState extends State<_StatsView> {
   List<WorkItem>? _items;
   bool _loading = true;
   String? _error;
+  String _selectedPeriod = 'month'; // 'week', 'month', 'all'
 
   @override
   void initState() {
@@ -451,30 +457,130 @@ class _StatsViewState extends State<_StatsView> {
 
   Widget _buildContent() {
     final items = _items!;
-    final total = items.length;
-    final completed = items.where((i) => i.status == WorkStatus.completed).length;
-    final inProgress = items.where((i) => i.status == WorkStatus.inProgress).length;
-    final revenue = items
+    final now = DateTime.now();
+
+    // Filter items based on selected period
+    final filteredItems = items.where((item) {
+      if (_selectedPeriod == 'week') {
+        final startOfWeek = now.subtract(const Duration(days: 7));
+        return item.createdAt.isAfter(startOfWeek);
+      } else if (_selectedPeriod == 'month') {
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        return item.createdAt.isAfter(startOfMonth);
+      }
+      return true; // 'all'
+    }).toList();
+
+    final total = filteredItems.length;
+    final completed = filteredItems.where((i) => i.status == WorkStatus.completed).length;
+    final inProgress = filteredItems.where((i) => i.status == WorkStatus.inProgress).length;
+    
+    final revenue = filteredItems
         .where((i) => i.status == WorkStatus.completed)
         .fold<double>(0, (sum, i) => sum + i.services.fold<double>(0, (s, sv) => s + (sv.price ?? 0)));
-    final recentItems = items.where((i) => i.status == WorkStatus.completed).toList()
+        
+    final recentItems = filteredItems.where((i) => i.status == WorkStatus.completed).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    // Service Type Breakdown
+    int maintenanceCount = 0;
+    int batteryCount = 0;
+    int brakesTiresCount = 0;
+    int otherCount = 0;
+
+    for (var item in filteredItems) {
+      if (item.status == WorkStatus.completed) {
+        for (var service in item.services) {
+          final st = service.serviceType.toUpperCase();
+          if (st.contains('MAINTENANCE')) {
+            maintenanceCount++;
+          } else if (st.contains('BATTERY')) {
+            batteryCount++;
+          } else if (st.contains('BRAKE') || st.contains('TIRE')) {
+            brakesTiresCount++;
+          } else {
+            otherCount++;
+          }
+        }
+      }
+    }
+    final totalServices = maintenanceCount + batteryCount + brakesTiresCount + otherCount;
 
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
         children: [
+          _buildPeriodFilter(),
           _buildStatRow(total, completed, inProgress),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _buildRevenueCard(revenue),
+          const SizedBox(height: 16),
+          _buildEarningCard(revenue),
           const SizedBox(height: 20),
+          _buildWeeklyChart(),
+          const SizedBox(height: 20),
+          _buildServiceBreakdown(totalServices, maintenanceCount, batteryCount, brakesTiresCount, otherCount),
+          const SizedBox(height: 24),
           if (recentItems.isNotEmpty) ...[
             _buildSectionTitle('Phiếu hoàn thành gần đây'),
             const SizedBox(height: 10),
             ...recentItems.take(5).map(_buildRecentItem),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodFilter() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          _buildPeriodTab('week', 'Tuần này'),
+          _buildPeriodTab('month', 'Tháng này'),
+          _buildPeriodTab('all', 'Tất cả'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodTab(String period, String label) {
+    final isSelected = _selectedPeriod == period;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedPeriod = period),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF6B7280),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -539,6 +645,230 @@ class _StatsViewState extends State<_StatsView> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEarningCard(double totalRevenue) {
+    final personalShare = totalRevenue * 0.3; // 30% mock commission
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Phụ cấp đề xuất (30%)',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${personalShare.toStringAsFixed(0)}đ',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF006E2F)),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 36,
+            color: const Color(0xFFE5E7EB),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 18),
+                    SizedBox(width: 4),
+                    Text(
+                      '4.9 / 5.0',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF191C1E)),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Đánh giá chất lượng',
+                  style: TextStyle(fontSize: 10, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyChart() {
+    final List<int> dailyCounts = List.filled(7, 0);
+    final List<String> dayLabels = List.filled(7, '');
+    final now = DateTime.now();
+    
+    for (int i = 0; i < 7; i++) {
+      final day = now.subtract(Duration(days: 6 - i));
+      dayLabels[i] = '${day.day}/${day.month}';
+      dailyCounts[i] = _items!.where((item) =>
+        item.status == WorkStatus.completed &&
+        item.createdAt.year == day.year &&
+        item.createdAt.month == day.month &&
+        item.createdAt.day == day.day
+      ).length;
+    }
+
+    final maxCount = dailyCounts.reduce((a, b) => a > b ? a : b);
+    final double maxY = maxCount > 0 ? (maxCount + 1).toDouble() : 5.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Đơn hoàn thành (7 ngày qua)',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF191C1E),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 150,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxY,
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx >= 0 && idx < 7) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              dayLabels[idx],
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Color(0xFF6B7280),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: List.generate(7, (i) {
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: dailyCounts[i].toDouble(),
+                        color: const Color(0xFF006E2F),
+                        width: 14,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: maxY,
+                          color: const Color(0xFFF3F4F6),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceBreakdown(int total, int maintenance, int battery, int brakes, int other) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Phân tích dịch vụ',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF191C1E),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildProgressRow('Bảo dưỡng định kỳ', maintenance, total, const Color(0xFF006E2F)),
+          const SizedBox(height: 12),
+          _buildProgressRow('Kiểm tra pin/sạc', battery, total, const Color(0xFF0058BE)),
+          const SizedBox(height: 12),
+          _buildProgressRow('Phanh & Lốp', brakes, total, const Color(0xFFD97706)),
+          const SizedBox(height: 12),
+          _buildProgressRow('Sửa chữa khác', other, total, const Color(0xFF6B7280)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressRow(String label, int count, int total, Color color) {
+    final percentage = total > 0 ? count / total : 0.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF191C1E)),
+            ),
+            Text(
+              '$count · ${(percentage * 100).toStringAsFixed(0)}%',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: percentage,
+            minHeight: 8,
+            backgroundColor: const Color(0xFFF3F4F6),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
     );
   }
 

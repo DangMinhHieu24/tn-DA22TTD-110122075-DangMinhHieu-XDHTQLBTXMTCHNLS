@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import 'package:design_system/design_system.dart';
 import 'package:auth/presentation/bloc/auth_bloc.dart';
 import '../../dashboard/bloc/dashboard_bloc.dart';
 import '../../dashboard/bloc/dashboard_event.dart';
@@ -143,7 +145,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         },
                         child: SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.only(bottom: 96), // pb-24 (24*4=96)
+                          padding: const EdgeInsets.only(bottom: 120), // pb-30 to accommodate floating bottom nav
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 24, 16, 32), // pt-6 px-4 pb-8 (reduced from pt-20)
                             child: Column(
@@ -236,9 +238,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           ),
           const SizedBox(width: 12), // gap-3
-          Text(
-            userName,
-            style: const TextStyle(
+          const Text(
+            'Staff',
+            style: TextStyle(
               fontSize: 18, // text-lg
               fontWeight: FontWeight.w800, // font-extrabold
               color: Color(0xFF006E2F), // text-[#006E2F]
@@ -1673,67 +1675,153 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   /// fixed bottom-0 left-0 w-full z-50 h-20 px-4 pb-safe
   /// bg-[#FFFFFF]/90 backdrop-blur-lg rounded-t-2xl shadow-[0_-10px_30px_rgba(0,0,0,0.04)]
   Widget _buildBottomNavBar() {
-    return Container(
-      height: 80, // h-20
-      padding: const EdgeInsets.symmetric(horizontal: 16), // px-4
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF).withValues(alpha: 0.9), // bg-[#FFFFFF]/90
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)), // rounded-t-2xl
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 30,
-            offset: const Offset(0, -10),
-          ),
-        ],
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 8,
+        bottom: bottomInset > 0 ? bottomInset + 4 : 20,
       ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home, 'HOME', 0),
-            _buildNavItem(Icons.search, 'TRA CỨU', 1),
-            _buildNavItem(Icons.two_wheeler, 'TIẾP NHẬN XE', 2),
-            _buildNavItem(Icons.person, 'PROFILE', 3),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(
+            color: const Color(0xFF006E2F).withValues(alpha: 0.22),
+            width: 1.8,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: const Color(0xFF006E2F).withValues(alpha: 0.16),
+              blurRadius: 16,
+              offset: const Offset(0, 2),
+            ),
           ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            child: SizedBox(
+              height: 52,
+              child: Stack(
+                children: [
+                  // Premium Sliding Capsule Background
+                  AnimatedAlign(
+                    alignment: Alignment(
+                      _selectedNavIndex == 0
+                          ? -1.0
+                          : _selectedNavIndex == 1
+                              ? -0.33
+                              : _selectedNavIndex == 2
+                                  ? 0.33
+                                  : 1.0,
+                      0.0,
+                    ),
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeInOutCubic,
+                    child: FractionallySizedBox(
+                      widthFactor: 1 / 4,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF006E2F),
+                              Color(0xFF22C55E),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF006E2F).withValues(alpha: 0.45),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                            BoxShadow(
+                              color: const Color(0xFF22C55E).withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Interactive Tab items
+                  Row(
+                    children: [
+                      _buildStaffNavItem(Icons.home_outlined, Icons.home, 'HOME', 0),
+                      _buildStaffNavItem(Icons.search_outlined, Icons.search, 'TRA CỨU', 1),
+                      _buildStaffNavItem(Icons.two_wheeler_outlined, Icons.two_wheeler, 'TIẾP NHẬN', 2),
+                      _buildStaffNavItem(Icons.person_outline, Icons.person, 'PROFILE', 3),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  /// Navigation Item
-  /// flex flex-col items-center justify-center px-4 py-1 rounded-xl
-  Widget _buildNavItem(IconData icon, String label, int index) {
+  Widget _buildStaffNavItem(IconData icon, IconData activeIcon, String label, int index) {
     final isSelected = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // px-4 py-1
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF22C55E).withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12), // rounded-xl
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF3D4A3D),
-              size: 24,
-            ),
-            const SizedBox(height: 4), // mt-1
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10, // text-[10px]
-                fontWeight: FontWeight.w700, // font-bold
-                color: isSelected ? const Color(0xFF006E2F) : const Color(0xFF3D4A3D),
-                letterSpacing: 0.5, // tracking-wider
-                height: 1,
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedNavIndex = index),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Smooth elastic scale effect on select
+              AnimatedScale(
+                scale: isSelected ? 1.1 : 1.0,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutBack,
+                child: TweenAnimationBuilder<Color?>(
+                  duration: const Duration(milliseconds: 200),
+                  tween: ColorTween(
+                    end: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+                  ),
+                  builder: (context, color, child) {
+                    return Icon(
+                      isSelected ? activeIcon : icon,
+                      color: color,
+                      size: 20,
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
+                ),
+                child: Text(label),
+              ),
+            ],
+          ),
         ),
       ),
     );
