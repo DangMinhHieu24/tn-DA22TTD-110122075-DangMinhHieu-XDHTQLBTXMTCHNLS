@@ -3,10 +3,15 @@ import 'package:design_system/design_system.dart';
 
 class ChatSuggestions extends StatelessWidget {
   final ValueChanged<String> onTap;
+  final List<String>? customSuggestions;
 
-  const ChatSuggestions({super.key, required this.onTap});
+  const ChatSuggestions({
+    super.key,
+    required this.onTap,
+    this.customSuggestions,
+  });
 
-  static const suggestions = [
+  static const defaultSuggestions = [
     'Có những dịch vụ gì?',
     'Bảo dưỡng định kỳ',
     'Báo giá sửa chữa',
@@ -17,6 +22,7 @@ class ChatSuggestions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final list = customSuggestions ?? defaultSuggestions;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -48,7 +54,7 @@ class ChatSuggestions extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: suggestions.map((s) {
+            children: list.map((s) {
               return InkWell(
                 onTap: () => onTap(s),
                 borderRadius: BorderRadius.circular(20),
@@ -64,7 +70,7 @@ class ChatSuggestions extends StatelessWidget {
                   child: Text(
                     s,
                     style: AppTextStyles.labelMedium.copyWith(
-                      fontSize: 11.5,
+                       fontSize: 11.5,
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),

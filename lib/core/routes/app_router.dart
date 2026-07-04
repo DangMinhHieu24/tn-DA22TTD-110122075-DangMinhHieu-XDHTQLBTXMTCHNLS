@@ -15,6 +15,8 @@ class AppRouter {
   static const String adminVehicleIntake = '/admin/vehicle-intake';
   static const String adminRevenueReport = '/admin/revenue-report';
   static const String adminLookup = '/admin/lookup';
+  static const String adminAddVehicle = '/admin/add-vehicle';
+  static const String adminCreateCustomer = '/admin/create-customer';
   static const String technicianDashboard = '/technician/dashboard';
   static const String technicianWorkList = '/technician/work-list';
   static const String technicianLookup = '/technician/lookup';
@@ -105,6 +107,16 @@ class AppRouter {
       case adminLookup:
         return MaterialPageRoute(
           builder: (_) => const admin.AdminLookupPage(),
+        );
+
+      case adminAddVehicle:
+        return MaterialPageRoute(
+          builder: (_) => const admin.AdminAddVehiclePage(),
+        );
+
+      case adminCreateCustomer:
+        return MaterialPageRoute(
+          builder: (_) => const admin.AdminCreateCustomerPage(),
         );
 
       case customerDashboard:
@@ -203,7 +215,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       return Transform.scale(
                         scale: value,
                         child: Opacity(
-                          opacity: value,
+                          opacity: value.clamp(0.0, 1.0),
                           child: child,
                         ),
                       );

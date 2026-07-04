@@ -1,11 +1,15 @@
+import 'dart:io';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:core/core.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../domain/entities/customer_vehicle.dart';
 import '../../../domain/entities/customer_work_order.dart';
+import '../../../domain/repositories/customer_repository.dart';
 import '../bloc/customer_work_order_bloc.dart';
 import 'customer_work_order_detail_page.dart';
 import '../../warranties/pages/customer_warranty_page.dart';
@@ -25,10 +29,13 @@ class VehicleDetailPage extends StatefulWidget {
 class _VehicleDetailPageState extends State<VehicleDetailPage> {
   late final CustomerWorkOrderBloc _workOrderBloc;
   String? _selectedStatusFilter;
+  String? _currentImageUrl;
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
+    _currentImageUrl = widget.vehicle.imageUrl;
     _workOrderBloc = GetIt.instance<CustomerWorkOrderBloc>();
     _workOrderBloc.add(LoadWorkOrdersForVehicle(widget.vehicle.id));
   }
@@ -783,7 +790,7 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
   }
 
   Widget _buildHeroImage() {
-    final imageUrl = widget.vehicle.imageUrl;
+    final imageUrl = _currentImageUrl;
     final warrantyDays = widget.vehicle.warrantyDaysRemaining;
     final badgeText = warrantyDays != null
         ? 'Còn bảo hành: $warrantyDays ngày'
@@ -791,29 +798,64 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
 
     return Stack(
       children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: imageUrl == null
-              ? Container(
-                  color: AppColors.surfaceContainerHigh,
-                  child: const Icon(
-                    Icons.electric_bike,
-                    size: 64,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                )
-              : Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: AppColors.surfaceContainerHigh,
+        GestureDetector(
+          onTap: _isUploading ? null : _changeVehicleAvatar,
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageUrl == null
+                    ? Container(
+                        color: AppColors.surfaceContainerHigh,
+                        child: const Icon(
+                          Icons.electric_bike,
+                          size: 64,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      )
+                    : Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: AppColors.surfaceContainerHigh,
+                          child: const Icon(
+                            Icons.electric_bike,
+                            size: 64,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                // Edit camera icon badge
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
                     child: const Icon(
-                      Icons.electric_bike,
-                      size: 64,
-                      color: AppColors.onSurfaceVariant,
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 16,
                     ),
                   ),
                 ),
+                // Uploading loading overlay
+                if (_isUploading)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
         // Warranty badge overlay
         Positioned(
@@ -853,6 +895,111 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _changeVehicleAvatar() async {
+    final imageService = GetIt.instance<ImageUploadService>();
+    
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            const Text(
+              'Chọn ảnh đại diện cho xe',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+              title: const Text('Chụp ảnh mới', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+              title: const Text('Chọn từ thư viện', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      File? pickedFile;
+      if (source == ImageSource.camera) {
+        pickedFile = await imageService.takePhoto();
+      } else {
+        pickedFile = await imageService.pickImage();
+      }
+
+      if (pickedFile == null) {
+        setState(() {
+          _isUploading = false;
+        });
+        return;
+      }
+
+      // Upload to Supabase Storage under folder vehicles/[licensePlate]
+      final String folder = 'vehicles/${widget.vehicle.licensePlate}';
+      final String newUrl = await imageService.uploadImage(
+        imageFile: pickedFile,
+        folder: folder,
+      );
+
+      // Save to database
+      final repository = GetIt.instance<CustomerRepository>();
+      final result = await repository.updateVehicleImage(widget.vehicle.id, newUrl);
+
+      result.fold(
+        (failure) {
+          _showSnackBar('Lỗi cập nhật ảnh: ${failure.message}', isError: true);
+        },
+        (updatedVehicle) {
+          setState(() {
+            _currentImageUrl = newUrl;
+          });
+          _showSnackBar('Đã cập nhật ảnh đại diện xe thành công!');
+          // Pop back with true to signal my_vehicles_page to refresh
+          Navigator.of(context).pop(true);
+        },
+      );
+    } catch (e) {
+      _showSnackBar('Lỗi tải ảnh: $e', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        backgroundColor: isError ? AppColors.error : const Color(0xFF006E2F),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 

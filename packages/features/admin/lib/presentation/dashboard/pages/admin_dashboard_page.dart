@@ -1037,17 +1037,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             const SizedBox(width: 16), // gap-4
             _buildShortcutButton(
-              icon: Icons.verified,
-              label: 'Bảo\nhành',
-              color: const Color(0xFF4AE176),
-              onTap: () {},
+              icon: Icons.motorcycle_rounded,
+              label: 'Thêm xe\nmới',
+              color: const Color(0xFFE28B00),
+              onTap: () {
+                Navigator.of(context).pushNamed('/admin/add-vehicle');
+              },
             ),
             const SizedBox(width: 16), // gap-4
             _buildShortcutButton(
-              icon: Icons.settings,
-              label: 'Cài\nđặt',
-              color: const Color(0xFF3D4A3D),
-              onTap: () {},
+              icon: Icons.person_add_rounded,
+              label: 'Tạo tài\nkhoản',
+              color: const Color(0xFF6366F1),
+              onTap: () {
+                Navigator.of(context).pushNamed('/admin/create-customer');
+              },
             ),
           ],
         ),

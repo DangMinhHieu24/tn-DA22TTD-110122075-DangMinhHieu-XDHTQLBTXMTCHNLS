@@ -49,6 +49,7 @@ class VehicleIntakeRepository {
     String? qrCode,
     DateTime? warrantyExpiry,
     int? currentKm,
+    String? imageUrl,
   }) async {
     try {
       return await vehicleDataSource.createVehicle({
@@ -60,6 +61,7 @@ class VehicleIntakeRepository {
         if (qrCode != null) 'qrCode': qrCode,
         if (warrantyExpiry != null) 'warrantyExpiry': warrantyExpiry.toIso8601String(),
         if (currentKm != null) 'currentKm': currentKm,
+        if (imageUrl != null) 'imageUrl': imageUrl,
         'ownerId': ownerId,
       });
     } catch (e) {
@@ -70,19 +72,21 @@ class VehicleIntakeRepository {
   Future<String> createVehicleOwner({
     required String name,
     required String phoneNumber,
+    String? email,
+    String? password,
   }) async {
     try {
       final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
-      final email = 'owner.$sanitizedPhone.${DateTime.now().millisecondsSinceEpoch}@auto.local';
-      final password = 'AutoPwd${DateTime.now().millisecondsSinceEpoch % 1000000}';
+      final finalEmail = email ?? 'owner.$sanitizedPhone.${DateTime.now().millisecondsSinceEpoch}@auto.local';
+      final finalPassword = password ?? 'AutoPwd${DateTime.now().millisecondsSinceEpoch % 1000000}';
 
       final response = await dio.post(
         '/auth/register',
         data: {
           'name': name,
           'phoneNumber': phoneNumber,
-          'email': email,
-          'password': password,
+          'email': finalEmail,
+          'password': finalPassword,
         },
       );
 

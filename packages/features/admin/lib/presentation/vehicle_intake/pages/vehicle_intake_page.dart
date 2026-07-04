@@ -116,15 +116,12 @@ class _VehicleIntakeViewState extends State<_VehicleIntakeView> {
             _vehicleColorController.text = state.vehicleColor!;
           }
         } else if (state.errorMessage != null) {
-          final isKmError = state.errorMessage!.contains('KM');
-          if (!isKmError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.errorMessage!),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       },
       child: Scaffold(

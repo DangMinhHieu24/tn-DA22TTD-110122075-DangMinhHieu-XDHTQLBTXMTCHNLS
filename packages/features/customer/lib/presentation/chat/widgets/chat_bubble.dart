@@ -26,7 +26,7 @@ class ChatBubble extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Center(
           child: Text(
-            message.content,
+            _cleanContent(message.content),
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.onSurfaceVariant,
               fontStyle: FontStyle.italic,
@@ -106,6 +106,7 @@ class ChatBubble extends StatelessWidget {
                     topRight: const Radius.circular(18),
                     bottomLeft: Radius.circular(isUser ? 18 : 4),
                     bottomRight: Radius.circular(isUser ? 4 : 18),
+                    // ignore: deprecated_member_use
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -124,7 +125,7 @@ class ChatBubble extends StatelessWidget {
                       : CrossAxisAlignment.start,
                   children: [
                     Text(
-                      message.content,
+                      _cleanContent(message.content),
                       style: TextStyle(
                         fontSize: 14,
                         height: 1.45,
@@ -150,6 +151,10 @@ class ChatBubble extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _cleanContent(String content) {
+    return content.replaceAll(RegExp(r'<!--[\s\S]*?-->'), '').trim();
   }
 
   String _formatTime(DateTime dt) {

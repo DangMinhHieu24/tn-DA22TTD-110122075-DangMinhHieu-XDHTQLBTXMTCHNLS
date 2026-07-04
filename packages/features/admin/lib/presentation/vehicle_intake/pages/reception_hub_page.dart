@@ -547,9 +547,10 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
   }
 
   Widget _buildAppointmentCard(AdminAppointment appointment) {
+    final localTime = appointment.scheduledAt.toLocal();
     final isPending = appointment.isPending;
-    final timeStr = DateFormat('HH:mm').format(appointment.scheduledAt);
-    final isToday = _isSameDay(appointment.scheduledAt, DateTime.now());
+    final timeStr = DateFormat('HH:mm').format(localTime);
+    final isToday = _isSameDay(localTime, DateTime.now());
     final hasVehicle = appointment.vehicleLicensePlate != null;
 
     return GestureDetector(
@@ -628,7 +629,7 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          isToday ? timeStr : DateFormat('dd/MM').format(appointment.scheduledAt),
+                          isToday ? timeStr : DateFormat('HH:mm - dd/MM').format(localTime),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -843,7 +844,7 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
         if (vehicle != null && mounted) {
           AdminVehicleDetailSheet.show(context, vehicle, _openNewIntake);
         } else if (mounted) {
-          _showErrorSnackBar('Không tìm thấy xe có biển số $query');
+          _showNoVehicleDialog(query);
         }
       } else {
         // Search by Phone Number
@@ -888,11 +889,76 @@ class _ReceptionHubPageState extends State<ReceptionHubPage>
     );
   }
 
+  void _showNoVehicleDialog(String plate) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: Color(0xFFE28B00), size: 28),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Chưa có xe trên hệ thống',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: RichText(
+          text: TextSpan(
+            style: const TextStyle(color: Color(0xFF334155), fontSize: 14, height: 1.5),
+            children: [
+              const TextSpan(text: 'Xe có biển số '),
+              TextSpan(
+                text: plate,
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              const TextSpan(text: ' chưa được đăng ký.\n\nBạn có muốn đăng ký thông tin xe mới này không?'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(); // pop dialog
+              Navigator.of(context).pushNamed(
+                '/admin/add-vehicle',
+                arguments: {'plate': plate},
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF006E2F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Đăng ký xe',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   void _openAppointmentDetails(AdminAppointment appointment) {
-    final timeStr = DateFormat('HH:mm').format(appointment.scheduledAt);
-    final dateStr = DateFormat('EEEE, dd/MM/yyyy', 'vi').format(appointment.scheduledAt);
-    final isToday = _isSameDay(appointment.scheduledAt, DateTime.now());
+    final localTime = appointment.scheduledAt.toLocal();
+    final timeStr = DateFormat('HH:mm').format(localTime);
+    final dateStr = DateFormat('EEEE, dd/MM/yyyy', 'vi').format(localTime);
+    final isToday = _isSameDay(localTime, DateTime.now());
 
     showModalBottomSheet(
       context: context,

@@ -136,12 +136,18 @@ class _MyVehiclesPageState extends State<MyVehiclesPage> {
         final vehicle = vehicles[index];
         return CustomerVehicleCard(
           vehicle: vehicle,
-          onTap: () {
-            Navigator.of(context).push(
+          onTap: () async {
+            final result = await Navigator.of(context).push<bool>(
               MaterialPageRoute(
                 builder: (_) => VehicleDetailPage(vehicle: vehicle),
               ),
             );
+            if (result == true && mounted) {
+              final authState = context.read<AuthBloc>().state;
+              if (authState is AuthAuthenticated) {
+                _vehicleBloc.add(LoadCustomerVehicles(ownerId: authState.user.id));
+              }
+            }
           },
         );
       },

@@ -141,6 +141,14 @@ export async function processChatMessage(
     : null;
 
   if (!conv) {
+    // Reuse the most recent conversation of this customer to maintain chat history
+    conv = await prisma.chatConversation.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  if (!conv) {
     conv = await prisma.chatConversation.create({
       data: { userId },
     });
@@ -153,6 +161,30 @@ export async function processChatMessage(
       content: message,
     },
   });
+
+  // Touch conversation timestamp to keep it active
+  await prisma.chatConversation.update({
+    where: { id: conv.id },
+    data: { updatedAt: new Date() },
+  });
+
+  if (role !== 'technician') {
+    const bookingReply = await handleRuleBasedBooking(userId, message, conv.id);
+    if (bookingReply) {
+      await prisma.chatMessage.create({
+        data: {
+          conversationId: conv.id,
+          role: 'bot',
+          content: bookingReply,
+        },
+      });
+      await prisma.chatConversation.update({
+        where: { id: conv.id },
+        data: { updatedAt: new Date() },
+      });
+      return { reply: bookingReply, conversationId: conv.id };
+    }
+  }
 
   if (role === 'technician') {
     const reply = await processNvidiaChatMessage(userId, message, conv.id);
@@ -206,6 +238,11 @@ export async function processChatMessage(
       role: 'bot',
       content: reply,
     },
+  });
+
+  await prisma.chatConversation.update({
+    where: { id: conv.id },
+    data: { updatedAt: new Date() },
   });
 
   return { reply, conversationId: conv.id };
@@ -514,4 +551,286 @@ async function executeFunction(name: string, args: Record<string, any>, userId: 
     default:
       return { error: `Unknown function: ${name}` };
   }
+}
+
+export function removeAccents(str: string): string {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
+export async function handleRuleBasedBooking(
+  userId: string,
+  message: string,
+  conversationId: string,
+): Promise<string | null> {
+  const normalizedMsg = message.toLowerCase().trim();
+  const noAccentMsg = removeAccents(normalizedMsg);
+
+  // 1. Get history to check if we are in an active booking flow
+  const history = await prisma.chatMessage.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  });
+
+  console.log('--- handleRuleBasedBooking ---');
+  console.log('message:', message);
+  console.log('normalizedMsg:', normalizedMsg);
+  console.log('noAccentMsg:', noAccentMsg);
+  console.log('history count:', history.length);
+  console.log('history roles & content:', history.map(h => `${h.role}: ${h.content.substring(0, 35)}...`).join(' | '));
+
+  // Check if they want to cancel/reset booking
+  if (noAccentMsg === 'huy' || noAccentMsg === 'thoat' || noAccentMsg.includes('huy dat lich')) {
+    const isCurrentlyBooking = history.some(m => m.role === 'bot' && m.content.includes('Chọn xe cần sửa chữa') || m.content.includes('Chọn loại dịch vụ') || m.content.includes('Chọn thời gian đặt lịch'));
+    if (isCurrentlyBooking) {
+      return 'Dạ, mình đã hủy luồng đặt lịch hẹn. Tôi có thể giải đáp thông tin gì khác cho bạn không ạ?';
+    }
+  }
+
+  // 2. Determine if the user is triggering a new booking flow
+  const isTrigger = 
+    noAccentMsg.includes('dat lich') || 
+    noAccentMsg.includes('hen lich') || 
+    noAccentMsg.includes('dat hen') || 
+    noAccentMsg.includes('book lich') ||
+    noAccentMsg.includes('bao duong xe') ||
+    noAccentMsg.includes('sua xe') ||
+    noAccentMsg.includes('bao tri xe') ||
+    noAccentMsg.includes('dat cho');
+
+  // Find the last bot message
+  const lastBotMessage = history.find(m => m.role === 'bot');
+
+  // Check if we are in the middle of a booking flow
+  let isBookingFlow = false;
+  let currentStep = '';
+
+  if (lastBotMessage) {
+    const content = lastBotMessage.content;
+    if (content.includes('Chọn xe cần sửa chữa')) {
+      isBookingFlow = true;
+      currentStep = 'SELECT_VEHICLE';
+    } else if (content.includes('Chọn loại dịch vụ')) {
+      isBookingFlow = true;
+      currentStep = 'SELECT_SERVICE';
+    } else if (content.includes('Chọn thời gian đặt lịch')) {
+      isBookingFlow = true;
+      currentStep = 'SELECT_DATETIME';
+    }
+  }
+
+  // If not in a booking flow and not a trigger, let Gemini handle it
+  if (!isBookingFlow && !isTrigger) {
+    return null;
+  }
+
+  // If it's a trigger, start the flow (Step 1)
+  if (isTrigger && !isBookingFlow) {
+    const vehicles = await prisma.vehicle.findMany({
+      where: { ownerId: userId },
+    });
+
+    if (vehicles.length === 0) {
+      return 'Bạn chưa có xe máy điện nào đăng ký trên hệ thống. Vui lòng đăng ký xe mới trong ứng dụng hoặc mang xe đến trực tiếp cửa hàng để được hỗ trợ đăng ký nhé.';
+    }
+
+    let reply = 'Chào bạn! Mình sẽ hỗ trợ bạn đặt lịch hẹn dịch vụ tại Xanh EV nhé. ✨\n\n👉 **Chọn xe cần sửa chữa**\n';
+    reply += 'Vui lòng chọn chiếc xe máy điện cần bảo dưỡng hoặc sửa chữa dưới đây:\n';
+    
+    const optionsStr = vehicles.map(v => `${v.brand || 'Xe'} ${v.model} (${v.color || ''}) - Biển số: ${v.licensePlate}`).join(' | ');
+    reply += `<!-- Options: ${optionsStr} -->`;
+    return reply;
+  }
+
+  // Process next step in the flow
+  if (isBookingFlow) {
+    const vehicles = await prisma.vehicle.findMany({
+      where: { ownerId: userId },
+    });
+
+    if (currentStep === 'SELECT_VEHICLE') {
+      let selectedVehicle = null;
+
+      const parsedIdx = parseInt(noAccentMsg);
+      if (!isNaN(parsedIdx) && parsedIdx >= 1 && parsedIdx <= vehicles.length) {
+        selectedVehicle = vehicles[parsedIdx - 1];
+      } else {
+        selectedVehicle = vehicles.find(v => 
+          noAccentMsg.replace(/[^a-z0-9]/g, '').includes(v.licensePlate.toLowerCase().replace(/[^a-z0-9]/g, '')) ||
+          v.licensePlate.toLowerCase().replace(/[^a-z0-9]/g, '').includes(noAccentMsg.replace(/[^a-z0-9]/g, ''))
+        );
+      }
+
+      if (!selectedVehicle) {
+        let reply = 'Dạ, lựa chọn không khớp với danh sách xe. Vui lòng chọn xe của bạn dưới đây nha:\n';
+        const optionsStr = vehicles.map(v => `${v.brand || 'Xe'} ${v.model} - ${v.licensePlate}`).join(' | ');
+        reply += `<!-- Options: ${optionsStr} -->`;
+        return reply;
+      }
+
+      let reply = `Dạ, mình đã ghi nhận xe cần đặt lịch: **${selectedVehicle.brand || ''} ${selectedVehicle.model} - Biển số [${selectedVehicle.licensePlate}]** <!-- ID: ${selectedVehicle.id} -->.\n\n`;
+      reply += '👉 **Chọn loại dịch vụ**\n';
+      reply += 'Bạn muốn thực hiện dịch vụ nào cho chiếc xe này ạ? Vui lòng chọn các gợi ý bên dưới:\n';
+      
+      const optionsStr = 'Bảo dưỡng định kỳ | Sửa chữa chung | Kiểm tra pin & sạc | Dịch vụ sửa chữa khác';
+      reply += `<!-- Options: ${optionsStr} -->`;
+      return reply;
+    }
+
+    if (currentStep === 'SELECT_SERVICE') {
+      const idMatch = lastBotMessage!.content.match(/ID:\s*([a-f0-9\-]+)/i);
+      if (!idMatch) {
+        return 'Có lỗi xảy ra trong quá trình xử lý lịch hẹn. Vui lòng gõ "đặt lịch" để bắt đầu lại.';
+      }
+      const vehicleId = idMatch[1];
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (!vehicle) {
+        return 'Không tìm thấy thông tin xe đã chọn. Vui lòng gõ "đặt lịch" để bắt đầu lại.';
+      }
+
+      let serviceType = '';
+      if (noAccentMsg === '1' || noAccentMsg.includes('bao duong')) {
+        serviceType = 'Bảo dưỡng định kỳ';
+      } else if (noAccentMsg === '2' || noAccentMsg.includes('sua chua') || noAccentMsg.includes('sua xe')) {
+        serviceType = 'Sửa chữa chung';
+      } else if (noAccentMsg === '3' || noAccentMsg.includes('pin') || noAccentMsg.includes('sac')) {
+        serviceType = 'Kiểm tra pin & sạc';
+      } else if (noAccentMsg === '4' || noAccentMsg.includes('khac')) {
+        serviceType = 'Khác';
+      }
+
+      if (!serviceType) {
+        let reply = 'Lựa chọn dịch vụ chưa đúng. Vui lòng chọn loại dịch vụ bạn mong muốn:\n';
+        const optionsStr = 'Bảo dưỡng định kỳ | Sửa chữa chung | Kiểm tra pin & sạc | Dịch vụ sửa chữa khác';
+        reply += `<!-- Options: ${optionsStr} -->`;
+        return reply;
+      }
+
+      let reply = `Đã ghi nhận dịch vụ: **${serviceType}** cho xe **${vehicle.brand || ''} ${vehicle.model}** <!-- ID: ${vehicle.id} --> <!-- Service: ${serviceType} -->.\n\n`;
+      reply += '👉 **Chọn thời gian đặt lịch**\n';
+      reply += 'Bạn vui lòng chọn nhanh khung giờ hoặc nhập thời gian mong muốn mang xe đến (Ví dụ: "mai lúc 14:00"):\n';
+      
+      const optionsStr = 'Hôm nay lúc 15:00 | Mai lúc 09:00 | Mai lúc 14:30 | Chọn ngày & giờ khác... | Hủy đặt lịch';
+      reply += `<!-- Options: ${optionsStr} -->`;
+      return reply;
+    }
+
+    if (currentStep === 'SELECT_DATETIME') {
+      const idMatch = lastBotMessage!.content.match(/ID:\s*([a-f0-9\-]+)/i);
+      const serviceMatch = lastBotMessage!.content.match(/Service:\s*(.*?)\s*-->/i);
+
+      if (!idMatch || !serviceMatch) {
+        return 'Có lỗi xảy ra trong quá trình xử lý lịch hẹn. Vui lòng gõ "đặt lịch" để bắt đầu lại.';
+      }
+
+      const vehicleId = idMatch[1];
+      const serviceType = serviceMatch[1].trim();
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+
+      if (!vehicle) {
+        return 'Không tìm thấy thông tin xe đã chọn. Vui lòng gõ "đặt lịch" để bắt đầu lại.';
+      }
+
+      const parsedDate = parseDateTime(normalizedMsg);
+
+      if (!parsedDate) {
+        let reply = 'Dạ, mình chưa nhận diện được thời gian bạn nhập. Vui lòng chọn hoặc nhập lại theo mẫu (Ví dụ: "mai lúc 9h30"):\n';
+        const optionsStr = 'Hôm nay lúc 15:00 | Mai lúc 09:00 | Mai lúc 14:30 | Chọn ngày & giờ khác... | Hủy đặt lịch';
+        reply += `<!-- Options: ${optionsStr} -->`;
+        return reply;
+      }
+
+      const hours = parsedDate.getHours();
+      if (hours < 7 || hours >= 19) {
+        let reply = `Khung giờ ${hours.toString().padStart(2, '0')}:${parsedDate.getMinutes().toString().padStart(2, '0')} nằm ngoài giờ mở cửa của cửa hàng (7:00 - 19:00).\nVui lòng chọn hoặc nhập lại khung giờ khác:\n`;
+        const optionsStr = 'Hôm nay lúc 15:00 | Mai lúc 09:00 | Mai lúc 14:30 | Chọn ngày & giờ khác... | Hủy đặt lịch';
+        reply += `<!-- Options: ${optionsStr} -->`;
+        return reply;
+      }
+
+      const scheduledAt = parsedDate;
+      await prisma.appointment.create({
+        data: {
+          customerId: userId,
+          vehicleId: vehicleId,
+          scheduledAt,
+          serviceType: serviceType,
+          status: 'PENDING',
+          notes: 'Đặt lịch tự động qua Chatbot',
+        },
+      });
+
+      const day = scheduledAt.getDate().toString().padStart(2, '0');
+      const month = (scheduledAt.getMonth() + 1).toString().padStart(2, '0');
+      const timeStr = `${scheduledAt.getHours().toString().padStart(2, '0')}:${scheduledAt.getMinutes().toString().padStart(2, '0')}`;
+      
+      let reply = '🎉 **Đặt lịch hẹn thành công rồi ạ!** 🎉\n\n';
+      reply += `• **Xe sửa chữa:** ${vehicle.brand || ''} ${vehicle.model} - **${vehicle.licensePlate}**\n`;
+      reply += `• **Dịch vụ đăng ký:** ${serviceType}\n`;
+      reply += `• **Thời gian hẹn:** ${timeStr} ngày ${day}/${month}/${scheduledAt.getFullYear()}\n`;
+      reply += '• **Trạng thái:** Chờ xác nhận ⏳\n\n';
+      reply += 'Cửa hàng Xanh EV đã ghi nhận lịch hẹn của bạn và rất hân hạnh được đón tiếp bạn!';
+      return reply;
+    }
+  }
+
+  return null;
+}
+
+function parseDateTime(input: string): Date | null {
+  const now = new Date();
+  const str = input.toLowerCase().trim();
+  const noAccentStr = removeAccents(str);
+
+  let baseDate = new Date();
+  
+  if (noAccentStr.includes('mai')) {
+    baseDate.setDate(now.getDate() + 1);
+  } else if (noAccentStr.includes('mot') || noAccentStr.includes('ngay kia')) {
+    baseDate.setDate(now.getDate() + 2);
+  } else if (noAccentStr.includes('hom nay')) {
+    baseDate.setDate(now.getDate());
+  }
+
+  const timeRegex = /(\d{1,2})[h:](\d{2})/;
+  const timeMatch = noAccentStr.match(timeRegex);
+  let hours = -1;
+  let minutes = -1;
+  if (timeMatch) {
+    hours = parseInt(timeMatch[1]);
+    minutes = parseInt(timeMatch[2]);
+  } else {
+    const hourRegex = /(\d{1,2})\s*(?:gio|h)/;
+    const hourMatch = noAccentStr.match(hourRegex);
+    if (hourMatch) {
+      hours = parseInt(hourMatch[1]);
+      minutes = 0;
+    }
+  }
+
+  if (hours === -1) return null;
+
+  const dateRegex = /(\d{1,2})[\/\-](\d{1,2})/;
+  const dateMatch = noAccentStr.match(dateRegex);
+
+  if (dateMatch) {
+    const day = parseInt(dateMatch[1]);
+    const month = parseInt(dateMatch[2]) - 1;
+    const year = now.getFullYear();
+    const parsedDate = new Date(year, month, day, hours, minutes);
+    
+    if (parsedDate.getTime() < now.getTime() - 24 * 3600 * 1000) {
+      parsedDate.setFullYear(year + 1);
+    }
+    return parsedDate;
+  } else if (noAccentStr.includes('mai') || noAccentStr.includes('mot') || noAccentStr.includes('ngay kia') || noAccentStr.includes('hom nay')) {
+    const parsedDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hours, minutes);
+    return parsedDate;
+  }
+
+  return null;
 }

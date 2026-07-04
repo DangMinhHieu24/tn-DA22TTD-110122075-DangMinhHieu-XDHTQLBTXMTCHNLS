@@ -616,7 +616,19 @@ class _ChatPanelState extends State<_ChatPanel> {
             );
           }
 
-          final showSuggestions = aiMessages.length <= 2;
+          final lastMessage = aiMessages.isNotEmpty ? aiMessages.last : null;
+          final lastIsBot = lastMessage != null &&
+              lastMessage.role != MessageRole.user &&
+              lastMessage.role != MessageRole.customer;
+          
+          List<String>? dynamicSuggestions;
+          if (lastIsBot) {
+            dynamicSuggestions = _getDynamicSuggestions(lastMessage.content);
+          }
+
+          final hasDynamic = dynamicSuggestions != null && dynamicSuggestions.isNotEmpty;
+          final showSuggestions = aiMessages.length <= 2 || hasDynamic;
+
           return ListView.builder(
             controller: widget.scrollController,
             padding: const EdgeInsets.symmetric(
@@ -627,7 +639,8 @@ class _ChatPanelState extends State<_ChatPanel> {
             itemBuilder: (_, i) {
               if (i == aiMessages.length) {
                 return ChatSuggestions(
-                  onTap: (text) => _chatBloc.add(ChatSendMessage(text)),
+                  customSuggestions: dynamicSuggestions,
+                  onTap: _onSuggestionTap,
                 );
               }
               return ChatBubble(message: aiMessages[i]);
@@ -637,6 +650,94 @@ class _ChatPanelState extends State<_ChatPanel> {
         return const SizedBox.shrink();
       },
     );
+  }
+
+  void _onSuggestionTap(String text) {
+    if (text.contains('Chọn ngày & giờ khác') || text == 'Chọn ngày & giờ khác...') {
+      _selectCustomDateTime();
+      return;
+    }
+    String replyText = text;
+    final match = RegExp(r'^\d+\.\s*(.*)').firstMatch(text);
+    if (match != null) {
+      replyText = match.group(1)!;
+    }
+    _chatBloc.add(ChatSendMessage(replyText));
+  }
+
+  Future<void> _selectCustomDateTime() async {
+    final now = DateTime.now();
+    
+    // 1. Show Date Picker
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.onSurface,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (pickedDate == null) return;
+    if (!mounted) return;
+
+    // 2. Show Time Picker
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.onSurface,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null) return;
+
+    // 3. Format and send
+    final day = pickedDate.day.toString().padLeft(2, '0');
+    final month = pickedDate.month.toString().padLeft(2, '0');
+    final hour = pickedTime.hour.toString().padLeft(2, '0');
+    final minute = pickedTime.minute.toString().padLeft(2, '0');
+    
+    final formattedText = '$day/$month $hour:$minute';
+    _chatBloc.add(ChatSendMessage(formattedText));
+  }
+
+  List<String>? _getDynamicSuggestions(String content) {
+    final list = <String>[];
+    
+    // Extract pipe-separated options from HTML comments
+    final match = RegExp(r'<!--\s*Options:\s*(.*?)\s*-->', caseSensitive: false).firstMatch(content);
+    if (match != null) {
+      final optionsStr = match.group(1)!;
+      final parts = optionsStr.split('|');
+      for (var part in parts) {
+        final trimmed = part.trim();
+        if (trimmed.isNotEmpty) {
+          list.add(trimmed);
+        }
+      }
+    }
+    
+    return list.isEmpty ? null : list;
   }
 
   Widget _buildTechnicianView() {

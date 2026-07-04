@@ -75,4 +75,6 @@ export 'presentation/vehicle_intake/bloc/admin_appointment_bloc.dart';
 export 'presentation/vehicle_intake/bloc/admin_appointment_event.dart';
 export 'presentation/vehicle_intake/bloc/admin_appointment_state.dart';
 export 'presentation/vehicle_intake/pages/vehicle_intake_page.dart';
+export 'presentation/vehicle_intake/pages/admin_add_vehicle_page.dart';
+export 'presentation/vehicle_intake/pages/admin_create_customer_page.dart';
 export 'presentation/vehicle_intake/widgets/service_checkbox.dart';

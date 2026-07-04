@@ -128,4 +128,14 @@ class CustomerRepositoryImpl implements CustomerRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, CustomerVehicle>> updateVehicleImage(String vehicleId, String imageUrl) async {
+    try {
+      final updatedVehicle = await vehicleRemoteDataSource.updateVehicleImage(vehicleId, imageUrl);
+      return Right(updatedVehicle);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

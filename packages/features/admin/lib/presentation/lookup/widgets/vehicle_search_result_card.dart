@@ -96,13 +96,30 @@ class VehicleSearchResultCard extends StatelessWidget {
                             ),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Icon(
-                            Icons.two_wheeler_rounded,
-                            color: isWarranty
-                                ? const Color(0xFF006E2F)
-                                : const Color(0xFF616161),
-                            size: 28,
-                          ),
+                          child: vehicle.imageUrl != null && vehicle.imageUrl!.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Image.network(
+                                    vehicle.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(
+                                        Icons.two_wheeler_rounded,
+                                        color: isWarranty
+                                            ? const Color(0xFF006E2F)
+                                            : const Color(0xFF616161),
+                                        size: 28,
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.two_wheeler_rounded,
+                                  color: isWarranty
+                                      ? const Color(0xFF006E2F)
+                                      : const Color(0xFF616161),
+                                  size: 28,
+                                ),
                         ),
                         const SizedBox(width: 14),
                         // Vehicle info

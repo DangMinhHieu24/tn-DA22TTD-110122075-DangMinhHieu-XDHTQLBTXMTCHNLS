@@ -17,12 +17,13 @@ class AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final day = DateFormat('d').format(appointment.scheduledAt);
+    final localTime = appointment.scheduledAt.toLocal();
+    final day = DateFormat('d').format(localTime);
     final monthNames = [
       '', 'Th 1', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6',
       'Th 7', 'Th 8', 'Th 9', 'Th 10', 'Th 11', 'Th 12'
     ];
-    final monthLabel = monthNames[appointment.scheduledAt.month];
+    final monthLabel = monthNames[localTime.month];
     final isCancelled = appointment.status == 'CANCELLED';
     final isPending = appointment.status == 'PENDING';
     final isConfirmed = appointment.status == 'CONFIRMED';
@@ -201,7 +202,7 @@ class AppointmentCard extends StatelessWidget {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
-                              DateFormat('HH:mm').format(appointment.scheduledAt),
+                              DateFormat('HH:mm').format(localTime),
                               style: TextStyle(
                                 fontFamily: 'Manrope',
                                 fontSize: showTimeline ? 36 : 28,
@@ -214,7 +215,7 @@ class AppointmentCard extends StatelessWidget {
                             if (!showTimeline) ...[
                               const SizedBox(width: 10),
                               Text(
-                                DateFormat('dd/MM/yyyy').format(appointment.scheduledAt),
+                                DateFormat('dd/MM/yyyy').format(localTime),
                                 style: const TextStyle(
                                   fontFamily: 'Manrope',
                                   fontSize: 16,

@@ -77,4 +77,5 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
   assets:
+    - assets/app_icon.png
     - assets/fonts/Roboto-Variable.ttf

@@ -299,7 +299,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
 
     try {
       // Validate KM input first
-      final submittedKm = int.tryParse(state.km.trim());
+      final submittedKm = int.tryParse(state.km.trim().replaceAll(',', '').replaceAll('.', ''));
       if (submittedKm == null) {
         throw Exception('Vui lòng nhập số KM hợp lệ');
       }
@@ -390,7 +390,7 @@ class VehicleIntakeBloc extends Bloc<VehicleIntakeEvent, VehicleIntakeState> {
         throw Exception('Vui lòng chọn ít nhất một dịch vụ');
       }
 
-      final estimatedHours = double.tryParse(state.estimatedHours);
+      final estimatedHours = double.tryParse(state.estimatedHours.replaceAll(',', '.'));
       if (estimatedHours == null || estimatedHours <= 0) {
         throw Exception('Thời gian hoàn thành phải lớn hơn 0 giờ');
       }
