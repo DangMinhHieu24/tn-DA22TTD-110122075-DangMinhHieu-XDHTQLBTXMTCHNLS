@@ -44,7 +44,7 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _buildProfileCard(context, userName, userEmail, userInitial),
                   const SizedBox(height: 16),
-                  _buildStatsRow(),
+                  _buildStatsRow(context),
                   const SizedBox(height: 20),
                   _buildSettingsSection(context),
                   const SizedBox(height: 32),
@@ -159,7 +159,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const TechStatsPage()),
