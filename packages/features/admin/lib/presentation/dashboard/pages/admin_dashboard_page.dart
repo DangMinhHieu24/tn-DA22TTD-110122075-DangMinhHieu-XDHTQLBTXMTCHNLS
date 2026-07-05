@@ -1010,7 +1010,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     },
                     transitionDuration: const Duration(milliseconds: 350),
                   ),
-                );
+                ).then((_) {
+                  if (mounted) {
+                    context.read<DashboardBloc>().add(RefreshDashboardStats());
+                  }
+                });
               },
             ),
             const SizedBox(width: 16), // gap-4

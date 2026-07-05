@@ -115,6 +115,13 @@ class _CustomerWorkOrderDetailPageState
     _refreshMaintenanceLogs();
   }
 
+  Future<void> _onRefresh() async {
+    await Future.wait([
+      _refreshWorkOrder(),
+      _refreshMaintenanceLogs(),
+    ]);
+  }
+
   Future<void> _refreshMaintenanceLogs() async {
     if (!mounted) return;
     setState(() {
@@ -206,9 +213,11 @@ class _CustomerWorkOrderDetailPageState
           children: [
             _buildTopAppBar(context),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                child: Column(
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Order Info Card ──────────────────────────────────
@@ -259,6 +268,7 @@ class _CustomerWorkOrderDetailPageState
                     const SizedBox(height: 32),
                   ],
                 ),
+              ),
               ),
             ),
           ],
@@ -724,30 +734,75 @@ class _CustomerWorkOrderDetailPageState
     );
   }
 
+  void _updateLocalServiceStatus(String serviceId, String status) {
+    setState(() {
+      final idx = _currentWorkOrder.services.indexWhere((s) => s.id == serviceId);
+      if (idx == -1) return;
+      final old = _currentWorkOrder.services[idx];
+      final updated = CustomerWorkOrderService(
+        id: old.id,
+        serviceType: old.serviceType,
+        serviceName: old.serviceName,
+        description: old.description,
+        price: old.price,
+        isDone: old.isDone,
+        approvalStatus: status,
+      );
+      final newServices = List<CustomerWorkOrderService>.from(_currentWorkOrder.services)
+        ..[idx] = updated;
+      _currentWorkOrder = CustomerWorkOrder(
+        id: _currentWorkOrder.id,
+        orderNumber: _currentWorkOrder.orderNumber,
+        status: _currentWorkOrder.status,
+        notes: _currentWorkOrder.notes,
+        scheduledTime: _currentWorkOrder.scheduledTime,
+        createdAt: _currentWorkOrder.createdAt,
+        completedAt: _currentWorkOrder.completedAt,
+        paidAt: _currentWorkOrder.paidAt,
+        paymentMethod: _currentWorkOrder.paymentMethod,
+        estimatedHours: _currentWorkOrder.estimatedHours,
+        technicianName: _currentWorkOrder.technicianName,
+        technicianPhone: _currentWorkOrder.technicianPhone,
+        services: newServices,
+        partsUsed: _currentWorkOrder.partsUsed,
+        photos: _currentWorkOrder.photos,
+        totalCost: _currentWorkOrder.totalCost,
+      );
+    });
+  }
+
   Future<void> _approveService(CustomerWorkOrderService service) async {
+    _updateLocalServiceStatus(service.id, 'APPROVED');
     final result = await _customerRepository.approveService(
       _currentWorkOrder.id,
       service.id,
     );
     if (!mounted) return;
     result.fold(
-      (_) => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Phê duyệt thất bại')),
-      ),
+      (_) {
+        _updateLocalServiceStatus(service.id, service.approvalStatus);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Phê duyệt thất bại')),
+        );
+      },
       (_) => _refreshWorkOrder(),
     );
   }
 
   Future<void> _rejectService(CustomerWorkOrderService service) async {
+    _updateLocalServiceStatus(service.id, 'REJECTED');
     final result = await _customerRepository.rejectService(
       _currentWorkOrder.id,
       service.id,
     );
     if (!mounted) return;
     result.fold(
-      (_) => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Từ chối thất bại')),
-      ),
+      (_) {
+        _updateLocalServiceStatus(service.id, service.approvalStatus);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Từ chối thất bại')),
+        );
+      },
       (_) => _refreshWorkOrder(),
     );
   }

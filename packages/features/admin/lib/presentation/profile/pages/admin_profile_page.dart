@@ -19,6 +19,7 @@ import '../../lookup/bloc/lookup_bloc.dart';
 import '../../lookup/bloc/lookup_event.dart';
 import 'change_password_page.dart';
 import 'notification_list_page.dart';
+import 'data_export_page.dart';
 
 class AdminProfilePage extends StatelessWidget {
   const AdminProfilePage({super.key});
@@ -181,14 +182,25 @@ class AdminProfilePage extends StatelessWidget {
                               },
                             ),
                             SettingsItem(
-                              icon: Icons.help_outline_rounded,
+                              icon: Icons.file_download_outlined,
+                              label: 'Truy xuất dữ liệu',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const DataExportPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            SettingsItem(
+                              icon: Icons.menu_book_rounded,
                               label: 'Hướng dẫn sử dụng',
-                              onTap: () => _showFeatureUnderDevelopment(context),
+                              onTap: () => _showUsageGuide(context),
                             ),
                             SettingsItem(
                               icon: Icons.shield_outlined,
                               label: 'Chính sách bảo mật',
-                              onTap: () => _showFeatureUnderDevelopment(context),
+                              onTap: () => _showPrivacyPolicy(context),
                             ),
                           ],
                         ),
@@ -284,21 +296,136 @@ class AdminProfilePage extends StatelessWidget {
     );
   }
 
-  void _showFeatureUnderDevelopment(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
+  void _showUsageGuide(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Row(
           children: [
-            Icon(Icons.info_outline, color: Colors.white),
+            Icon(Icons.menu_book_rounded, color: AppColors.primary),
             SizedBox(width: 8),
-            Text('Tính năng đang được phát triển!'),
+            Text('Hướng dẫn sử dụng', style: TextStyle(fontWeight: FontWeight.w800)),
           ],
         ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              _guideItem(Icons.analytics_outlined, 'Báo cáo doanh thu',
+                  'Xem biểu đồ doanh thu theo tuần/tháng/năm. Lọc theo ngày, '
+                  'xem top dịch vụ và hiệu suất kỹ thuật viên. Nhấn nút tải '
+                  'xuất CSV hoặc PDF để lưu báo cáo.'),
+              _guideItem(Icons.inventory_2_outlined, 'Quản lý tồn kho',
+                  'Theo dõi số lượng phụ tùng, cảnh báo sắp hết hàng. '
+                  'Nhập kho mới, cập nhật giá và số lượng tồn.'),
+              _guideItem(Icons.people_outline_rounded, 'Kỹ thuật viên',
+                  'Tra cứu danh sách nhân viên xưởng. Xem lịch sử công việc, '
+                  'đơn hàng đã xử lý và xếp hạng hiệu suất.'),
+              _guideItem(Icons.calendar_today_outlined, 'Lịch hẹn hôm nay',
+                  'Danh sách khách hẹn trong ngày. Tiếp nhận, sắp xếp kỹ thuật '
+                  'viên và theo dõi tiến trình sửa chữa.'),
+              _guideItem(Icons.lock_outline_rounded, 'Đổi mật khẩu',
+                  'Cập nhật mật khẩu tài khoản quản trị. Yêu cầu mật khẩu cũ '
+                  'và xác nhận mật khẩu mới.'),
+              _guideItem(Icons.notifications_none_rounded, 'Thông báo hệ thống',
+                  'Xem danh sách thông báo từ hệ thống và khách hàng. '
+                  'Đánh dấu đã đọc hoặc xoá thông báo.'),
+            ],
+          ),
         ),
-        duration: const Duration(seconds: 2),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Đã hiểu',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacyPolicy(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.shield_outlined, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Chính sách bảo mật', style: TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: const Text(
+          'Thông tin tài khoản và dữ liệu khách hàng được bảo vệ theo tiêu chuẩn '
+          'bảo mật của Xanh EV. Chúng tôi cam kết không chia sẻ dữ liệu với bên '
+          'thứ ba khi chưa có sự đồng ý.',
+          style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Đã hiểu',
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _guideItem(IconData icon, String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: AppColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

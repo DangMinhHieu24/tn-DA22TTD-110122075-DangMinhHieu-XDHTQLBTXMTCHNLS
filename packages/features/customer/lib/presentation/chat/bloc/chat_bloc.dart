@@ -61,11 +61,11 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     final result = await _repository.getHistory();
     await result.fold(
-      (failure) async {},
+      (failure) async {
+        emit(ChatLoaded(messages: []));
+      },
       (messages) async {
-        if (messages.isNotEmpty) {
-          emit(ChatLoaded(messages: messages));
-        }
+        emit(ChatLoaded(messages: messages));
       },
     );
   }

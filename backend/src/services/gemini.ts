@@ -1,140 +1,61 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { prisma } from '../prisma';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Fuzzy string matching: checks if `target` appears in `text`
+// allowing up to `maxDist` character edits (Levenshtein distance).
+function fuzzyIncludes(text: string, target: string, maxDist = 2): boolean {
+  if (text.includes(target)) return true;
+  // Sliding window: check substrings of similar length
+  const len = target.length;
+  for (let i = 0; i <= text.length - len + maxDist; i++) {
+    const window = text.substring(Math.max(0, i - maxDist), i + len + maxDist);
+    if (levenshtein(window, target) <= maxDist) return true;
+  }
+  return false;
+}
 
-const customerModel = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
-  systemInstruction: `Bạn là trợ lý ảo của Xanh EV - trung tâm dịch vụ xe điện.
-Bạn có thể trả lời câu hỏi về dịch vụ, báo giá, bảo dưỡng, chính sách.
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 99;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0) as number[]);
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
 
-Thông tin cửa hàng:
-- Tên: Xanh EV Repair - Chi nhánh Trà Vinh
-- Địa chỉ: 123 Nguyễn Thị Minh Khai, P.7, TP. Trà Vinh
-- Số điện thoại: 0976 985 305
-- Giờ mở cửa: 7:00 - 19:00 tất cả các ngày trong tuần
+async function handleLoyaltyQuery(userId: string, message: string): Promise<string | null> {
+  const normalizedMsg = removeAccents(message.toLowerCase().trim());
 
-Khi khách hàng muốn đặt lịch hoặc hỏi thông tin các xe của chính họ, hãy dùng công cụ để:
-1. Lấy danh sách xe của chính khách hàng đang trò chuyện (không cần biển số)
-2. Tra cứu xe khác (cần biển số)
-3. Xem dịch vụ có sẵn
-4. Xem khung giờ trống
-5. Đặt lịch hẹn
+  const keywords = [
+    'diem thuong', 'diem', 'cay xanh', 'trong cay',
+    'tich diem', 'loyalty', 'phan thuong', 'uu dai',
+    'diem tich luy', 'so diem', 'so cay',
+  ];
 
-Luôn trả lời bằng tiếng Việt, thân thiện, lịch sự.`,
-  tools: [
-    {
-      functionDeclarations: [
-        {
-          name: 'getMyVehicles',
-          description: 'Lấy danh sách các xe của chính người dùng (khách hàng) đang trò chuyện',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {},
-            required: [],
-          },
-        },
-        {
-          name: 'lookupVehicle',
-          description: 'Tra cứu thông tin xe theo biển số',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {
-              licensePlate: { type: SchemaType.STRING, description: 'Biển số xe (VD: 59A-12345)' },
-            },
-            required: ['licensePlate'],
-          },
-        },
-        {
-          name: 'getServiceTypes',
-          description: 'Lấy danh sách dịch vụ có sẵn',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {},
-            required: [],
-          },
-        },
-        {
-          name: 'getAvailableSlots',
-          description: 'Xem khung giờ trống trong ngày',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {
-              date: { type: SchemaType.STRING, description: 'Ngày cần xem (YYYY-MM-DD)' },
-            },
-            required: ['date'],
-          },
-        },
-        {
-          name: 'createAppointment',
-          description: 'Đặt lịch hẹn sửa chữa',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {
-              vehicleId: { type: SchemaType.STRING, description: 'ID xe' },
-              serviceType: { type: SchemaType.STRING, description: 'Loại dịch vụ' },
-              date: { type: SchemaType.STRING, description: 'Ngày hẹn (YYYY-MM-DD)' },
-              time: { type: SchemaType.STRING, description: 'Giờ hẹn (HH:mm)' },
-              notes: { type: SchemaType.STRING, description: 'Ghi chú thêm' },
-            },
-            required: ['vehicleId', 'serviceType', 'date', 'time'],
-          },
-        },
-      ],
-    },
-  ],
-});
+  const isMatch = keywords.some((kw) => normalizedMsg.includes(kw));
+  if (!isMatch) return null;
 
-const technicianModel = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
-  systemInstruction: `Bạn là trợ lý kỹ thuật viên (KTV) của Xanh EV.
-Bạn giúp KTV tra cứu thông tin xe, phụ tùng, và phiếu sửa chữa.
-Bạn có các công cụ:
-1. Tra cứu xe theo biển số
-2. Kiểm tra tồn kho phụ tùng
-3. Tra cứu phiếu sửa chữa
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { loyaltyPoints: true, treesPlanted: true, name: true },
+  });
 
-Luôn trả lời bằng tiếng Việt, ngắn gọn, chính xác.`,
-  tools: [
-    {
-      functionDeclarations: [
-        {
-          name: 'lookupVehicle',
-          description: 'Tra cứu thông tin xe theo biển số',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {
-              licensePlate: { type: SchemaType.STRING, description: 'Biển số xe (VD: 59A-12345)' },
-            },
-            required: ['licensePlate'],
-          },
-        },
-        {
-          name: 'checkInventory',
-          description: 'Kiểm tra tồn kho phụ tùng theo tên',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {
-              query: { type: SchemaType.STRING, description: 'Tên phụ tùng cần tìm' },
-            },
-            required: ['query'],
-          },
-        },
-        {
-          name: 'searchWorkOrders',
-          description: 'Tra cứu phiếu sửa chữa theo biển số hoặc tên khách hàng',
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: {
-              query: { type: SchemaType.STRING, description: 'Biển số hoặc tên khách hàng' },
-            },
-            required: ['query'],
-          },
-        },
-      ],
-    },
-  ],
-});
+  if (!user) {
+    return 'Không tìm thấy thông tin tài khoản. Vui lòng thử lại.';
+  }
+
+  return 'Thông tin tài khoản của bạn:\n\n'
+    + `🌳 **Cây xanh đã trồng:** ${user.treesPlanted} cây\n`
+    + `⭐ **Điểm thưởng:** ${user.loyaltyPoints} điểm\n\n`
+    + 'Cứ mỗi 500.000đ giá trị đơn sửa chữa, Xanh EV sẽ trồng thêm 1 cây xanh thay bạn trên khắp Việt Nam. 🌱\n'
+    + 'Điểm thưởng có thể dùng để giảm giá cho lần sửa chữa tiếp theo.';
+}
 
 export async function processChatMessage(
   userId: string,
@@ -175,6 +96,23 @@ export async function processChatMessage(
   });
 
   if (role !== 'technician') {
+    // Rule-based: loyalty & green tree queries
+    const loyaltyReply = await handleLoyaltyQuery(userId, message);
+    if (loyaltyReply) {
+      await prisma.chatMessage.create({
+        data: {
+          conversationId: conv.id,
+          role: 'bot',
+          content: loyaltyReply,
+        },
+      });
+      await prisma.chatConversation.update({
+        where: { id: conv.id },
+        data: { updatedAt: new Date() },
+      });
+      return { reply: loyaltyReply, conversationId: conv.id };
+    }
+
     const bookingReply = await handleRuleBasedBooking(userId, message, conv.id);
     if (bookingReply) {
       await prisma.chatMessage.create({
@@ -197,60 +135,142 @@ export async function processChatMessage(
     return { reply, conversationId: conv.id };
   }
 
-  const history = await prisma.chatMessage.findMany({
-    where: { conversationId: conv.id },
-    orderBy: { createdAt: 'asc' },
-    take: 20,
-  });
+  // Customer: use NVIDIA API with customer-specific prompt & tools
+  const customerSystemPrompt = `Bạn là trợ lý ảo của Xanh EV - trung tâm dịch vụ xe điện.
+Bạn có thể trả lời câu hỏi về dịch vụ, báo giá, bảo dưỡng, chính sách.
 
-  const activeModel = role === 'technician' ? technicianModel : customerModel;
+Thông tin cửa hàng:
+- Tên: Xanh EV Repair - Chi nhánh Trà Vinh
+- Địa chỉ: 123 Nguyễn Thị Minh Khai, P.7, TP. Trà Vinh
+- Số điện thoại: 0976 985 305
+- Giờ mở cửa: 7:00 - 19:00 tất cả các ngày trong tuần
 
-  const chat = activeModel.startChat({
-    history: history.slice(0, -1).map((m) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    })),
-  });
+CHƯƠNG TRÌNH TÍCH ĐIỂM & CÂY XANH:
+- Mỗi đơn sửa chữa: +1 cây xanh. Cứ 500.000đ: thêm 1 cây.
+- Điểm thưởng: 20.000đ = 1 điểm. 50 điểm = 50.000đ giảm giá.
+- Gọi getLoyaltyInfo để tra cứu.
 
-  let result = await chat.sendMessage(message);
-  let reply = '';
-  let loopCount = 0;
+═══════════════════════════════════════════
+QUY TRÌNH ĐẶT LỊCH (BẮT BUỘC THỰC HIỆN THEO THỨ TỰ)
+═══════════════════════════════════════════
 
-  while (loopCount < 5) {
-    const fns = result.response.functionCalls();
+Khi khách hàng muốn ĐẶT LỊCH / ĐẶT HẸN / BẢO DƯỠNG / SỬA XE (dù viết sai chính tả cũng phải nhận diện), BẠN PHẢI:
 
-    if (fns && fns.length > 0) {
-      const fn = fns[0];
-      const fnResult = await executeFunction(fn.name, fn.args as Record<string, any>, userId);
+BƯỚC 1 - Lấy danh sách xe:
+→ Gọi getMyVehicles() ngay lập tức.
+→ Trả lời: "Danh sách xe của bạn:" + liệt kê các xe (biển số, hãng, model).
+→ Hỏi: "Vui lòng chọn xe cần sửa chữa (gõ số thứ tự hoặc biển số)."
 
-      result = await chat.sendMessage([
-        {
-          functionResponse: {
-            name: fn.name,
-            response: fnResult,
-          },
+BƯỚC 2 - Chọn dịch vụ:
+→ Khi khách chọn xe, gọi getServiceTypes() để lấy danh sách dịch vụ.
+→ Trả lời: "Các dịch vụ có sẵn:" + liệt kê kèm giá.
+→ Hỏi: "Vui lòng chọn dịch vụ (gõ số hoặc tên dịch vụ)."
+
+BƯỚC 3 - Chọn thời gian:
+→ Khi khách chọn dịch vụ, hỏi ngày mong muốn.
+→ Gọi getAvailableSlots(date: "YYYY-MM-DD") để xem khung giờ trống.
+→ Trả lời: "Khung giờ trống ngày YYYY-MM-DD:" + liệt kê.
+→ Hỏi: "Vui lòng chọn khung giờ."
+
+BƯỚC 4 - Xác nhận & tạo lịch:
+→ Khi khách chọn giờ, TẤT CẢ THÔNG TIN ĐÃ ĐỦ.
+→ Gọi createAppointment(vehicleId: "...", serviceType: "...", date: "YYYY-MM-DD", time: "HH:mm").
+→ Trả lời xác nhận: "Đặt lịch thành công! Chi tiết: [Xe] - [Dịch vụ] - [Ngày giờ]"
+
+LƯU Ý QUAN TRỌNG:
+- KHÔNG được tự trả lời thông tin chung chung khi khách muốn đặt lịch.
+- KHÔNG được hỏi "bạn muốn biết thêm gì" khi chưa hoàn tất đặt lịch.
+- Nếu khách viết sai chính tả (vd: "dat lidsh", "bao duong dinh ky", "sua chua") → vẫn PHẢI nhận diện là ĐẶT LỊCH và gọi getMyVehicles().
+- Sau khi hoàn tất đặt lịch, mới hỏi "Bạn cần hỗ trợ gì thêm không?".
+
+Luôn trả lời bằng tiếng Việt, thân thiện, lịch sự.`;
+
+  const customerTools = [
+    {
+      type: 'function',
+      function: {
+        name: 'getMyVehicles',
+        description: 'Lấy danh sách xe của khách hàng đang trò chuyện. Gọi NGAY KHI khách muốn đặt lịch.',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
         },
-      ]);
-      loopCount++;
-    } else {
-      reply = result.response.text();
-      break;
-    }
-  }
-
-  await prisma.chatMessage.create({
-    data: {
-      conversationId: conv.id,
-      role: 'bot',
-      content: reply,
+      },
     },
-  });
+    {
+      type: 'function',
+      function: {
+        name: 'getServiceTypes',
+        description: 'Lấy danh sách dịch vụ có sẵn kèm giá. Gọi SAU KHI khách đã chọn xe.',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'getAvailableSlots',
+        description: 'Xem khung giờ trống trong ngày. Gọi SAU KHI khách chọn dịch vụ và ngày.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: { type: 'string', description: 'Ngày cần xem (YYYY-MM-DD)' },
+          },
+          required: ['date'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'createAppointment',
+        description: 'Tạo lịch hẹn. Gọi KHI ĐỦ thông tin: xe, dịch vụ, ngày, giờ.',
+        parameters: {
+          type: 'object',
+          properties: {
+            vehicleId: { type: 'string', description: 'ID xe (lấy từ kết quả getMyVehicles)' },
+            serviceType: { type: 'string', description: 'Tên dịch vụ (lấy từ kết quả getServiceTypes)' },
+            date: { type: 'string', description: 'Ngày hẹn (YYYY-MM-DD)' },
+            time: { type: 'string', description: 'Giờ hẹn (HH:mm)' },
+            notes: { type: 'string', description: 'Ghi chú thêm (không bắt buộc)' },
+          },
+          required: ['vehicleId', 'serviceType', 'date', 'time'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'getLoyaltyInfo',
+        description: 'Tra cứu điểm thưởng và số cây xanh của khách hàng. Gọi KHI khách hỏi về điểm thưởng, cây xanh, ưu đãi.',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'lookupVehicle',
+        description: 'Tra cứu thông tin xe theo biển số. Gọi KHI khách muốn tra cứu xe không phải của họ.',
+        parameters: {
+          type: 'object',
+          properties: {
+            licensePlate: { type: 'string', description: 'Biển số xe (VD: 59A-12345)' },
+          },
+          required: ['licensePlate'],
+        },
+      },
+    },
+  ];
 
-  await prisma.chatConversation.update({
-    where: { id: conv.id },
-    data: { updatedAt: new Date() },
-  });
-
+  const reply = await processNvidiaChatMessage(userId, message, conv.id, customerSystemPrompt, customerTools);
   return { reply, conversationId: conv.id };
 }
 
@@ -258,6 +278,8 @@ async function processNvidiaChatMessage(
   userId: string,
   message: string,
   conversationId: string,
+  systemPrompt?: string,
+  customTools?: any[],
 ): Promise<string> {
   const history = await prisma.chatMessage.findMany({
     where: { conversationId },
@@ -270,10 +292,8 @@ async function processNvidiaChatMessage(
     content: m.content,
   }));
 
-  // Add system instruction for Nvidia Llama assistant
-  messages.unshift({
-    role: 'system',
-    content: `Bạn là trợ lý kỹ thuật viên (KTV) của Xanh EV.
+  // Add system instruction
+  const effectivePrompt = systemPrompt || `Bạn là trợ lý kỹ thuật viên (KTV) của Xanh EV.
 Bạn giúp KTV tra cứu thông tin xe, phụ tùng, và phiếu sửa chữa.
 
 Thông tin cửa hàng:
@@ -287,10 +307,14 @@ Bạn BẮT BUỘC phải sử dụng các công cụ (tools) được cung cấ
 2. Kiểm tra tồn kho phụ tùng theo tên (checkInventory)
 3. Tra cứu phiếu sửa chữa (searchWorkOrders)
 
-Chỉ trả lời dựa trên kết quả trả về của công cụ. Không được tự bịa ra dữ liệu hoặc mô tả cấu trúc dữ liệu JSON. Luôn trả lời bằng tiếng Việt, ngắn gọn, chính xác.`,
+Chỉ trả lời dựa trên kết quả trả về của công cụ. Không được tự bịa ra dữ liệu hoặc mô tả cấu trúc dữ liệu JSON. Luôn trả lời bằng tiếng Việt, ngắn gọn, chính xác.`;
+
+  messages.unshift({
+    role: 'system',
+    content: effectivePrompt,
   });
 
-  const tools = [
+  const effectiveTools = customTools || [
     {
       type: 'function',
       function: {
@@ -352,7 +376,7 @@ Chỉ trả lời dựa trên kết quả trả về của công cụ. Không đ
       body: JSON.stringify({
         model,
         messages,
-        tools,
+        tools: effectiveTools,
         tool_choice: 'auto',
         temperature: 0.2,
         max_tokens: 1024,
@@ -561,6 +585,23 @@ async function executeFunction(name: string, args: Record<string, any>, userId: 
       };
     }
 
+    case 'getLoyaltyInfo': {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { loyaltyPoints: true, treesPlanted: true, name: true },
+      });
+      if (!user) {
+        return { found: false, message: 'Không tìm thấy thông tin người dùng.' };
+      }
+      return {
+        found: true,
+        name: user.name,
+        points: user.loyaltyPoints,
+        trees: user.treesPlanted,
+        message: `Bạn ${user.name} đang có ${user.loyaltyPoints} điểm thưởng và đã trồng được ${user.treesPlanted} cây xanh thông qua các đơn sửa chữa tại Xanh EV. 🌱`,
+      };
+    }
+
     default:
       return { error: `Unknown function: ${name}` };
   }
@@ -605,15 +646,15 @@ export async function handleRuleBasedBooking(
   }
 
   // 2. Determine if the user is triggering a new booking flow
-  const isTrigger = 
-    noAccentMsg.includes('dat lich') || 
-    noAccentMsg.includes('hen lich') || 
-    noAccentMsg.includes('dat hen') || 
-    noAccentMsg.includes('book lich') ||
-    noAccentMsg.includes('bao duong xe') ||
-    noAccentMsg.includes('sua xe') ||
-    noAccentMsg.includes('bao tri xe') ||
-    noAccentMsg.includes('dat cho');
+  // Fuzzy match: cho phép sai 2-3 ký tự cho các keyword quan trọng
+  const hasBookingIntent = fuzzyIncludes(noAccentMsg, 'dat lich', 3)
+    || fuzzyIncludes(noAccentMsg, 'hen lich', 3)
+    || fuzzyIncludes(noAccentMsg, 'dat hen', 3)
+    || fuzzyIncludes(noAccentMsg, 'book lich', 3)
+    || noAccentMsg.includes('bao duong xe')
+    || noAccentMsg.includes('sua xe')
+    || noAccentMsg.includes('bao tri xe')
+    || fuzzyIncludes(noAccentMsg, 'dat cho', 3);
 
   // Find the last bot message
   const lastBotMessage = history.find(m => m.role === 'bot');
@@ -637,12 +678,12 @@ export async function handleRuleBasedBooking(
   }
 
   // If not in a booking flow and not a trigger, let Gemini handle it
-  if (!isBookingFlow && !isTrigger) {
-    return null;
-  }
+  if (!isBookingFlow && !hasBookingIntent) {
+  return null;
+}
 
   // If it's a trigger, start the flow (Step 1)
-  if (isTrigger && !isBookingFlow) {
+  if (hasBookingIntent && !isBookingFlow) {
     const vehicles = await prisma.vehicle.findMany({
       where: { ownerId: userId },
     });

@@ -42,8 +42,6 @@ class SettingsPage extends StatelessWidget {
               child: Column(
                 children: [
                   _buildProfileCard(context, userName, userEmail, userInitial),
-                  const SizedBox(height: 16),
-                  _buildStatsRow(),
                   const SizedBox(height: 20),
                   _buildSettingsSection(context),
                   const SizedBox(height: 32),
@@ -151,56 +149,6 @@ class SettingsPage extends StatelessWidget {
                 color: Color(0xFF006E2F),
                 fontWeight: FontWeight.w700,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(child: _buildStatItem('48 đơn', 'Đã sửa xong', Icons.check_circle_outline_rounded)),
-        const SizedBox(width: 16),
-        Expanded(child: _buildStatItem('98%', 'Hiệu suất', Icons.bolt_rounded)),
-      ],
-    );
-  }
-
-  Widget _buildStatItem(String value, String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: const Color(0xFF006E2F), size: 22),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF191C1E),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Color(0xFF6B7280),
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],

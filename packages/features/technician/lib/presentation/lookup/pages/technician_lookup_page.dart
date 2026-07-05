@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import '../../../domain/entities/tech_lookup_category.dart';
-import '../widgets/technician_radial_menu.dart';
 import '../bloc/vehicle_detail_bloc.dart';
 import '../bloc/vehicle_list_bloc.dart';
 import '../bloc/parts_lookup_bloc.dart';
@@ -79,11 +78,36 @@ class TechnicianLookupPage extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: TechnicianRadialMenu(
-          categories: _categories,
-          onCategorySelected: (category) {
-            _handleCategorySelected(context, category);
-          },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 24),
+              ...List.generate((_categories.length + 1) ~/ 2, (rowIndex) {
+                final start = rowIndex * 2;
+                return Padding(
+                  padding: EdgeInsets.only(top: rowIndex > 0 ? 24 : 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _CategoryItem(
+                        category: _categories[start],
+                        onTap: () => _handleCategorySelected(context, _categories[start]),
+                      ),
+                      if (start + 1 < _categories.length)
+                        const SizedBox(width: 48),
+                      if (start + 1 < _categories.length)
+                        _CategoryItem(
+                          category: _categories[start + 1],
+                          onTap: () => _handleCategorySelected(context, _categories[start + 1]),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
@@ -129,5 +153,65 @@ class TechnicianLookupPage extends StatelessWidget {
           ),
         );
     }
+  }
+}
+
+class _CategoryItem extends StatelessWidget {
+  final TechLookupCategory category;
+  final VoidCallback onTap;
+
+  const _CategoryItem({required this.category, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(category.bgColor, category.color, 0.3)!,
+                  category.bgColor,
+                ],
+              ),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: category.color.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: category.color.withValues(alpha: 0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(category.icon, color: category.color, size: 28),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: 90,
+            child: Text(
+              category.label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF3D4A3D),
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

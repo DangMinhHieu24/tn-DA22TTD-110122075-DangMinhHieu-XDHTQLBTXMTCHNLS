@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
+import * as ExcelJS from 'exceljs';
 
 /**
  * Get warranties for a specific vehicle
@@ -530,6 +531,579 @@ export const deleteWarranty = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete warranty',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Export warranty data by year (For authorities)
+ * GET /api/warranties/export/:year
+ * Access: ADMIN and STAFF only
+ */
+export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
+  try {
+    const { year } = req.params;
+    const authUser = (req as any).user;
+
+    // Permission check
+    if (authUser?.role !== 'ADMIN' && authUser?.role !== 'STAFF') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only administrators and staff can export data',
+      });
+    }
+
+    const targetYear = parseInt(year);
+    if (isNaN(targetYear) || targetYear < 2000 || targetYear > 2100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid year format',
+      });
+    }
+
+    // Date range for the year
+    const startDate = new Date(`${targetYear}-01-01T00:00:00.000Z`);
+    const endDate = new Date(`${targetYear}-12-31T23:59:59.999Z`);
+
+    // 1. Get all warranties activated in this year
+    const warranties = await prisma.warranty.findMany({
+      where: {
+        startDate: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        vehicle: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                address: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        startDate: 'asc',
+      },
+    });
+
+    // 2. Get all part warranties from work orders in this year
+    const workOrders = await prisma.workOrder.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        vehicle: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                address: true,
+              },
+            },
+          },
+        },
+        partWarranties: {
+          include: {
+            part: {
+              select: {
+                partName: true,
+                price: true,
+              },
+            },
+          },
+        },
+        parts: {
+          include: {
+            part: {
+              select: {
+                partName: true,
+                price: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // 3. Create Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Xanh EV System';
+    workbook.created = new Date();
+
+    // Sheet 1: Warranty Summary
+    const summarySheet = workbook.addWorksheet('Tổng quan');
+    summarySheet.columns = [
+      { header: 'Mã bảo hành', key: 'warrantyId', width: 20 },
+      { header: 'Loại bảo hành', key: 'warrantyType', width: 25 },
+      { header: 'Biển số xe', key: 'licensePlate', width: 15 },
+      { header: 'Mã VIN', key: 'vin', width: 20 },
+      { header: 'Hãng xe', key: 'brand', width: 15 },
+      { header: 'Model', key: 'model', width: 15 },
+      { header: 'Tên khách hàng', key: 'customerName', width: 25 },
+      { header: 'Số điện thoại', key: 'phoneNumber', width: 15 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Địa chỉ', key: 'address', width: 35 },
+      { header: 'Ngày bắt đầu', key: 'startDate', width: 15 },
+      { header: 'Ngày hết hạn', key: 'expiryDate', width: 15 },
+      { header: 'Đơn vị cấp', key: 'issuedBy', width: 20 },
+      { header: 'Điều khoản', key: 'terms', width: 40 },
+    ];
+
+    // Style header
+    summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    summarySheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF006E2F' },
+    };
+    summarySheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data
+    warranties.forEach((warranty) => {
+      summarySheet.addRow({
+        warrantyId: warranty.id,
+        warrantyType: warranty.warrantyType,
+        licensePlate: warranty.vehicle.licensePlate,
+        vin: warranty.vehicle.vin || 'N/A',
+        brand: warranty.vehicle.brand || 'N/A',
+        model: warranty.vehicle.model || 'N/A',
+        customerName: warranty.vehicle.owner?.name || 'N/A',
+        phoneNumber: warranty.vehicle.owner?.phoneNumber || 'N/A',
+        email: warranty.vehicle.owner?.email || 'N/A',
+        address: warranty.vehicle.owner?.address || 'N/A',
+        startDate: warranty.startDate.toISOString().split('T')[0],
+        expiryDate: warranty.expiryDate.toISOString().split('T')[0],
+        issuedBy: warranty.issuedBy || 'Xanh EV',
+        terms: warranty.terms || '',
+      });
+    });
+
+    // Sheet 2: Work Orders & Maintenance History
+    const workOrderSheet = workbook.addWorksheet('Lịch sử bảo dưỡng');
+    workOrderSheet.columns = [
+      { header: 'Mã đơn hàng', key: 'workOrderId', width: 20 },
+      { header: 'Biển số xe', key: 'licensePlate', width: 15 },
+      { header: 'Tên khách hàng', key: 'customerName', width: 25 },
+      { header: 'Số điện thoại', key: 'phoneNumber', width: 15 },
+      { header: 'Ngày tiếp nhận', key: 'createdAt', width: 15 },
+      { header: 'Ngày hoàn thành', key: 'completedAt', width: 15 },
+      { header: 'Trạng thái', key: 'status', width: 15 },
+      { header: 'Tổng chi phí', key: 'totalCost', width: 15 },
+      { header: 'Mô tả công việc', key: 'description', width: 40 },
+    ];
+
+    // Style header
+    workOrderSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    workOrderSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF3B82F6' },
+    };
+    workOrderSheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data
+    workOrders.forEach((wo) => {
+      const statusMap: Record<string, string> = {
+        PENDING: 'Chờ xử lý',
+        IN_PROGRESS: 'Đang xử lý',
+        COMPLETED: 'Hoàn thành',
+        CANCELLED: 'Đã hủy',
+      };
+
+      workOrderSheet.addRow({
+        workOrderId: wo.id,
+        licensePlate: wo.vehicle.licensePlate,
+        customerName: wo.vehicle.owner?.name || 'N/A',
+        phoneNumber: wo.vehicle.owner?.phoneNumber || 'N/A',
+        createdAt: wo.createdAt.toISOString().split('T')[0],
+        completedAt: wo.completedAt ? wo.completedAt.toISOString().split('T')[0] : 'N/A',
+        status: statusMap[wo.status] || wo.status,
+        totalCost: wo.totalCost || 0,
+        description: wo.description || '',
+      });
+    });
+
+    // Sheet 3: Part Warranties
+    const partWarrantySheet = workbook.addWorksheet('Bảo hành phụ tùng');
+    partWarrantySheet.columns = [
+      { header: 'Mã bảo hành', key: 'warrantyId', width: 20 },
+      { header: 'Mã đơn hàng', key: 'workOrderId', width: 20 },
+      { header: 'Tên phụ tùng', key: 'partName', width: 30 },
+      { header: 'Giá', key: 'price', width: 15 },
+      { header: 'Biển số xe', key: 'licensePlate', width: 15 },
+      { header: 'Tên khách hàng', key: 'customerName', width: 25 },
+      { header: 'Số điện thoại', key: 'phoneNumber', width: 15 },
+      { header: 'Thời hạn BH (ngày)', key: 'warrantyDays', width: 15 },
+      { header: 'Ngày bắt đầu', key: 'startDate', width: 15 },
+      { header: 'Ngày hết hạn', key: 'expiryDate', width: 15 },
+    ];
+
+    // Style header
+    partWarrantySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    partWarrantySheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD97706' },
+    };
+    partWarrantySheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data
+    workOrders.forEach((wo) => {
+      wo.partWarranties.forEach((pw) => {
+        partWarrantySheet.addRow({
+          warrantyId: pw.id,
+          workOrderId: wo.id,
+          partName: pw.part.partName,
+          price: pw.part.price,
+          licensePlate: wo.vehicle.licensePlate,
+          customerName: wo.vehicle.owner?.name || 'N/A',
+          phoneNumber: wo.vehicle.owner?.phoneNumber || 'N/A',
+          warrantyDays: pw.warrantyDays,
+          startDate: pw.startDate.toISOString().split('T')[0],
+          expiryDate: pw.expiryDate.toISOString().split('T')[0],
+        });
+      });
+    });
+
+    // Sheet 4: Statistics
+    const statsSheet = workbook.addWorksheet('Thống kê');
+    statsSheet.mergeCells('A1:B1');
+    statsSheet.getCell('A1').value = `BÁO CÁO THỐNG KÊ NĂM ${targetYear}`;
+    statsSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FF006E2F' } };
+    statsSheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+    statsSheet.addRow([]);
+    statsSheet.addRow(['Chỉ số', 'Giá trị']);
+    statsSheet.getRow(3).font = { bold: true };
+
+    const totalPartWarranties = workOrders.reduce((sum, wo) => sum + wo.partWarranties.length, 0);
+    const totalRevenue = workOrders.reduce((sum, wo) => sum + (wo.totalCost || 0), 0);
+    const completedWorkOrders = workOrders.filter(wo => wo.status === 'COMPLETED').length;
+
+    statsSheet.addRow(['Tổng số bảo hành tổng thể', warranties.length]);
+    statsSheet.addRow(['Tổng số đơn hàng', workOrders.length]);
+    statsSheet.addRow(['Đơn hàng hoàn thành', completedWorkOrders]);
+    statsSheet.addRow(['Tổng số bảo hành phụ tùng', totalPartWarranties]);
+    statsSheet.addRow(['Tổng doanh thu (VNĐ)', totalRevenue]);
+
+    statsSheet.getColumn(1).width = 30;
+    statsSheet.getColumn(2).width = 20;
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Set response headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=warranty-data-${targetYear}.xlsx`
+    );
+
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('Export error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export warranty data',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Export all warranty data (All years)
+ * GET /api/warranties/export/all
+ * Access: ADMIN and STAFF only
+ */
+export const exportAllWarrantyData = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any).user;
+
+    // Permission check
+    if (authUser?.role !== 'ADMIN' && authUser?.role !== 'STAFF') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only administrators and staff can export data',
+      });
+    }
+
+    // 1. Get all warranties
+    const warranties = await prisma.warranty.findMany({
+      include: {
+        vehicle: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                address: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        startDate: 'desc',
+      },
+    });
+
+    // 2. Get all work orders
+    const workOrders = await prisma.workOrder.findMany({
+      include: {
+        vehicle: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                address: true,
+              },
+            },
+          },
+        },
+        partWarranties: {
+          include: {
+            part: {
+              select: {
+                partName: true,
+                price: true,
+              },
+            },
+          },
+        },
+        parts: {
+          include: {
+            part: {
+              select: {
+                partName: true,
+                price: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // 3. Create Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Xanh EV System';
+    workbook.created = new Date();
+
+    // Sheet 1: Warranty Summary
+    const summarySheet = workbook.addWorksheet('Tổng quan');
+    summarySheet.columns = [
+      { header: 'Mã bảo hành', key: 'warrantyId', width: 20 },
+      { header: 'Loại bảo hành', key: 'warrantyType', width: 25 },
+      { header: 'Biển số xe', key: 'licensePlate', width: 15 },
+      { header: 'Mã VIN', key: 'vin', width: 20 },
+      { header: 'Hãng xe', key: 'brand', width: 15 },
+      { header: 'Model', key: 'model', width: 15 },
+      { header: 'Tên khách hàng', key: 'customerName', width: 25 },
+      { header: 'Số điện thoại', key: 'phoneNumber', width: 15 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Địa chỉ', key: 'address', width: 35 },
+      { header: 'Ngày bắt đầu', key: 'startDate', width: 15 },
+      { header: 'Ngày hết hạn', key: 'expiryDate', width: 15 },
+      { header: 'Đơn vị cấp', key: 'issuedBy', width: 20 },
+      { header: 'Điều khoản', key: 'terms', width: 40 },
+    ];
+
+    // Style header
+    summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    summarySheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF006E2F' },
+    };
+    summarySheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data
+    warranties.forEach((warranty) => {
+      summarySheet.addRow({
+        warrantyId: warranty.id,
+        warrantyType: warranty.warrantyType,
+        licensePlate: warranty.vehicle.licensePlate,
+        vin: warranty.vehicle.vin || 'N/A',
+        brand: warranty.vehicle.brand || 'N/A',
+        model: warranty.vehicle.model || 'N/A',
+        customerName: warranty.vehicle.owner?.name || 'N/A',
+        phoneNumber: warranty.vehicle.owner?.phoneNumber || 'N/A',
+        email: warranty.vehicle.owner?.email || 'N/A',
+        address: warranty.vehicle.owner?.address || 'N/A',
+        startDate: warranty.startDate.toISOString().split('T')[0],
+        expiryDate: warranty.expiryDate.toISOString().split('T')[0],
+        issuedBy: warranty.issuedBy || 'Xanh EV',
+        terms: warranty.terms || '',
+      });
+    });
+
+    // Sheet 2: Work Orders & Maintenance History
+    const workOrderSheet = workbook.addWorksheet('Lịch sử bảo dưỡng');
+    workOrderSheet.columns = [
+      { header: 'Mã đơn hàng', key: 'workOrderId', width: 20 },
+      { header: 'Biển số xe', key: 'licensePlate', width: 15 },
+      { header: 'Tên khách hàng', key: 'customerName', width: 25 },
+      { header: 'Số điện thoại', key: 'phoneNumber', width: 15 },
+      { header: 'Ngày tiếp nhận', key: 'createdAt', width: 15 },
+      { header: 'Ngày hoàn thành', key: 'completedAt', width: 15 },
+      { header: 'Trạng thái', key: 'status', width: 15 },
+      { header: 'Tổng chi phí', key: 'totalCost', width: 15 },
+      { header: 'Mô tả công việc', key: 'description', width: 40 },
+    ];
+
+    // Style header
+    workOrderSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    workOrderSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF3B82F6' },
+    };
+    workOrderSheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data
+    workOrders.forEach((wo) => {
+      const statusMap: Record<string, string> = {
+        PENDING: 'Chờ xử lý',
+        IN_PROGRESS: 'Đang xử lý',
+        COMPLETED: 'Hoàn thành',
+        CANCELLED: 'Đã hủy',
+      };
+
+      workOrderSheet.addRow({
+        workOrderId: wo.id,
+        licensePlate: wo.vehicle.licensePlate,
+        customerName: wo.vehicle.owner?.name || 'N/A',
+        phoneNumber: wo.vehicle.owner?.phoneNumber || 'N/A',
+        createdAt: wo.createdAt.toISOString().split('T')[0],
+        completedAt: wo.completedAt ? wo.completedAt.toISOString().split('T')[0] : 'N/A',
+        status: statusMap[wo.status] || wo.status,
+        totalCost: wo.totalCost || 0,
+        description: wo.description || '',
+      });
+    });
+
+    // Sheet 3: Part Warranties
+    const partWarrantySheet = workbook.addWorksheet('Bảo hành phụ tùng');
+    partWarrantySheet.columns = [
+      { header: 'Mã bảo hành', key: 'warrantyId', width: 20 },
+      { header: 'Mã đơn hàng', key: 'workOrderId', width: 20 },
+      { header: 'Tên phụ tùng', key: 'partName', width: 30 },
+      { header: 'Giá', key: 'price', width: 15 },
+      { header: 'Biển số xe', key: 'licensePlate', width: 15 },
+      { header: 'Tên khách hàng', key: 'customerName', width: 25 },
+      { header: 'Số điện thoại', key: 'phoneNumber', width: 15 },
+      { header: 'Thời hạn BH (ngày)', key: 'warrantyDays', width: 15 },
+      { header: 'Ngày bắt đầu', key: 'startDate', width: 15 },
+      { header: 'Ngày hết hạn', key: 'expiryDate', width: 15 },
+    ];
+
+    // Style header
+    partWarrantySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    partWarrantySheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD97706' },
+    };
+    partWarrantySheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data
+    workOrders.forEach((wo) => {
+      wo.partWarranties.forEach((pw) => {
+        partWarrantySheet.addRow({
+          warrantyId: pw.id,
+          workOrderId: wo.id,
+          partName: pw.part.partName,
+          price: pw.part.price,
+          licensePlate: wo.vehicle.licensePlate,
+          customerName: wo.vehicle.owner?.name || 'N/A',
+          phoneNumber: wo.vehicle.owner?.phoneNumber || 'N/A',
+          warrantyDays: pw.warrantyDays,
+          startDate: pw.startDate.toISOString().split('T')[0],
+          expiryDate: pw.expiryDate.toISOString().split('T')[0],
+        });
+      });
+    });
+
+    // Sheet 4: Statistics
+    const statsSheet = workbook.addWorksheet('Thống kê');
+    statsSheet.mergeCells('A1:B1');
+    statsSheet.getCell('A1').value = 'BÁO CÁO THỐNG KÊ TỔNG HỢP';
+    statsSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FF006E2F' } };
+    statsSheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+    statsSheet.addRow([]);
+    statsSheet.addRow(['Chỉ số', 'Giá trị']);
+    statsSheet.getRow(3).font = { bold: true };
+
+    const totalPartWarranties = workOrders.reduce((sum, wo) => sum + wo.partWarranties.length, 0);
+    const totalRevenue = workOrders.reduce((sum, wo) => sum + (wo.totalCost || 0), 0);
+    const completedWorkOrders = workOrders.filter(wo => wo.status === 'COMPLETED').length;
+
+    statsSheet.addRow(['Tổng số bảo hành tổng thể', warranties.length]);
+    statsSheet.addRow(['Tổng số đơn hàng', workOrders.length]);
+    statsSheet.addRow(['Đơn hàng hoàn thành', completedWorkOrders]);
+    statsSheet.addRow(['Tổng số bảo hành phụ tùng', totalPartWarranties]);
+    statsSheet.addRow(['Tổng doanh thu (VNĐ)', totalRevenue]);
+
+    // Get year range
+    const years = new Set<number>();
+    warranties.forEach(w => years.add(new Date(w.startDate).getFullYear()));
+    workOrders.forEach(wo => years.add(new Date(wo.createdAt).getFullYear()));
+    const yearRange = years.size > 0 
+      ? `${Math.min(...years)} - ${Math.max(...years)}`
+      : 'N/A';
+    
+    statsSheet.addRow(['Khoảng thời gian', yearRange]);
+
+    statsSheet.getColumn(1).width = 30;
+    statsSheet.getColumn(2).width = 20;
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Set response headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=warranty-data-all-years.xlsx'
+    );
+
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('Export error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export warranty data',
       error: error.message,
     });
   }

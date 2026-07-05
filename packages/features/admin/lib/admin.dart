@@ -68,6 +68,7 @@ export 'presentation/profile/bloc/notification_bloc.dart';
 export 'presentation/profile/bloc/notification_event.dart';
 export 'presentation/profile/bloc/notification_state.dart';
 export 'presentation/profile/pages/notification_list_page.dart';
+export 'presentation/profile/pages/data_export_page.dart';
 
 // Presentation - Vehicle Intake
 export 'presentation/vehicle_intake/bloc/vehicle_intake_bloc.dart';

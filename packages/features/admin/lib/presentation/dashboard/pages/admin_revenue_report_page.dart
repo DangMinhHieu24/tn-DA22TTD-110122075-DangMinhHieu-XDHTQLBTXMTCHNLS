@@ -2,16 +2,19 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:get_it/get_it.dart';
+import 'package:printing/printing.dart';
 import '../../../domain/entities/revenue_report.dart';
 import '../../../domain/usecases/get_revenue_report.dart';
 import '../bloc/revenue_report_bloc.dart';
 import '../bloc/revenue_report_event.dart';
 import '../bloc/revenue_report_state.dart';
+import '../utils/pdf_revenue_report_generator.dart';
 
 enum _ReportRange {
   sevenDays,
@@ -366,16 +369,12 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
           ),
           IconButton(
             onPressed: () {
-              final report = _latestReport;
-              if (report == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Chưa có dữ liệu để xuất.')),
-                );
-                return;
+              final state = context.read<RevenueReportBloc>().state;
+              if (state is RevenueReportLoaded) {
+                _showExportDialog(context, state.report);
               }
-              _exportReportFile(context, report);
             },
-            icon: const Icon(Icons.file_download_outlined, color: Color(0xFF006E2F)),
+            icon: const Icon(Icons.download_rounded, color: Color(0xFF006E2F)),
           ),
         ],
       ),
@@ -1761,9 +1760,9 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () => _exportReportFile(context, report),
-        icon: const Icon(Icons.description_outlined, size: 18),
-        label: const Text('Xuất báo cáo CSV'),
+        onPressed: () => _showExportDialog(context, report),
+        icon: const Icon(Icons.download_rounded, size: 18),
+        label: const Text('Xuất báo cáo'),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF006E2F),
           foregroundColor: Colors.white,
@@ -2124,46 +2123,280 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     );
   }
 
+  void _showExportDialog(BuildContext context, RevenueReport report) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9D9D9),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Xuất báo cáo',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF191C1E)),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Chọn định dạng xuất báo cáo doanh thu',
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 24),
+              _exportOption(
+                icon: Icons.picture_as_pdf_rounded,
+                title: 'Xem trước & In PDF',
+                subtitle: 'Mở bản xem trước PDF, có thể in hoặc chia sẻ',
+                color: const Color(0xFFE53935),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _previewPdf30Days();
+                },
+              ),
+              const SizedBox(height: 12),
+              _exportOption(
+                icon: Icons.share_rounded,
+                title: 'Chia sẻ PDF',
+                subtitle: 'Gửi file PDF qua các ứng dụng khác',
+                color: const Color(0xFF006E2F),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _sharePdf30Days();
+                },
+              ),
+              const SizedBox(height: 12),
+              _exportOption(
+                icon: Icons.description_outlined,
+                title: 'Xuất CSV',
+                subtitle: 'Xuất dữ liệu thô dạng bảng tính (Excel)',
+                color: const Color(0xFF0058BE),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _exportReportFile(context, report);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _exportOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF191C1E))),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(fontSize: 11.5, color: Color(0xFF6B7280))),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: color, size: 22),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<RevenueReport?> _fetch30DayReport() async {
+    final now = DateTime.now();
+    final end = DateTime(now.year, now.month, now.day);
+    final start = end.subtract(const Duration(days: 29));
+    final getReport = GetIt.instance<GetRevenueReport>();
+    final result = await getReport(start: start, end: end);
+    return result.fold((_) => null, (report) => report);
+  }
+
+  Future<void> _previewPdf30Days() async {
+    try {
+      final report = await _fetch30DayReport();
+      if (report == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tải dữ liệu 30 ngày')),
+        );
+        return;
+      }
+      final fontBytes = await rootBundle.load('assets/fonts/Roboto-Variable.ttf');
+      final pdfBytes = await PdfRevenueReportGenerator.generate(
+        report: report,
+        fontBytes: fontBytes.buffer.asUint8List(),
+      );
+      if (!mounted) return;
+      await Printing.layoutPdf(
+        onLayout: (_) => pdfBytes,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi tạo PDF: $e')),
+      );
+    }
+  }
+
+  Future<void> _sharePdf30Days() async {
+    try {
+      final report = await _fetch30DayReport();
+      if (report == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tải dữ liệu 30 ngày')),
+        );
+        return;
+      }
+      final fontBytes = await rootBundle.load('assets/fonts/Roboto-Variable.ttf');
+      final pdfBytes = await PdfRevenueReportGenerator.generate(
+        report: report,
+        fontBytes: fontBytes.buffer.asUint8List(),
+      );
+      if (!mounted) return;
+      await Printing.sharePdf(
+        bytes: pdfBytes,
+        filename: 'bao_cao_doanh_thu.pdf',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi chia sẻ PDF: $e')),
+      );
+    }
+  }
+
+  String _escapeCsv(Object? value) {
+    if (value == null) return '';
+    final str = value.toString();
+    if (str.contains(',') || str.contains('"') || str.contains('\n') || str.contains('\r')) {
+      return '"${str.replaceAll('"', '""')}"';
+    }
+    return str;
+  }
+
   Future<void> _exportReportFile(BuildContext context, RevenueReport report) async {
     final rangeLabel = _formatRangeLabel(report.rangeStart, report.rangeEnd);
     final nowStr = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final nowStrShort = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
     final avgDaily = report.dailyRevenue.isNotEmpty
         ? report.totalRevenue / report.dailyRevenue.length
         : 0.0;
+    final avgOrderValue = report.totalOrders > 0
+        ? report.totalRevenue / report.totalOrders
+        : 0.0;
+    final peakDay = report.dailyRevenue.fold<RevenuePoint?>(
+      null,
+      (max, p) => max == null || p.revenue > max.revenue ? p : max,
+    );
+    final totalDays = report.dailyRevenue.length;
+    final growthSymbol = report.growthPercent >= 0 ? '+' : '';
 
     final buf = StringBuffer();
-    buf.writeln('BÁO CÁO DOANH THU');
-    buf.writeln('='.padRight(50, '='));
-    buf.writeln('Kỳ báo cáo:,$rangeLabel');
-    buf.writeln('Ngày xuất:,$nowStr');
-    buf.writeln('');
-    buf.writeln('TỔNG QUAN');
-    buf.writeln('Tổng doanh thu:,${_formatMillions(report.totalRevenue)} VND');
-    buf.writeln('Tổng đơn hàng:,${report.totalOrders} đơn');
-    buf.writeln('Tăng trưởng:,${_formatPercent(report.growthPercent)}');
-    buf.writeln('TB doanh thu/ngày:,${_formatMillions(avgDaily)} VND');
-    buf.writeln('');
-    buf.writeln('CHI TIẾT THEO NGÀY');
-    buf.writeln('Ngày,Doanh thu,Số đơn');
-    for (final point in report.dailyRevenue) {
-      buf.writeln('${DateFormat('dd/MM/yyyy').format(point.date)},${_formatMillions(point.revenue)} VND,${point.orders}');
-    }
-    buf.writeln('');
-    buf.writeln('DỊCH VỤ PHỔ BIẾN');
-    buf.writeln('Tên dịch vụ,Doanh thu,Tỷ lệ');
-    for (final svc in report.topServices) {
-      buf.writeln('${svc.name},${_formatMillions(svc.revenue)} VND,${svc.percent.toStringAsFixed(1)}%');
-    }
-    buf.writeln('');
-    buf.writeln('KỸ THUẬT VIÊN');
-    buf.writeln('Tên,Doanh thu,Đơn hoàn thành');
-    for (final tech in report.technicians) {
-      buf.writeln('${tech.name},${_formatMillions(tech.revenue)} VND,${tech.orders}');
-    }
 
-    final csvContent = buf.toString();
+    // ── HEADER ──────────────────────────────────────────────────────────────
+    buf.writeln('Báo cáo doanh thu');
+    buf.writeln('Hệ thống,Năng Lượng Sạch');
+    buf.writeln('Kỳ báo cáo,${_escapeCsv(rangeLabel)}');
+    buf.writeln('Ngày xuất báo cáo,$nowStr');
+    buf.writeln('Mã báo cáo,RPT-$nowStrShort');
+    buf.writeln('');
+
+    // ── TỔNG QUAN ───────────────────────────────────────────────────────────
+    buf.writeln('TỔNG QUAN KINH DOANH');
+    buf.writeln('Chỉ tiêu,Giá trị,Ghi chú');
+    buf.writeln('Tổng doanh thu (VND),${report.totalRevenue.round()},Kỳ trước: ${report.previousTotalRevenue.round()} VND');
+    buf.writeln('Tăng trưởng (%),${report.growthPercent.toStringAsFixed(1)},${growthSymbol}${report.growthPercent >= 0 ? "+" : ""}${(report.totalRevenue - report.previousTotalRevenue).round()} VND');
+    buf.writeln('Tổng đơn hàng (đơn),${report.totalOrders},Trong ${totalDays} ngày');
+    buf.writeln('Doanh thu TB/ngày (VND),${avgDaily.round()},-');
+    buf.writeln('Giá trị TB/đơn (VND),${avgOrderValue.round()},-');
+    buf.writeln('Ngày cao nhất,${peakDay != null ? DateFormat('dd/MM/yyyy').format(peakDay.date) : 'N/A'},${peakDay != null ? "${peakDay.revenue.round()} VND (${peakDay.orders} đơn)" : ""}');
+    buf.writeln('');
+
+    // ── CHI TIẾT THEO NGÀY ──────────────────────────────────────────────────
+    buf.writeln('CHI TIẾT DOANH THU THEO NGÀY');
+    buf.writeln('STT,Ngày,Thứ,Doanh thu (VND),Số đơn hàng,Giá trị TB/đơn (VND),Doanh thu tích lũy (VND)');
+    int stt = 0;
+    double cumulativeRevenue = 0.0;
+    for (final point in report.dailyRevenue) {
+      stt++;
+      cumulativeRevenue += point.revenue;
+      final dayOfWeek = _dayOfWeekVietnamese(point.date.weekday);
+      final avgValue = point.orders > 0 ? point.revenue / point.orders : 0.0;
+      buf.writeln(
+        '$stt,${DateFormat('dd/MM/yyyy').format(point.date)},$dayOfWeek,${point.revenue.round()},${point.orders},${avgValue.round()},${cumulativeRevenue.round()}',
+      );
+    }
+    buf.writeln('Tổng cộng,,,${report.totalRevenue.round()},${report.totalOrders},${avgOrderValue.round()},');
+    buf.writeln('');
+
+    // ── DỊCH VỤ ─────────────────────────────────────────────────────────────
+    buf.writeln('DỊCH VỤ PHỔ BIẾN');
+    buf.writeln('STT,Tên dịch vụ,Doanh thu (VND),Tỷ trọng (%)');
+    int svcIdx = 0;
+    for (final svc in report.topServices) {
+      svcIdx++;
+      buf.writeln('$svcIdx,${_escapeCsv(svc.name)},${svc.revenue.round()},${svc.percent.toStringAsFixed(1)}');
+    }
+    buf.writeln('');
+
+    // ── KỸ THUẬT VIÊN ──────────────────────────────────────────────────────
+    buf.writeln('HIỆU SUẤT KỸ THUẬT VIÊN');
+    buf.writeln('STT,Tên kỹ thuật viên,Doanh thu mang lại (VND),Số đơn hoàn thành (đơn),Số đơn đang làm (đơn)');
+    int techIdx = 0;
+    for (final tech in report.technicians) {
+      techIdx++;
+      buf.writeln('$techIdx,${_escapeCsv(tech.name)},${tech.revenue.round()},${tech.orders},${tech.activeOrders}');
+    }
+    buf.writeln('');
+
+    // ── FOOTER ──────────────────────────────────────────────────────────────
+    buf.writeln('Báo cáo được tạo tự động bởi hệ thống Năng Lượng Sạch');
+    buf.writeln('Mã xác thực,RPT-$nowStrShort');
+    buf.writeln('');
+
+    // Prepend UTF-8 BOM to ensure Excel opens file with correct Vietnamese accents
+    final csvContent = '\uFEFF${buf.toString()}';
     final tempDir = Directory.systemTemp;
-    final fileName = 'bao_cao_doanh_thu_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.csv';
+    final fileName = 'bao_cao_doanh_thu_$nowStrShort.csv';
     final file = File('${tempDir.path}/$fileName');
     await file.writeAsString(csvContent, flush: true);
 
@@ -2177,6 +2410,19 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Đã lưu file: $fileName')),
       );
+    }
+  }
+
+  String _dayOfWeekVietnamese(int weekday) {
+    switch (weekday) {
+      case DateTime.monday: return 'Thứ Hai';
+      case DateTime.tuesday: return 'Thứ Ba';
+      case DateTime.wednesday: return 'Thứ Tư';
+      case DateTime.thursday: return 'Thứ Năm';
+      case DateTime.friday: return 'Thứ Sáu';
+      case DateTime.saturday: return 'Thứ Bảy';
+      case DateTime.sunday: return 'Chủ Nhật';
+      default: return '';
     }
   }
 

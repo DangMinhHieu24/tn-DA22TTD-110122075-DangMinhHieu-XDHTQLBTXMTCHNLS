@@ -6,6 +6,8 @@ import {
   createWarranty,
   updateWarranty,
   deleteWarranty,
+  exportWarrantyDataByYear,
+  exportAllWarrantyData,
 } from '../controllers/warranty.controller';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 
@@ -20,6 +22,12 @@ router.get('/vehicles/:vehicleId/warranties', getVehicleWarranties);
 
 // GET /api/warranties - Get all warranties (Staff only)
 router.get('/', requireRole('STAFF'), getAllWarranties);
+
+// GET /api/warranties/export/all - Export all warranty data (Staff only)
+router.get('/export/all', requireRole('STAFF'), exportAllWarrantyData);
+
+// GET /api/warranties/export/:year - Export warranty data by year (Staff only)
+router.get('/export/:year', requireRole('STAFF'), exportWarrantyDataByYear);
 
 // GET /api/warranties/:id - Get warranty by ID
 router.get('/:id', getWarrantyById);

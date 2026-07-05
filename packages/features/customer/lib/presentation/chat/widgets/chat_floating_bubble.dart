@@ -324,6 +324,7 @@ class _ChatPanelState extends State<_ChatPanel> {
     super.initState();
     _activeTab = widget.initialTab;
     _chatBloc = GetIt.instance<ChatBloc>();
+    _chatBloc.add(ChatLoadHistory());
     _chatBloc.stream.listen((_) {
       if (mounted) _scrollToBottom();
     });

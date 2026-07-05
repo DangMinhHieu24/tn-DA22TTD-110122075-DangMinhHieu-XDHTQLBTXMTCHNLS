@@ -914,13 +914,17 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                 color: Color(0xFF191C1E),
               ),
             ),
-            Text(
-              pendingCount > 0
-                  ? '$completedCount/$approvedCount hoàn thành · $pendingCount chờ duyệt'
-                  : '$completedCount/$approvedCount hoàn thành',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF3D4A3D),
+            Flexible(
+              child: Text(
+                pendingCount > 0
+                    ? '$completedCount/$approvedCount hoàn thành · $pendingCount chờ duyệt'
+                    : '$completedCount/$approvedCount hoàn thành',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF3D4A3D),
+                ),
+                textAlign: TextAlign.end,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -2496,6 +2500,13 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
       },
       (item) {
         if (!mounted) return;
+        if (nextStatus == WorkStatus.completed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã hoàn thành đơn!')),
+          );
+          Navigator.of(context).pop();
+          return;
+        }
         setState(() {
           _currentItem = item;
         });

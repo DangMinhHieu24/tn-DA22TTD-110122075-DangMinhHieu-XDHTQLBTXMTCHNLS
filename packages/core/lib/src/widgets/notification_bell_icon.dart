@@ -9,18 +9,18 @@ class NotificationBellIcon extends StatefulWidget {
   const NotificationBellIcon({super.key, this.onTap});
 
   @override
-  State<NotificationBellIcon> createState() => _NotificationBellIconState();
+  State<NotificationBellIcon> createState() => NotificationBellIconState();
 }
 
-class _NotificationBellIconState extends State<NotificationBellIcon> {
+class NotificationBellIconState extends State<NotificationBellIcon> {
   int _unreadCount = 0;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _fetchUnreadCount();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _fetchUnreadCount());
+    fetchUnreadCount();
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) => fetchUnreadCount());
   }
 
   @override
@@ -29,7 +29,7 @@ class _NotificationBellIconState extends State<NotificationBellIcon> {
     super.dispose();
   }
 
-  Future<void> _fetchUnreadCount() async {
+  Future<void> fetchUnreadCount() async {
     try {
       final dio = GetIt.instance<Dio>();
       final res = await dio.get('/notifications', queryParameters: {'limit': 1});

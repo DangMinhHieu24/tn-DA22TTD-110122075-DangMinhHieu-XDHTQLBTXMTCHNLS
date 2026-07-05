@@ -24,11 +24,11 @@ class TechChatBloc extends Bloc<TechChatEvent, TechChatState> {
   ) async {
     final result = await _repository.getHistory();
     await result.fold(
-      (failure) async {},
+      (failure) async {
+        emit(TechChatLoaded(messages: []));
+      },
       (messages) async {
-        if (messages.isNotEmpty) {
-          emit(TechChatLoaded(messages: messages));
-        }
+        emit(TechChatLoaded(messages: messages));
       },
     );
   }

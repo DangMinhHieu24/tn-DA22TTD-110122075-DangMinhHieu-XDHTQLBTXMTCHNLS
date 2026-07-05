@@ -5,11 +5,13 @@ import 'package:design_system/design_system.dart';
 class DashboardHeader extends StatelessWidget {
   final String userInitials;
   final VoidCallback? onNotificationTap;
+  final GlobalKey<NotificationBellIconState>? notificationBellKey;
 
   const DashboardHeader({
     super.key,
     this.userInitials = 'TA',
     this.onNotificationTap,
+    this.notificationBellKey,
   });
 
   @override
@@ -53,7 +55,7 @@ class DashboardHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              NotificationBellIcon(onTap: onNotificationTap),
+              NotificationBellIcon(key: notificationBellKey, onTap: onNotificationTap),
             ],
           ),
         ),

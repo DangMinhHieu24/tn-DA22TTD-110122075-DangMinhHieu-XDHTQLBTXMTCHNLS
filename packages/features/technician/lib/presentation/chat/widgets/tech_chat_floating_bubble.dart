@@ -283,6 +283,7 @@ class _TechChatPanelState extends State<_TechChatPanel> {
   void initState() {
     super.initState();
     _chatBloc = GetIt.instance<TechChatBloc>();
+    _chatBloc.add(TechChatLoadHistory());
     _chatBloc.stream.listen((_) {
       if (mounted) _scrollToBottom();
     });
