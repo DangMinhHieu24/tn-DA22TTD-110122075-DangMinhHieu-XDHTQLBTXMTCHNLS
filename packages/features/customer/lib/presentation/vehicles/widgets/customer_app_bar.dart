@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth/auth.dart';
+import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 import '../../notifications/pages/customer_notification_list_page.dart';
 
@@ -65,7 +66,7 @@ class CustomerAppBar extends StatelessWidget {
                 ),
               ),
               // Notification bell
-              GestureDetector(
+              NotificationBellIcon(
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -73,19 +74,6 @@ class CustomerAppBar extends StatelessWidget {
                     ),
                   );
                 },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Icon(
-                    Icons.notifications_outlined,
-                    color: AppColors.primary,
-                    size: 22,
-                  ),
-                ),
               ),
             ],
           ),

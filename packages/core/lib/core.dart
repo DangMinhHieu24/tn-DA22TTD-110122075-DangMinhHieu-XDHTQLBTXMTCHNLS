@@ -14,3 +14,4 @@ export 'src/widgets/vehicle_history/vehicle_history_page.dart';
 export 'src/widgets/warranty/warranty_status_badge.dart';
 export 'src/widgets/warranty/warranty_card.dart';
 export 'src/widgets/warranty/warranty_info_widget.dart';
+export 'src/widgets/notification_bell_icon.dart';

@@ -571,37 +571,7 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
               color: AppColors.primary,
             ),
           ),
-          // Notification button
-          Stack(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Icon(
-                  Icons.notifications_outlined,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.surface, width: 1.5),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(width: 44, height: 44),
         ],
       ),
     );

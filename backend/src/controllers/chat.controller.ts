@@ -4,6 +4,31 @@ import { processChatMessage } from '../services/gemini';
 
 const prisma = new PrismaClient();
 
+const OPEN_CHAT_STATUSES = ['PENDING', 'IN_PROGRESS', 'INSPECTION', 'COMPLETED'] as const;
+const DIRECT_CHAT_ROLES = ['customer', 'technician'] as const;
+
+async function getOpenWorkOrderByConversation(conversationId: string, userId: string, role: string) {
+  const conversation = await prisma.chatConversation.findUnique({
+    where: { id: conversationId },
+    select: { userId: true },
+  });
+
+  if (!conversation) {
+    return null;
+  }
+
+  return prisma.workOrder.findFirst({
+    where: {
+      vehicle: { ownerId: conversation.userId },
+      status: { in: [...OPEN_CHAT_STATUSES] },
+      ...(role.toLowerCase() === 'technician' ? { technicianId: userId } : {}),
+    },
+    include: {
+      technician: true,
+    },
+  });
+}
+
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const authUser = (req as any).user;
@@ -85,11 +110,22 @@ export const getDirectConversation = async (req: Request, res: Response) => {
     const authUser = (req as any).user;
     const targetUserId = (req.query.customerId as string) || authUser.userId;
     
-    // Find or create conversation for this target user (customer)
+    // Prefer the conversation that already contains direct customer/technician messages.
     let conv = await prisma.chatConversation.findFirst({
-      where: { userId: targetUserId },
+      where: {
+        userId: targetUserId,
+        messages: {
+          some: {
+            role: { in: [...DIRECT_CHAT_ROLES] },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
       include: {
-        messages: { orderBy: { createdAt: 'asc' } }
+        messages: {
+          where: { role: { in: [...DIRECT_CHAT_ROLES] } },
+          orderBy: { createdAt: 'asc' },
+        }
       }
     });
 
@@ -97,7 +133,10 @@ export const getDirectConversation = async (req: Request, res: Response) => {
       conv = await prisma.chatConversation.create({
         data: { userId: targetUserId },
         include: {
-          messages: { orderBy: { createdAt: 'asc' } }
+          messages: {
+            where: { role: { in: [...DIRECT_CHAT_ROLES] } },
+            orderBy: { createdAt: 'asc' },
+          }
         }
       });
     }
@@ -106,7 +145,7 @@ export const getDirectConversation = async (req: Request, res: Response) => {
     const activeWorkOrder = await prisma.workOrder.findFirst({
       where: {
         vehicle: { ownerId: targetUserId },
-        status: { in: ['PENDING', 'IN_PROGRESS', 'INSPECTION'] }
+        status: { in: [...OPEN_CHAT_STATUSES] }
       },
       include: {
         technician: true
@@ -140,6 +179,19 @@ export const sendDirectMessage = async (req: Request, res: Response) => {
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, message: 'Nội dung không được để trống' });
+    }
+
+    const openWorkOrder = await getOpenWorkOrderByConversation(
+      conversationId,
+      authUser.userId,
+      authUser.role,
+    );
+
+    if (!openWorkOrder) {
+      return res.status(403).json({
+        success: false,
+        message: 'Kênh chat đã đóng vì phiếu sửa chữa đã thanh toán hoặc không còn hoạt động',
+      });
     }
 
     // Get sender's name
@@ -185,7 +237,7 @@ export const getTechConversations = async (req: Request, res: Response) => {
     const workOrders = await prisma.workOrder.findMany({
       where: {
         technicianId: authUser.userId,
-        status: { in: ['PENDING', 'IN_PROGRESS', 'INSPECTION'] }
+        status: { in: [...OPEN_CHAT_STATUSES] }
       },
       include: {
         vehicle: {
@@ -201,7 +253,12 @@ export const getTechConversations = async (req: Request, res: Response) => {
     // Fetch the conversations for these customers
     const conversations = await prisma.chatConversation.findMany({
       where: {
-        userId: { in: customerIds }
+        userId: { in: customerIds },
+        messages: {
+          some: {
+            role: { in: [...DIRECT_CHAT_ROLES] },
+          },
+        },
       },
       include: {
         user: {
@@ -213,6 +270,7 @@ export const getTechConversations = async (req: Request, res: Response) => {
           }
         },
         messages: {
+          where: { role: { in: [...DIRECT_CHAT_ROLES] } },
           orderBy: { createdAt: 'desc' },
           take: 1
         }
@@ -233,7 +291,10 @@ export const getDirectHistory = async (req: Request, res: Response) => {
     const { conversationId } = req.params;
 
     const messages = await prisma.chatMessage.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+        role: { in: [...DIRECT_CHAT_ROLES] },
+      },
       orderBy: { createdAt: 'asc' }
     });
 

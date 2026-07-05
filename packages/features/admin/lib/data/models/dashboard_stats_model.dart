@@ -6,6 +6,7 @@ class DashboardStatsModel extends DashboardStats {
     required super.completedToday,
     required super.revenueToday,
     required super.weeklyRevenue,
+    required super.pendingConfirmation,
     required super.alerts,
     required super.technicians,
   });
@@ -27,6 +28,7 @@ class DashboardStatsModel extends DashboardStats {
           ?.map((e) => (e as num).toDouble())
           .toList() ??
         const [],
+      pendingConfirmation: (payload['pendingWorkOrders'] as num?)?.toInt() ?? 0,
       alerts: (payload['alerts'] as List?)
           ?.map((e) => SystemAlertModel.fromJson(e as Map<String, dynamic>))
           .toList() ??
@@ -44,6 +46,7 @@ class DashboardStatsModel extends DashboardStats {
       'completedToday': completedToday,
       'revenueToday': revenueToday,
       'weeklyRevenue': weeklyRevenue,
+      'pendingConfirmation': pendingConfirmation,
       'alerts': alerts.map((e) => (e as SystemAlertModel).toJson()).toList(),
       'technicians': technicians.map((e) => (e as TechnicianStatusModel).toJson()).toList(),
     };

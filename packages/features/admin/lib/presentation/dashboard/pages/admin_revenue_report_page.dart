@@ -76,16 +76,17 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
     final now = DateTime.now();
     switch (_selectedRange) {
       case _ReportRange.sevenDays:
-        // Previous calendar week (Monday → Sunday)
-        final daysSinceMonday = now.weekday - DateTime.monday;
-        final thisMonday = DateTime(now.year, now.month, now.day - daysSinceMonday);
-        final lastMonday = thisMonday.subtract(const Duration(days: 7));
-        return DateTimeRange(start: lastMonday, end: lastMonday.add(const Duration(days: 6)));
+        // Last 7 days including today
+        return DateTimeRange(
+          start: DateTime(now.year, now.month, now.day - 6),
+          end: DateTime(now.year, now.month, now.day),
+        );
       case _ReportRange.thirtyDays:
-        // Use previous calendar month (month before the current date)
-        final prevMonthStart = DateTime(now.year, now.month - 1, 1);
-        final prevMonthEnd = DateTime(now.year, now.month, 0);
-        return DateTimeRange(start: prevMonthStart, end: prevMonthEnd);
+        // Last 30 days including today
+        return DateTimeRange(
+          start: DateTime(now.year, now.month, now.day - 29),
+          end: DateTime(now.year, now.month, now.day),
+        );
       case _ReportRange.thisMonth:
         return DateTimeRange(
           start: DateTime(now.year, now.month, 1),
@@ -1497,6 +1498,10 @@ class _AdminRevenueReportPageState extends State<AdminRevenueReportPage> {
           setState(() => _dailyRange = value);
           if (value == _DailyRange.today) {
             _selectRange(_ReportRange.thisMonth);
+          } else if (value == _DailyRange.sevenDays) {
+            _selectRange(_ReportRange.sevenDays);
+          } else if (value == _DailyRange.thirtyDays) {
+            _selectRange(_ReportRange.thirtyDays);
           }
         },
         child: Container(

@@ -244,7 +244,7 @@ class _TechChatPanel extends StatefulWidget {
 }
 
 class _TechChatPanelState extends State<_TechChatPanel> {
-  int _activeTab = 0; // 0 = Trợ lý AI, 1 = Khách hàng
+  int _activeTab = 1; // 0 = Trợ lý AI, 1 = Khách hàng
   final Dio _dio = GetIt.instance<Dio>();
   late final TechChatBloc _chatBloc;
 

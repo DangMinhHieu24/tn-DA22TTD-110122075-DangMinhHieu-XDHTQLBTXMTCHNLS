@@ -370,9 +370,9 @@ class _ChatPanelState extends State<_ChatPanel> {
 
     // Responsive local insert
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-    final tempMsg = ChatMessage(
+    final tempMsg = ChatMessageModel(
       id: tempId,
-      role: MessageRole.user,
+      role: MessageRole.customer,
       content: jsonEncode({
         'senderId': 'temp',
         'senderName': 'Bạn',

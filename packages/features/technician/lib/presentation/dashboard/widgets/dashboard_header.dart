@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 
 class DashboardHeader extends StatelessWidget {
@@ -52,16 +53,7 @@ class DashboardHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              IconButton(
-                onPressed: onNotificationTap,
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: AppColors.primary,
-                ),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                ),
-              ),
+              NotificationBellIcon(onTap: onNotificationTap),
             ],
           ),
         ),

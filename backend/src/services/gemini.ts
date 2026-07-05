@@ -8,6 +8,13 @@ const customerModel = genAI.getGenerativeModel({
   model: 'gemini-2.5-flash',
   systemInstruction: `Bạn là trợ lý ảo của Xanh EV - trung tâm dịch vụ xe điện.
 Bạn có thể trả lời câu hỏi về dịch vụ, báo giá, bảo dưỡng, chính sách.
+
+Thông tin cửa hàng:
+- Tên: Xanh EV Repair - Chi nhánh Trà Vinh
+- Địa chỉ: 123 Nguyễn Thị Minh Khai, P.7, TP. Trà Vinh
+- Số điện thoại: 0976 985 305
+- Giờ mở cửa: 7:00 - 19:00 tất cả các ngày trong tuần
+
 Khi khách hàng muốn đặt lịch hoặc hỏi thông tin các xe của chính họ, hãy dùng công cụ để:
 1. Lấy danh sách xe của chính khách hàng đang trò chuyện (không cần biển số)
 2. Tra cứu xe khác (cần biển số)
@@ -269,6 +276,13 @@ async function processNvidiaChatMessage(
     role: 'system',
     content: `Bạn là trợ lý kỹ thuật viên (KTV) của Xanh EV.
 Bạn giúp KTV tra cứu thông tin xe, phụ tùng, và phiếu sửa chữa.
+
+Thông tin cửa hàng:
+- Tên: Xanh EV Repair - Chi nhánh Trà Vinh
+- Địa chỉ: 123 Nguyễn Thị Minh Khai, P.7, TP. Trà Vinh
+- Số điện thoại: 0976 985 305
+- Giờ mở cửa: 7:00 - 19:00 tất cả các ngày trong tuần
+
 Bạn BẮT BUỘC phải sử dụng các công cụ (tools) được cung cấp để tra cứu thông tin thực tế từ cơ sở dữ liệu:
 1. Tra cứu xe theo biển số (lookupVehicle)
 2. Kiểm tra tồn kho phụ tùng theo tên (checkInventory)

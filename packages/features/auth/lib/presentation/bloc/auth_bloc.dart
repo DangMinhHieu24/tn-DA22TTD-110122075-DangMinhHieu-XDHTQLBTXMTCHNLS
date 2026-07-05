@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
@@ -41,6 +43,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
+
+    // Clear chat history on the backend
+    try {
+      final dio = GetIt.instance<Dio>();
+      await dio.delete('/chat/history');
+    } catch (_) {
+      // Ignore error, proceed with logout
+    }
 
     final result = await logoutUseCase(NoParams());
 

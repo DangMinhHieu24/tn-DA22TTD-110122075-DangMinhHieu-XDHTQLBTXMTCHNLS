@@ -24,6 +24,6 @@ final List<ServiceStation> mockStations = [
     name: 'Xanh EV Repair - Chi nhánh Trà Vinh',
     address: '123 Nguyễn Thị Minh Khai, P.7, TP. Trà Vinh',
     location: const LatLng(9.9328, 106.3353),
-    phone: '0294 123 456',
+    phone: '0976 985 305',
   ),
 ];

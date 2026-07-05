@@ -811,30 +811,33 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
               { workOrderId: workOrder.id }
             );
 
-          } else if (normalizedStatus === 'COMPLETED' || normalizedStatus === 'PAID') {
+          } else if (normalizedStatus === 'COMPLETED') {
             await sendSystemChatMessage(
               vehicle.ownerId,
-              'Hệ thống: Phiếu sửa chữa đã hoàn thành thanh toán. Phiếu chat trực tiếp đã đóng. Cảm ơn quý khách!'
+              'Hệ thống: Phiếu sửa chữa đã hoàn thành. Kênh chat trực tiếp vẫn mở cho đến khi quý khách thanh toán.'
             );
 
-            if (normalizedStatus === 'COMPLETED') {
-              const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(workOrder.totalPrice || 0);
-              await createNotificationForUser(
-                vehicle.ownerId,
-                'Sửa chữa hoàn tất',
-                `Xe ${vehicle.licensePlate || ''} đã hoàn thành sửa chữa. Tổng chi phí: ${formattedPrice}. Vui lòng kiểm tra và thanh toán.`,
-                'CUSTOMER_WORK_ORDER_COMPLETED',
-                { workOrderId: workOrder.id }
-              );
-            } else if (normalizedStatus === 'PAID') {
-              await createNotificationForUser(
-                vehicle.ownerId,
-                'Thanh toán thành công',
-                `Cảm ơn quý khách đã thanh toán phiếu sửa chữa ${workOrder.orderNumber} cho xe ${vehicle.licensePlate || ''}.`,
-                'CUSTOMER_WORK_ORDER_PAID',
-                { workOrderId: workOrder.id }
-              );
-            }
+            const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(workOrder.totalPrice || 0);
+            await createNotificationForUser(
+              vehicle.ownerId,
+              'Sửa chữa hoàn tất',
+              `Xe ${vehicle.licensePlate || ''} đã hoàn thành sửa chữa. Tổng chi phí: ${formattedPrice}. Vui lòng kiểm tra và thanh toán.`,
+              'CUSTOMER_WORK_ORDER_COMPLETED',
+              { workOrderId: workOrder.id }
+            );
+          } else if (normalizedStatus === 'PAID') {
+            await sendSystemChatMessage(
+              vehicle.ownerId,
+              'Hệ thống: Phiếu sửa chữa đã được thanh toán. Phiếu chat trực tiếp đã đóng. Cảm ơn quý khách!'
+            );
+
+            await createNotificationForUser(
+              vehicle.ownerId,
+              'Thanh toán thành công',
+              `Cảm ơn quý khách đã thanh toán phiếu sửa chữa ${workOrder.orderNumber} cho xe ${vehicle.licensePlate || ''}.`,
+              'CUSTOMER_WORK_ORDER_PAID',
+              { workOrderId: workOrder.id }
+            );
           }
         }
       }
@@ -928,11 +931,16 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
       },
     });
 
-    // Notify admins about the service approval request
+    // Notify admins and customer about the service approval request
     try {
       const wo = await prisma.workOrder.findUnique({
         where: { id },
-        select: { orderNumber: true },
+        select: {
+          orderNumber: true,
+          vehicle: {
+            select: { ownerId: true }
+          }
+        },
       });
       const orderNumber = wo?.orderNumber || 'N/A';
       const mapServiceTypeLabel = (type: string) => {
@@ -946,14 +954,17 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
       };
       const sName = serviceName || mapServiceTypeLabel(serviceType);
 
-      await createNotificationForAdmins(
-        'Yêu cầu phê duyệt',
-        `Kỹ thuật viên yêu cầu phê duyệt dịch vụ "${sName}" cho phiếu ${orderNumber}.`,
-        'APPROVAL_REQUEST',
-        { workOrderId: id, serviceId: service.id }
-      );
+      if (wo?.vehicle?.ownerId) {
+        await createNotificationForUser(
+          wo.vehicle.ownerId,
+          'Đề xuất dịch vụ mới cần duyệt 🛠️',
+          `Kỹ thuật viên đề xuất thêm dịch vụ "${sName}" cho xe của bạn trong phiếu ${orderNumber}. Vui lòng duyệt để tiếp tục sửa chữa.`,
+          'SERVICE_APPROVAL',
+          { workOrderId: id, serviceId: service.id }
+        );
+      }
     } catch (e) {
-      console.error('Failed to notify admin of service request:', e);
+      console.error('Failed to notify admin/customer of service request:', e);
     }
 
     res.status(201).json({
@@ -976,6 +987,7 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
  */
 export const approveWorkOrderService = async (req: Request, res: Response) => {
   try {
+    const authUser = (req as any).user;
     const { id, serviceId } = req.params;
     const { approvalStatus } = req.body;
 
@@ -1005,6 +1017,14 @@ export const approveWorkOrderService = async (req: Request, res: Response) => {
     }
 
     if (existingService.approvalStatus !== 'PENDING') {
+      if (existingService.approvalStatus === approvalStatus) {
+        return res.json({
+          success: true,
+          message: `Service already ${approvalStatus.toLowerCase()}`,
+          data: existingService,
+        });
+      }
+
       return res.status(400).json({
         success: false,
         message: `Service already ${existingService.approvalStatus.toLowerCase()}`,
@@ -1025,10 +1045,15 @@ export const approveWorkOrderService = async (req: Request, res: Response) => {
       if (wo?.technicianId) {
         const statusLabel = approvalStatus === 'APPROVED' ? 'được phê duyệt' : 'bị từ chối';
         const serviceLabel = existingService.serviceName || existingService.serviceType;
+        const approverLabel = authUser?.role === 'CUSTOMER'
+          ? 'khách hàng'
+          : authUser?.role === 'TECHNICIAN'
+            ? 'kỹ thuật viên'
+            : 'Staff';
         await createNotificationForUser(
           wo.technicianId,
           `Dịch vụ đã ${statusLabel}`,
-          `Dịch vụ "${serviceLabel}" trong phiếu ${wo.orderNumber} đã ${statusLabel} bởi Staff.`,
+          `Dịch vụ "${serviceLabel}" trong phiếu ${wo.orderNumber} đã ${statusLabel} bởi ${approverLabel}.`,
           'SERVICE_APPROVAL',
           { workOrderId: id, serviceId: service.id }
         );

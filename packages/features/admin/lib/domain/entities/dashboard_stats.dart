@@ -5,6 +5,7 @@ class DashboardStats extends Equatable {
   final int completedToday;
   final double revenueToday;
   final List<double> weeklyRevenue;
+  final int pendingConfirmation;
   final List<SystemAlert> alerts;
   final List<TechnicianStatus> technicians;
 
@@ -13,6 +14,7 @@ class DashboardStats extends Equatable {
     required this.completedToday,
     required this.revenueToday,
     required this.weeklyRevenue,
+    required this.pendingConfirmation,
     required this.alerts,
     required this.technicians,
   });
@@ -23,6 +25,7 @@ class DashboardStats extends Equatable {
         completedToday,
         revenueToday,
         weeklyRevenue,
+        pendingConfirmation,
         alerts,
         technicians,
       ];

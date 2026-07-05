@@ -20,11 +20,6 @@ const buildPhotos = (label: string, index: number) => {
       photoType: 'INTAKE',
       description: `Ảnh tiếp nhận - ${label}`,
     },
-    {
-      photoUrl: photos[(index + 1) % photos.length],
-      photoType: 'AFTER_REPAIR',
-      description: `Ảnh hoàn tất - ${label}`,
-    },
   ];
 };
 async function main() {

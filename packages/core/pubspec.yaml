@@ -13,6 +13,8 @@ dependencies:
   dartz: ^0.10.1
   design_system:
     path: ../design_system
+  dio: ^5.4.0
+  get_it: ^7.6.4
   
   # Supabase
   supabase_flutter: ^2.5.0

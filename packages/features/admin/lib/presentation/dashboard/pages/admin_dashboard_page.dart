@@ -671,7 +671,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _buildRevenueChart(),
         const SizedBox(height: 24), // gap-6
         // Quick Shortcuts
-        _buildQuickShortcuts(),
+        _buildQuickShortcuts(dashboardState),
         const SizedBox(height: 24), // gap-6
         // Alerts Section
         _buildAlertsSection(dashboardState),
@@ -969,7 +969,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   /// Quick Shortcuts - grid grid-cols-4 gap-4
-  Widget _buildQuickShortcuts() {
+  Widget _buildQuickShortcuts(DashboardState dashboardState) {
+    final pendingCount = dashboardState is DashboardLoaded
+        ? dashboardState.stats.pendingConfirmation
+        : 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -988,6 +991,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               icon: Icons.check_circle,
               label: 'Xác\nnhận',
               color: const Color(0xFF006E2F),
+              badgeCount: pendingCount,
               onTap: () {
                 Navigator.of(context).push(
                   PageRouteBuilder(
@@ -1065,6 +1069,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     required IconData icon,
     required String label,
     required Color color,
+    int badgeCount = 0,
     VoidCallback? onTap,
   }) {
     return Expanded(
@@ -1097,21 +1102,45 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 48, // w-12
-                height: 48, // h-12
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFFFFF),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+              Stack(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFFFFF),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x1A000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Icon(icon, color: color, size: 24),
+                    child: Icon(icon, color: color, size: 24),
+                  ),
+                  if (badgeCount > 0)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE53935),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x3D000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8), // gap-2
               Text(
