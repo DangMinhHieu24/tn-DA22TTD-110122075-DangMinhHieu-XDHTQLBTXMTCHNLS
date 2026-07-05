@@ -36,7 +36,13 @@ class CustomerAccountPage extends StatelessWidget {
 
           return Scaffold(
             backgroundColor: const Color(0xFFF5F7FA),
-            body: SingleChildScrollView(
+            body: RefreshIndicator(
+              onRefresh: () async {
+                context.read<AuthBloc>().add(const AuthCheckRequested());
+                await Future.delayed(const Duration(milliseconds: 500));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -329,6 +335,7 @@ class CustomerAccountPage extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
             ),
           );
         },

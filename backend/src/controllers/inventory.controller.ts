@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prisma';
 import { checkAndWarnLowStock } from './notification.controller';
-
-const prisma = new PrismaClient();
 
 export const getInventoryItems = async (req: Request, res: Response) => {
   try {

@@ -581,14 +581,28 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
         return {
           'id': m['id'],
           'partName': m['partName'] ?? '',
-          'partCode': m['partCode'] ?? '',
           'stock': m['quantity'] ?? 0,
-          'price': m['price'] ?? 0,
+          'price': m['sellPrice'] ?? m['unitPrice'] ?? 0,
           'quantity': 0,
         };
       }).toList();
       _parts = List.from(_allParts);
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().contains('500')
+            ? 'Máy chủ đang bảo trì, vui lòng thử lại sau'
+            : 'Không thể tải danh sách phụ tùng';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            action: SnackBarAction(
+              label: 'Thử lại',
+              onPressed: _fetchInventory,
+            ),
+          ),
+        );
+      }
+    }
     if (mounted) setState(() => _loadingParts = false);
   }
 
@@ -1731,8 +1745,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                           setDialogState(() {
                             final q = v.toLowerCase();
                             filteredParts = _allParts.where((p) =>
-                              (p['partName'] as String? ?? '').toLowerCase().contains(q) ||
-                              (p['partCode'] as String? ?? '').toLowerCase().contains(q)
+                              (p['partName'] as String? ?? '').toLowerCase().contains(q)
                             ).toList();
                           });
                         },
@@ -1755,7 +1768,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                               ),
                               subtitle: Text(
-                                'Mã: ${part['partCode']} | Tồn: ${part['stock']}',
+                                'Tồn: ${part['stock']}',
                                 style: const TextStyle(fontSize: 12),
                               ),
                               trailing: Row(
@@ -1878,7 +1891,7 @@ class _WorkDetailPageState extends State<WorkDetailPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Mã: ${part['partCode']} | Tồn: ${part['stock']}',
+                  'Tồn: ${part['stock']}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF3D4A3D),

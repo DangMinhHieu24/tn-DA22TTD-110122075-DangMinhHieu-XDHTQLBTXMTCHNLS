@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prisma';
 import { createNotificationForAdmins } from './notification.controller';
-
-const prisma = new PrismaClient();
 
 /**
  * GET /api/appointments/my

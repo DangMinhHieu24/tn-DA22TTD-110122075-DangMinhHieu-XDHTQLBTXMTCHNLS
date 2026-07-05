@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prisma';
 
-const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const customerModel = genAI.getGenerativeModel({

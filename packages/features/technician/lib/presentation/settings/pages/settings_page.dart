@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth/auth.dart';
 import 'package:design_system/design_system.dart';
 import 'personal_info_page.dart';
-import '../../lookup/pages/tech_stats_page.dart';
 
 
 class SettingsPage extends StatelessWidget {
@@ -44,7 +43,7 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _buildProfileCard(context, userName, userEmail, userInitial),
                   const SizedBox(height: 16),
-                  _buildStatsRow(context),
+                  _buildStatsRow(),
                   const SizedBox(height: 20),
                   _buildSettingsSection(context),
                   const SizedBox(height: 32),
@@ -159,16 +158,13 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const TechStatsPage()),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _buildStatItem('Xem thống kê', 'Chi tiết →', Icons.bar_chart_rounded)),
-        ],
-      ),
+  Widget _buildStatsRow() {
+    return Row(
+      children: [
+        Expanded(child: _buildStatItem('48 đơn', 'Đã sửa xong', Icons.check_circle_outline_rounded)),
+        const SizedBox(width: 16),
+        Expanded(child: _buildStatItem('98%', 'Hiệu suất', Icons.bolt_rounded)),
+      ],
     );
   }
 

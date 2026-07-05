@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient, WorkOrderStatus, PaymentMethod, ApprovalStatus } from '@prisma/client';
+import { WorkOrderStatus, PaymentMethod, ApprovalStatus } from '@prisma/client';
+import { prisma } from '../prisma';
 import { createNotificationForAdmins, checkAndWarnLowStock, createNotificationForUser } from './notification.controller';
-
-const prisma = new PrismaClient();
 
 const sendSystemChatMessage = async (customerId: string, text: string) => {
   try {
@@ -727,41 +726,6 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
           },
         });
 
-        // Create PartWarranty records for parts with warranty
-        const completedAt = savedWorkOrder.completedAt ?? new Date();
-        for (const pu of savedWorkOrder.partsUsed) {
-          if (pu.part.warrantyDays > 0) {
-            const expiryDate = new Date(completedAt.getTime() + pu.part.warrantyDays * 24 * 60 * 60 * 1000);
-            await tx.partWarranty.upsert({
-              where: { partUsedId: pu.id },
-              update: {
-                expiryDate,
-              },
-              create: {
-                partUsedId: pu.id,
-                partId: pu.partId,
-                workOrderId: id,
-                vehicleId: savedWorkOrder.vehicleId,
-                warrantyDays: pu.part.warrantyDays,
-                startDate: completedAt,
-                expiryDate,
-              },
-            });
-          }
-        }
-
-        // Update vehicle warranty expiry to the latest expiry among all part warranties
-        const maxExpiryResult = await tx.partWarranty.aggregate({
-          where: { vehicleId: savedWorkOrder.vehicleId },
-          _max: { expiryDate: true },
-        });
-        if (maxExpiryResult._max.expiryDate) {
-          await tx.vehicle.update({
-            where: { id: savedWorkOrder.vehicleId },
-            data: { warrantyExpiry: maxExpiryResult._max.expiryDate },
-          });
-        }
-
         // Loyalty: 1 tree per order + 1 per 500k, points = floor(totalPrice / 20000)
         const pointsToAward = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 20000);
         const extraTrees = Math.floor((savedWorkOrder.totalPrice ?? totalPrice) / 500000);
@@ -782,6 +746,41 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
         }
 
         return savedWorkOrder;
+      }
+
+      if (updatedWorkOrder.status === 'PAID') {
+        const paidAt = updatedWorkOrder.paidAt ?? new Date();
+        for (const pu of updatedWorkOrder.partsUsed) {
+          if (pu.part.warrantyDays > 0) {
+            const expiryDate = new Date(paidAt.getTime() + pu.part.warrantyDays * 24 * 60 * 60 * 1000);
+            await tx.partWarranty.upsert({
+              where: { partUsedId: pu.id },
+              update: { expiryDate },
+              create: {
+                partUsedId: pu.id,
+                partId: pu.partId,
+                workOrderId: id,
+                vehicleId: updatedWorkOrder.vehicleId,
+                warrantyDays: pu.part.warrantyDays,
+                startDate: paidAt,
+                expiryDate,
+              },
+            });
+          }
+        }
+
+        const maxExpiryResult = await tx.partWarranty.aggregate({
+          where: { vehicleId: updatedWorkOrder.vehicleId },
+          _max: { expiryDate: true },
+        });
+        if (maxExpiryResult._max.expiryDate) {
+          await tx.vehicle.update({
+            where: { id: updatedWorkOrder.vehicleId },
+            data: { warrantyExpiry: maxExpiryResult._max.expiryDate },
+          });
+        }
+
+        return updatedWorkOrder;
       }
 
       return updatedWorkOrder;
@@ -1808,10 +1807,47 @@ export const recordPayment = async (req: Request, res: Response) => {
         },
         services: true,
         partsUsed: {
-          include: { part: { select: { partName: true } } },
+          include: { part: { select: { partName: true, warrantyDays: true } } },
         },
       },
     });
+
+    // Create PartWarranty records for parts with warranty
+    try {
+      const paidAt = workOrder.paidAt ?? new Date();
+      for (const pu of workOrder.partsUsed) {
+        if (pu.part.warrantyDays > 0) {
+          const expiryDate = new Date(paidAt.getTime() + pu.part.warrantyDays * 24 * 60 * 60 * 1000);
+          await prisma.partWarranty.upsert({
+            where: { partUsedId: pu.id },
+            update: { expiryDate },
+            create: {
+              partUsedId: pu.id,
+              partId: pu.partId,
+              workOrderId: id,
+              vehicleId: workOrder.vehicleId,
+              warrantyDays: pu.part.warrantyDays,
+              startDate: paidAt,
+              expiryDate,
+            },
+          });
+        }
+      }
+
+      // Update vehicle warranty expiry to the latest expiry among all part warranties
+      const maxExpiryResult = await prisma.partWarranty.aggregate({
+        where: { vehicleId: workOrder.vehicleId },
+        _max: { expiryDate: true },
+      });
+      if (maxExpiryResult._max.expiryDate) {
+        await prisma.vehicle.update({
+          where: { id: workOrder.vehicleId },
+          data: { warrantyExpiry: maxExpiryResult._max.expiryDate },
+        });
+      }
+    } catch (warrantyErr) {
+      console.error('Warranty creation error in recordPayment:', warrantyErr);
+    }
 
     // Send system chat message
     try {

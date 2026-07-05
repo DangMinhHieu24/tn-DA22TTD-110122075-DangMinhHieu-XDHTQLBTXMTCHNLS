@@ -4,6 +4,7 @@ import 'package:design_system/design_system.dart';
 import 'package:auth/auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
@@ -260,7 +261,7 @@ class _DashboardViewState extends State<_DashboardView> {
             backgroundColor: AppColors.surfaceContainerLow,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
         Expanded(
           child: StatsCard(
             icon: Icons.build,
@@ -271,7 +272,7 @@ class _DashboardViewState extends State<_DashboardView> {
             isHighlighted: true,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
         Expanded(
           child: StatsCard(
             icon: Icons.inventory_2,
@@ -516,7 +517,7 @@ class _StatsViewState extends State<_StatsView> {
           const SizedBox(height: 16),
           _buildRevenueCard(revenue),
           const SizedBox(height: 16),
-          _buildEarningCard(revenue),
+          _buildEarningCard(revenue, total, completed),
           const SizedBox(height: 20),
           _buildWeeklyChart(),
           const SizedBox(height: 20),
@@ -640,7 +641,7 @@ class _StatsViewState extends State<_StatsView> {
             children: [
               const Text('Tổng doanh thu', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
-              Text('${revenue.toStringAsFixed(0)}đ', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+              Text('${_formatNumber(revenue)}đ', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
             ],
           ),
         ],
@@ -648,8 +649,9 @@ class _StatsViewState extends State<_StatsView> {
     );
   }
 
-  Widget _buildEarningCard(double totalRevenue) {
-    final personalShare = totalRevenue * 0.3; // 30% mock commission
+  Widget _buildEarningCard(double totalRevenue, int total, int completed) {
+    final personalShare = totalRevenue * 0.3;
+    final completionRate = total > 0 ? (completed * 100 ~/ total) : 0;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -669,7 +671,7 @@ class _StatsViewState extends State<_StatsView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${personalShare.toStringAsFixed(0)}đ',
+                  '${_formatNumber(personalShare)}đ',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF006E2F)),
                 ),
               ],
@@ -681,23 +683,17 @@ class _StatsViewState extends State<_StatsView> {
             color: const Color(0xFFE5E7EB),
             margin: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 18),
-                    SizedBox(width: 4),
-                    Text(
-                      '4.9 / 5.0',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF191C1E)),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 2),
                 Text(
-                  'Đánh giá chất lượng',
+                  '$completionRate%',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF006E2F)),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Tỉ lệ hoàn thành đơn',
                   style: TextStyle(fontSize: 10, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
                 ),
               ],
@@ -910,6 +906,10 @@ class _StatsViewState extends State<_StatsView> {
   }
 
   String _formatDate(DateTime dt) => '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}';
+
+  String _formatNumber(num value) {
+    return NumberFormat('#,###', 'vi_VN').format(value);
+  }
 }
 
 class _LookupView extends StatelessWidget {

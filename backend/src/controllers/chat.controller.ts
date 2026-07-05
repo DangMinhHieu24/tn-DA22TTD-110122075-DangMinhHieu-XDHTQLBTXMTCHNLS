@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prisma';
 import { processChatMessage } from '../services/gemini';
-
-const prisma = new PrismaClient();
 
 const OPEN_CHAT_STATUSES = ['PENDING', 'IN_PROGRESS', 'INSPECTION', 'COMPLETED'] as const;
 const DIRECT_CHAT_ROLES = ['customer', 'technician'] as const;

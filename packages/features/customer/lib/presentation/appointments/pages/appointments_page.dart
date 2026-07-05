@@ -56,54 +56,55 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
     try {
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
-        throw Exception('Location service disabled');
+        throw Exception('Dịch vụ định vị chưa bật');
       }
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Location permission denied');
+          throw Exception('Chưa cấp quyền truy cập vị trí');
         }
       }
       if (permission == LocationPermission.deniedForever) {
-        throw Exception('Location permission permanently denied');
+        throw Exception('Quyền truy cập vị trí đã bị từ chối vĩnh viễn');
       }
-      
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-      userLoc = LatLng(pos.latitude, pos.longitude);
-    } catch (_) {
-      // Fallback to mock location at Tra Vinh University for emulator testing/demo
+
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+        userLoc = LatLng(pos.latitude, pos.longitude);
+      } catch (_) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.low,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+        userLoc = LatLng(pos.latitude, pos.longitude);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể lấy vị trí: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       userLoc = const LatLng(9.92345, 106.34652);
       isFallback = true;
     }
 
-    final List<ServiceStation> userCityStations;
-    if (isFallback) {
-      // Use original static mock stations (Chi nhánh Trà Vinh at the old location)
-      userCityStations = List.from(mockStations);
-    } else {
-      // Dynamically generate a single EV Repair headquarters near the user's location
-      userCityStations = [
-        ServiceStation(
-          id: 'st-1',
-          name: 'Xanh EV Repair - Trụ sở chính',
-          address: 'Khu trung tâm thành phố',
-          location: LatLng(userLoc.latitude + 0.0018, userLoc.longitude + 0.0022),
-          phone: '1900 1234',
-        ),
-      ];
-    }
-
-    final nearest = userCityStations.first;
+    final nearest = mockStations.first;
     final minDist = _distance(userLoc, nearest.location);
     
     setState(() {
       _userLocation = userLoc;
-      _stations = userCityStations;
+      _stations = List.from(mockStations);
       _selectedStation = nearest;
       _distanceText = 'Cách đây ${(minDist / 1000).toStringAsFixed(1)} km';
       _isLoadingLocation = false;
