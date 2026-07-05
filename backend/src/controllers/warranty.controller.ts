@@ -583,7 +583,6 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
                 name: true,
                 email: true,
                 phoneNumber: true,
-                address: true,
               },
             },
           },
@@ -611,7 +610,6 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
                 name: true,
                 email: true,
                 phoneNumber: true,
-                address: true,
               },
             },
           },
@@ -621,17 +619,17 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
             part: {
               select: {
                 partName: true,
-                price: true,
+                unitPrice: true,
               },
             },
           },
         },
-        parts: {
+        partsUsed: {
           include: {
             part: {
               select: {
                 partName: true,
-                price: true,
+                unitPrice: true,
               },
             },
           },
@@ -681,13 +679,13 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
         warrantyId: warranty.id,
         warrantyType: warranty.warrantyType,
         licensePlate: warranty.vehicle.licensePlate,
-        vin: warranty.vehicle.vin || 'N/A',
+        vin: 'N/A',
         brand: warranty.vehicle.brand || 'N/A',
         model: warranty.vehicle.model || 'N/A',
         customerName: warranty.vehicle.owner?.name || 'N/A',
         phoneNumber: warranty.vehicle.owner?.phoneNumber || 'N/A',
         email: warranty.vehicle.owner?.email || 'N/A',
-        address: warranty.vehicle.owner?.address || 'N/A',
+        address: 'N/A',
         startDate: warranty.startDate.toISOString().split('T')[0],
         expiryDate: warranty.expiryDate.toISOString().split('T')[0],
         issuedBy: warranty.issuedBy || 'Xanh EV',
@@ -705,7 +703,7 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
       { header: 'Ngày tiếp nhận', key: 'createdAt', width: 15 },
       { header: 'Ngày hoàn thành', key: 'completedAt', width: 15 },
       { header: 'Trạng thái', key: 'status', width: 15 },
-      { header: 'Tổng chi phí', key: 'totalCost', width: 15 },
+      { header: 'Tổng chi phí', key: 'totalPrice', width: 15 },
       { header: 'Mô tả công việc', key: 'description', width: 40 },
     ];
 
@@ -735,8 +733,8 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
         createdAt: wo.createdAt.toISOString().split('T')[0],
         completedAt: wo.completedAt ? wo.completedAt.toISOString().split('T')[0] : 'N/A',
         status: statusMap[wo.status] || wo.status,
-        totalCost: wo.totalCost || 0,
-        description: wo.description || '',
+        totalPrice: wo.totalPrice || 0,
+        description: wo.notes || '',
       });
     });
 
@@ -771,7 +769,7 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
           warrantyId: pw.id,
           workOrderId: wo.id,
           partName: pw.part.partName,
-          price: pw.part.price,
+          price: pw.part.unitPrice,
           licensePlate: wo.vehicle.licensePlate,
           customerName: wo.vehicle.owner?.name || 'N/A',
           phoneNumber: wo.vehicle.owner?.phoneNumber || 'N/A',
@@ -794,7 +792,7 @@ export const exportWarrantyDataByYear = async (req: Request, res: Response) => {
     statsSheet.getRow(3).font = { bold: true };
 
     const totalPartWarranties = workOrders.reduce((sum, wo) => sum + wo.partWarranties.length, 0);
-    const totalRevenue = workOrders.reduce((sum, wo) => sum + (wo.totalCost || 0), 0);
+    const totalRevenue = workOrders.reduce((sum, wo) => sum + (wo.totalPrice || 0), 0);
     const completedWorkOrders = workOrders.filter(wo => wo.status === 'COMPLETED').length;
 
     statsSheet.addRow(['Tổng số bảo hành tổng thể', warranties.length]);
@@ -858,7 +856,6 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
                 name: true,
                 email: true,
                 phoneNumber: true,
-                address: true,
               },
             },
           },
@@ -880,7 +877,6 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
                 name: true,
                 email: true,
                 phoneNumber: true,
-                address: true,
               },
             },
           },
@@ -890,17 +886,17 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
             part: {
               select: {
                 partName: true,
-                price: true,
+                unitPrice: true,
               },
             },
           },
         },
-        parts: {
+        partsUsed: {
           include: {
             part: {
               select: {
                 partName: true,
-                price: true,
+                unitPrice: true,
               },
             },
           },
@@ -950,13 +946,13 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
         warrantyId: warranty.id,
         warrantyType: warranty.warrantyType,
         licensePlate: warranty.vehicle.licensePlate,
-        vin: warranty.vehicle.vin || 'N/A',
+        vin: 'N/A',
         brand: warranty.vehicle.brand || 'N/A',
         model: warranty.vehicle.model || 'N/A',
         customerName: warranty.vehicle.owner?.name || 'N/A',
         phoneNumber: warranty.vehicle.owner?.phoneNumber || 'N/A',
         email: warranty.vehicle.owner?.email || 'N/A',
-        address: warranty.vehicle.owner?.address || 'N/A',
+        address: 'N/A',
         startDate: warranty.startDate.toISOString().split('T')[0],
         expiryDate: warranty.expiryDate.toISOString().split('T')[0],
         issuedBy: warranty.issuedBy || 'Xanh EV',
@@ -974,7 +970,7 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
       { header: 'Ngày tiếp nhận', key: 'createdAt', width: 15 },
       { header: 'Ngày hoàn thành', key: 'completedAt', width: 15 },
       { header: 'Trạng thái', key: 'status', width: 15 },
-      { header: 'Tổng chi phí', key: 'totalCost', width: 15 },
+      { header: 'Tổng chi phí', key: 'totalPrice', width: 15 },
       { header: 'Mô tả công việc', key: 'description', width: 40 },
     ];
 
@@ -1004,8 +1000,8 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
         createdAt: wo.createdAt.toISOString().split('T')[0],
         completedAt: wo.completedAt ? wo.completedAt.toISOString().split('T')[0] : 'N/A',
         status: statusMap[wo.status] || wo.status,
-        totalCost: wo.totalCost || 0,
-        description: wo.description || '',
+        totalPrice: wo.totalPrice || 0,
+        description: wo.notes || '',
       });
     });
 
@@ -1040,7 +1036,7 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
           warrantyId: pw.id,
           workOrderId: wo.id,
           partName: pw.part.partName,
-          price: pw.part.price,
+          price: pw.part.unitPrice,
           licensePlate: wo.vehicle.licensePlate,
           customerName: wo.vehicle.owner?.name || 'N/A',
           phoneNumber: wo.vehicle.owner?.phoneNumber || 'N/A',
@@ -1063,7 +1059,7 @@ export const exportAllWarrantyData = async (req: Request, res: Response) => {
     statsSheet.getRow(3).font = { bold: true };
 
     const totalPartWarranties = workOrders.reduce((sum, wo) => sum + wo.partWarranties.length, 0);
-    const totalRevenue = workOrders.reduce((sum, wo) => sum + (wo.totalCost || 0), 0);
+    const totalRevenue = workOrders.reduce((sum, wo) => sum + (wo.totalPrice || 0), 0);
     const completedWorkOrders = workOrders.filter(wo => wo.status === 'COMPLETED').length;
 
     statsSheet.addRow(['Tổng số bảo hành tổng thể', warranties.length]);
