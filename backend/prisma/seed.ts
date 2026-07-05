@@ -166,7 +166,7 @@ async function main() {
     data: [
       {
         partName: 'Pin Li-ion 60V 20Ah (pack)',
-        imageUrl: 'http://10.0.2.2:3000/images/pin_lion_60V_20Ah.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/pin_lion_60V_20Ah.jpg',
         quantity: 10,
         minThreshold: 2,
         unitPrice: 4200000,
@@ -175,7 +175,7 @@ async function main() {
       },
       {
         partName: 'BMS 60V 30A',
-        imageUrl: 'http://10.0.2.2:3000/images/BMS_60V_30A.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/BMS_60V_30A.jpg',
         quantity: 14,
         minThreshold: 3,
         unitPrice: 450000,
@@ -184,7 +184,7 @@ async function main() {
       },
       {
         partName: 'Sạc 60V 5A',
-        imageUrl: 'http://10.0.2.2:3000/images/sac_60V_5A.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/sac_60V_5A.jpg',
         quantity: 16,
         minThreshold: 4,
         unitPrice: 520000,
@@ -193,7 +193,7 @@ async function main() {
       },
       {
         partName: 'Động cơ hub 1500W',
-        imageUrl: 'http://10.0.2.2:3000/images/dong_co_hub_1500W.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/dong_co_hub_1500W.jpg',
         quantity: 6,
         minThreshold: 1,
         unitPrice: 2800000,
@@ -202,7 +202,7 @@ async function main() {
       },
       {
         partName: 'Bộ điều khiển 60V 35A',
-        imageUrl: 'http://10.0.2.2:3000/images/bo_dieu_khien_60V35A.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/bo_dieu_khien_60V35A.jpg',
         quantity: 9,
         minThreshold: 2,
         unitPrice: 900000,
@@ -211,7 +211,7 @@ async function main() {
       },
       {
         partName: 'Tay ga điện (Hall)',
-        imageUrl: 'http://10.0.2.2:3000/images/tay_ga_dien.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/tay_ga_dien.jpg',
         quantity: 25,
         minThreshold: 6,
         unitPrice: 90000,
@@ -220,7 +220,7 @@ async function main() {
       },
       {
         partName: 'Má phanh trước (đĩa)',
-        imageUrl: 'http://10.0.2.2:3000/images/ma_phanh_truoc.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/ma_phanh_truoc.jpg',
         quantity: 30,
         minThreshold: 6,
         unitPrice: 120000,
@@ -229,7 +229,7 @@ async function main() {
       },
       {
         partName: 'Đĩa phanh trước 220mm',
-        imageUrl: 'http://10.0.2.2:3000/images/dia_phanh_truoc_220mm.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/dia_phanh_truoc_220mm.jpg',
         quantity: 12,
         minThreshold: 3,
         unitPrice: 180000,
@@ -238,7 +238,7 @@ async function main() {
       },
       {
         partName: 'Lốp không săm 90/90-12',
-        imageUrl: 'http://10.0.2.2:3000/images/lop_khong_sam_9090-12.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/lop_khong_sam_9090-12.jpg',
         quantity: 18,
         minThreshold: 4,
         unitPrice: 650000,
@@ -247,7 +247,7 @@ async function main() {
       },
       {
         partName: 'Cảm biến phanh (cut-off)',
-        imageUrl: 'http://10.0.2.2:3000/images/cam_bien_phanh_cutoff.jpg',
+        imageUrl: 'https://nanglungsach-api.onrender.com/images/cam_bien_phanh_cutoff.jpg',
         quantity: 20,
         minThreshold: 5,
         unitPrice: 60000,
