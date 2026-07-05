@@ -248,15 +248,25 @@ export const getTechConversations = async (req: Request, res: Response) => {
 
     const customerIds = Array.from(new Set(workOrders.map(wo => wo.vehicle.ownerId)));
 
-    // Fetch the conversations for these customers
+    if (customerIds.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    // Ensure a conversation exists for each customer (create if missing)
+    for (const customerId of customerIds) {
+      const existing = await prisma.chatConversation.findFirst({
+        where: { userId: customerId },
+      });
+      if (!existing) {
+        await prisma.chatConversation.create({ data: { userId: customerId } });
+      }
+    }
+
+    // Fetch conversations for these customers — no message filter so newly
+    // created (empty) conversations are also returned
     const conversations = await prisma.chatConversation.findMany({
       where: {
         userId: { in: customerIds },
-        messages: {
-          some: {
-            role: { in: [...DIRECT_CHAT_ROLES] },
-          },
-        },
       },
       include: {
         user: {

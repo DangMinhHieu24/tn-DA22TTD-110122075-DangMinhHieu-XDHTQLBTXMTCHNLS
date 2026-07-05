@@ -107,8 +107,16 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
   List<DateTime> _generateDates() {
     final list = <DateTime>[];
     final now = DateTime.now();
-    for (int i = 0; i < 14; i++) {
-      list.add(now.add(Duration(days: i)));
+    int added = 0;
+    int offset = 0;
+    // Generate 14 working days (excluding Sunday)
+    while (added < 14) {
+      offset++;
+      final d = now.add(Duration(days: offset));
+      if (_isWorkingDay(d)) {
+        list.add(d);
+        added++;
+      }
     }
     return list;
   }
@@ -148,6 +156,45 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
       return slot;
     }
     return 'custom';
+  }
+
+  // ── Giờ làm việc ──────────────────────────────────────────────────────────
+  // Thứ 2 – Thứ 7: 08:00–11:30 và 13:30–17:00
+  // Chủ nhật: nghỉ
+  static const int _workStart1 = 8;   // 08:00
+  static const int _workEnd1   = 11;  // hết 11:30 (minute 30)
+  static const int _workStart2 = 13;  // 13:30
+  static const int _workEnd2   = 17;  // hết 17:00
+
+  bool _isWorkingDay(DateTime date) => date.weekday != DateTime.sunday;
+
+  bool _isWorkingTime(TimeOfDay t) {
+    final totalMin = t.hour * 60 + t.minute;
+    final s1 = _workStart1 * 60;          // 480
+    final e1 = _workEnd1 * 60 + 30;       // 690  (11:30)
+    final s2 = _workStart2 * 60 + 30;     // 810  (13:30)
+    final e2 = _workEnd2 * 60;            // 1020 (17:00)
+    return (totalMin >= s1 && totalMin <= e1) ||
+           (totalMin >= s2 && totalMin <= e2);
+  }
+
+  String _workingHoursLabel() => 'T2–T7: 08:00–11:30 và 13:30–17:00';
+
+  void _showOutOfHoursWarning(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.access_time_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: const Color(0xFFD97706),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   @override
@@ -283,7 +330,22 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
 
                     // Step 4: Selection of Time
                     _buildSectionHeader('4', 'Chọn khung giờ'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFFD97706)),
+                        const SizedBox(width: 4),
+                        Text(
+                          _workingHoursLabel(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFD97706),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
                     _buildTimeSlotGrid(activeTimeSlot),
                     const SizedBox(height: 28),
 
@@ -746,17 +808,38 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
           children: [
             ..._timeSlots.map((slot) {
               final isSelected = activeTimeSlot == slot;
+              final parts = slot.split(':');
+              final slotTime = TimeOfDay(
+                hour: int.parse(parts[0]),
+                minute: int.parse(parts[1]),
+              );
+              final isValid = _isWorkingTime(slotTime);
+
               return GestureDetector(
-                onTap: () => _onTimeSlotSelected(slot),
+                onTap: () {
+                  if (!isValid) {
+                    _showOutOfHoursWarning('Giờ này ngoài giờ làm việc. ${_workingHoursLabel()}');
+                    return;
+                  }
+                  _onTimeSlotSelected(slot);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   width: (MediaQuery.of(context).size.width - 70) / 4,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : Colors.white,
+                    color: isSelected
+                        ? AppColors.primary
+                        : isValid
+                            ? Colors.white
+                            : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : const Color(0xFFECEEF0),
+                      color: isSelected
+                          ? AppColors.primary
+                          : isValid
+                              ? const Color(0xFFECEEF0)
+                              : const Color(0xFFE0E0E0),
                     ),
                     boxShadow: [
                       if (isSelected)
@@ -772,7 +855,11 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
                       slot,
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: isSelected ? Colors.white : const Color(0xFF191C1E),
+                        color: isSelected
+                            ? Colors.white
+                            : isValid
+                                ? const Color(0xFF191C1E)
+                                : const Color(0xFFB0B8B4),
                       ),
                     ),
                   ),
@@ -785,7 +872,7 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
               onTap: _pickTime,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: (MediaQuery.of(context).size.width - 70) / 4 * 2 + 10, // Double width card
+                width: (MediaQuery.of(context).size.width - 70) / 4 * 2 + 10,
                 height: 44,
                 decoration: BoxDecoration(
                   color: activeTimeSlot == 'custom' ? AppColors.primary : Colors.white,
@@ -977,6 +1064,10 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
   }
 
   void _onDateSelected(DateTime date) {
+    if (!_isWorkingDay(date)) {
+      _showOutOfHoursWarning('Chủ nhật xưởng nghỉ. Vui lòng chọn thứ 2 – thứ 7.');
+      return;
+    }
     setState(() {
       _selectedDate = date;
     });
@@ -998,6 +1089,8 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
       initialDate: _selectedDate ?? now.add(const Duration(days: 1)),
       firstDate: now,
       lastDate: now.add(const Duration(days: 90)),
+      // Disable Sundays
+      selectableDayPredicate: (day) => _isWorkingDay(day),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -1018,9 +1111,10 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
   }
 
   Future<void> _pickTime() async {
+    final initialTime = _selectedTime ?? const TimeOfDay(hour: 9, minute: 0);
     final picked = await showTimePicker(
       context: context,
-      initialTime: _selectedTime ?? const TimeOfDay(hour: 9, minute: 0),
+      initialTime: initialTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -1036,6 +1130,12 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
       },
     );
     if (picked != null) {
+      if (!_isWorkingTime(picked)) {
+        _showOutOfHoursWarning(
+          'Giờ ${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')} ngoài giờ làm việc.\n${_workingHoursLabel()}',
+        );
+        return;
+      }
       setState(() => _selectedTime = picked);
     }
   }
@@ -1058,11 +1158,21 @@ class _CreateAppointmentPageState extends State<CreateAppointmentPage> {
           content: const Text('Vui lòng chọn thời gian trong tương lai'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
+      return;
+    }
+
+    // Validate working day
+    if (!_isWorkingDay(scheduledAt)) {
+      _showOutOfHoursWarning('Chủ nhật xưởng nghỉ. Vui lòng chọn thứ 2 – thứ 7.');
+      return;
+    }
+
+    // Validate working hours
+    if (!_isWorkingTime(_selectedTime!)) {
+      _showOutOfHoursWarning('Giờ đặt lịch ngoài giờ làm việc. ${_workingHoursLabel()}');
       return;
     }
 

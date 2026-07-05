@@ -345,20 +345,28 @@ class _ChatPanelState extends State<_ChatPanel> {
         _techChatError = null;
       });
 
+      // Step 1: get/create conversation and technician info
       final data = await _chatRemote.getDirectConversation();
       final convId = data['conversationId'] as String;
-      final messagesList = data['messages'] as List;
       final tech = data['technician'] as Map<String, dynamic>?;
 
-      final parsedMessages = messagesList
-          .map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      // Step 2: always fetch full history separately so we never miss messages
+      List<ChatMessage> messages = [];
+      try {
+        messages = await _chatRemote.getDirectHistory(convId);
+      } catch (_) {
+        // fallback: use inline messages from getDirectConversation
+        final messagesList = data['messages'] as List? ?? [];
+        messages = messagesList
+            .map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
 
       if (mounted) {
         setState(() {
           _conversationId = convId;
           _techInfo = tech;
-          _techMessages = parsedMessages;
+          _techMessages = messages;
           _loadingTechChat = false;
         });
         _scrollToBottom();
@@ -380,7 +388,11 @@ class _ChatPanelState extends State<_ChatPanel> {
       if (!mounted || _activeTab != 1 || _conversationId == null) return;
       try {
         final messages = await _chatRemote.getDirectHistory(_conversationId!);
-        if (messages.length != _techMessages.length && mounted) {
+        if (!mounted) return;
+        // Update whenever count differs OR last message id changed
+        final lastOldId = _techMessages.isNotEmpty ? _techMessages.last.id : null;
+        final lastNewId = messages.isNotEmpty ? messages.last.id : null;
+        if (messages.length != _techMessages.length || lastOldId != lastNewId) {
           setState(() {
             _techMessages = messages;
           });

@@ -116,7 +116,10 @@ class _TechCustomerChatSheetState extends State<TechCustomerChatSheet> {
       try {
         final res = await _dio.get('/chat/direct/history/$_conversationId');
         final messagesList = res.data['data'] as List;
-        if (messagesList.length != _messages.length && mounted) {
+        if (!mounted) return;
+        final lastOldId = _messages.isNotEmpty ? _messages.last['id'] : null;
+        final lastNewId = messagesList.isNotEmpty ? messagesList.last['id'] : null;
+        if (messagesList.length != _messages.length || lastOldId != lastNewId) {
           setState(() {
             _messages = messagesList;
           });
