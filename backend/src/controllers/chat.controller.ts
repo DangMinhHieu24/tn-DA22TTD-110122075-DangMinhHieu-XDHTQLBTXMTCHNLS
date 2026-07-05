@@ -239,9 +239,7 @@ export const getTechConversations = async (req: Request, res: Response) => {
       },
       include: {
         vehicle: {
-          include: {
-            owner: true
-          }
+          include: { owner: true }
         }
       }
     });
@@ -252,41 +250,62 @@ export const getTechConversations = async (req: Request, res: Response) => {
       return res.json({ success: true, data: [] });
     }
 
-    // Ensure a conversation exists for each customer (create if missing)
-    for (const customerId of customerIds) {
-      const existing = await prisma.chatConversation.findFirst({
-        where: { userId: customerId },
-      });
-      if (!existing) {
-        await prisma.chatConversation.create({ data: { userId: customerId } });
-      }
-    }
+    // For each customer: find the most recent direct conversation or create one
+    const results = await Promise.all(
+      customerIds.map(async (customerId) => {
+        // Prefer conversation that already has direct messages
+        let conv = await prisma.chatConversation.findFirst({
+          where: {
+            userId: customerId,
+            messages: { some: { role: { in: [...DIRECT_CHAT_ROLES] } } },
+          },
+          orderBy: { updatedAt: 'desc' },
+          include: {
+            user: { select: { id: true, name: true, avatarUrl: true, phoneNumber: true } },
+            messages: {
+              where: { role: { in: [...DIRECT_CHAT_ROLES] } },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        });
 
-    // Fetch conversations for these customers — no message filter so newly
-    // created (empty) conversations are also returned
-    const conversations = await prisma.chatConversation.findMany({
-      where: {
-        userId: { in: customerIds },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true,
-            phoneNumber: true
-          }
-        },
-        messages: {
-          where: { role: { in: [...DIRECT_CHAT_ROLES] } },
-          orderBy: { createdAt: 'desc' },
-          take: 1
+        // Fallback: any existing conversation
+        if (!conv) {
+          conv = await prisma.chatConversation.findFirst({
+            where: { userId: customerId },
+            orderBy: { updatedAt: 'desc' },
+            include: {
+              user: { select: { id: true, name: true, avatarUrl: true, phoneNumber: true } },
+              messages: {
+                where: { role: { in: [...DIRECT_CHAT_ROLES] } },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+              },
+            },
+          });
         }
-      },
-      orderBy: { updatedAt: 'desc' }
-    });
 
-    res.json({ success: true, data: conversations });
+        // Create if none exists at all
+        if (!conv) {
+          conv = await prisma.chatConversation.create({
+            data: { userId: customerId },
+            include: {
+              user: { select: { id: true, name: true, avatarUrl: true, phoneNumber: true } },
+              messages: {
+                where: { role: { in: [...DIRECT_CHAT_ROLES] } },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+              },
+            },
+          });
+        }
+
+        return conv;
+      })
+    );
+
+    res.json({ success: true, data: results });
   } catch (error) {
     console.error('Get tech conversations error:', error);
     res.status(500).json({ success: false, message: 'Lỗi lấy danh sách hội thoại của KTV' });
