@@ -24,7 +24,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   // iOS Simulator: use localhost
   // Android Emulator: use 10.0.2.2
   // Real device: use your computer's IP (e.g., 192.168.1.100)
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl = 'https://nanglungsach-api.onrender.com/api';
 
   AuthRemoteDataSourceImpl({required this.dio});
 

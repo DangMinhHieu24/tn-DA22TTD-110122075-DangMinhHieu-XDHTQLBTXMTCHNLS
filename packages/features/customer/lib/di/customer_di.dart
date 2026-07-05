@@ -52,7 +52,7 @@ void setupCustomerDependencies() {
   // Warranty Service
   getIt.registerLazySingleton<WarrantyService>(
     () => WarrantyService(
-      baseUrl: 'http://10.0.2.2:3000/api',
+      baseUrl: 'https://nanglungsach-api.onrender.com/api',
       getToken: () async {
         final authLocalDataSource = getIt<AuthLocalDataSource>();
         return (await authLocalDataSource.getToken()) ?? '';

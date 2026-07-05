@@ -34,7 +34,7 @@ void setupAuthDependencies() {
     getIt.registerLazySingleton<Dio>(() {
       final dio = Dio(
         BaseOptions(
-          baseUrl: 'http://10.0.2.2:3000/api',
+          baseUrl: 'https://nanglungsach-api.onrender.com/api',
           connectTimeout: const Duration(seconds: 30),
           receiveTimeout: const Duration(seconds: 30),
           headers: {
