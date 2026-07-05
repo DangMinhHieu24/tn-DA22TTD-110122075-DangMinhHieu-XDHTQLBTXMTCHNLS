@@ -344,10 +344,19 @@ export const createWorkOrder = async (req: Request, res: Response) => {
           scheduledTime: resolvedScheduledTime,
           createdById,
           services: {
-            create: (services || []).map((s: any) => ({
-              ...s,
-              approvalStatus: 'APPROVED',
-            })),
+            create: (services || []).map((s: any) => {
+              const typeLabel: Record<string, string> = {
+                MAINTENANCE: 'Bảo dưỡng định kỳ',
+                BATTERY_CHECK: 'Kiểm tra pin/sạc',
+                BRAKES_TIRES: 'Phanh & Lốp',
+                OTHER_REPAIR: 'Sửa chữa khác',
+              };
+              return {
+                ...s,
+                serviceName: s.serviceName || typeLabel[s.serviceType] || 'Khác',
+                approvalStatus: 'APPROVED',
+              };
+            }),
           },
           photos: {
             create: photos || [],
@@ -780,6 +789,32 @@ export const updateWorkOrderStatus = async (req: Request, res: Response) => {
           });
         }
 
+        // Award loyalty points for the completed order
+        try {
+          const totalPrice = updatedWorkOrder.totalPrice ?? 0;
+          if (totalPrice > 0) {
+            const vehicle = await tx.vehicle.findUnique({
+              where: { id: updatedWorkOrder.vehicleId },
+              select: { ownerId: true },
+            });
+            if (vehicle?.ownerId) {
+              const pointsToAward = Math.floor(totalPrice / 20000);
+              const extraTrees = Math.floor(totalPrice / 500000);
+              if (pointsToAward > 0) {
+                await tx.user.update({
+                  where: { id: vehicle.ownerId },
+                  data: {
+                    loyaltyPoints: { increment: pointsToAward },
+                    treesPlanted: { increment: 1 + extraTrees },
+                  },
+                });
+              }
+            }
+          }
+        } catch (pointsErr) {
+          console.error('Loyalty points error in PAID block:', pointsErr);
+        }
+
         return updatedWorkOrder;
       }
 
@@ -917,7 +952,15 @@ export const assignTechnician = async (req: Request, res: Response) => {
 export const addWorkOrderService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { serviceType, description, price, serviceName } = req.body;
+    const { serviceType, description, price } = req.body;
+
+    const typeLabel: Record<string, string> = {
+      MAINTENANCE: 'Bảo dưỡng định kỳ',
+      BATTERY_CHECK: 'Kiểm tra pin/sạc',
+      BRAKES_TIRES: 'Phanh & Lốp',
+      OTHER_REPAIR: 'Sửa chữa khác',
+    };
+    const sName = typeLabel[serviceType] || 'Khác';
 
     const service = await prisma.workOrderService.create({
       data: {
@@ -925,7 +968,7 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
         serviceType,
         description,
         price,
-        serviceName,
+        serviceName: sName,
         approvalStatus: 'PENDING',
       },
     });
@@ -942,16 +985,6 @@ export const addWorkOrderService = async (req: Request, res: Response) => {
         },
       });
       const orderNumber = wo?.orderNumber || 'N/A';
-      const mapServiceTypeLabel = (type: string) => {
-        switch (type) {
-          case 'MAINTENANCE': return 'Bảo dưỡng định kỳ';
-          case 'BATTERY_CHECK': return 'Kiểm tra pin/sạc';
-          case 'BRAKES_TIRES': return 'Phanh & Lốp';
-          case 'OTHER_REPAIR': return 'Sửa chữa khác';
-          default: return type;
-        }
-      };
-      const sName = serviceName || mapServiceTypeLabel(serviceType);
 
       if (wo?.vehicle?.ownerId) {
         await createNotificationForUser(
@@ -1619,7 +1652,13 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     const serviceTotals = new Map<string, number>();
     currentOrders.forEach((order) => {
       (order.services ?? []).forEach((service) => {
-        const label = service.serviceName || service.description || service.serviceType || 'Khác';
+        const typeLabel: Record<string, string> = {
+          MAINTENANCE: 'Bảo dưỡng định kỳ',
+          BATTERY_CHECK: 'Kiểm tra pin/sạc',
+          BRAKES_TIRES: 'Phanh & Lốp',
+          OTHER_REPAIR: 'Sửa chữa khác',
+        };
+        const label = service.serviceName || typeLabel[service.serviceType] || service.serviceType || 'Khác';
         const price = typeof service.price === 'number' && Number.isFinite(service.price)
           ? service.price
           : 0;
@@ -1847,6 +1886,27 @@ export const recordPayment = async (req: Request, res: Response) => {
       }
     } catch (warrantyErr) {
       console.error('Warranty creation error in recordPayment:', warrantyErr);
+    }
+
+    // Award loyalty points for completed order
+    try {
+      const totalPrice = workOrder.totalPrice ?? 0;
+      if (totalPrice > 0 && workOrder.vehicle?.owner?.id) {
+        const pointsToAward = Math.floor(totalPrice / 20000);
+        const extraTrees = Math.floor(totalPrice / 500000);
+        if (pointsToAward > 0) {
+          await prisma.user.update({
+            where: { id: workOrder.vehicle.owner.id },
+            data: {
+              loyaltyPoints: { increment: pointsToAward },
+              treesPlanted: { increment: 1 + extraTrees },
+            },
+          });
+          console.log(`RecordPayment: Awarded ${pointsToAward} points and ${1 + extraTrees} trees to ${workOrder.vehicle.owner.id}`);
+        }
+      }
+    } catch (pointsErr) {
+      console.error('Loyalty points error in recordPayment:', pointsErr);
     }
 
     // Send system chat message
