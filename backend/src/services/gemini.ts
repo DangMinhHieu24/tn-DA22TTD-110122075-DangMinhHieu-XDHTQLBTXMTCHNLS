@@ -521,7 +521,10 @@ async function executeFunction(name: string, args: Record<string, any>, userId: 
       const vehicle = await prisma.vehicle.findUnique({ where: { id: args.vehicleId } });
       if (!vehicle) return { success: false, message: 'Không tìm thấy xe' };
 
-      const scheduledAt = new Date(`${args.date}T${args.time}:00`);
+      // Interpret date/time as Vietnam local time (UTC+7) to avoid timezone shift
+      // new Date("YYYY-MM-DDTHH:mm:00") on a UTC server would treat it as UTC.
+      // Appending "+07:00" explicitly anchors it to Vietnam time.
+      const scheduledAt = new Date(`${args.date}T${args.time}:00+07:00`);
       const appointment = await prisma.appointment.create({
         data: {
           customerId: vehicle.ownerId,
@@ -875,14 +878,15 @@ function parseDateTime(input: string): Date | null {
     const day = parseInt(dateMatch[1]);
     const month = parseInt(dateMatch[2]) - 1;
     const year = now.getFullYear();
-    const parsedDate = new Date(year, month, day, hours, minutes);
-    
+    // Use UTC+7 offset so the time is stored correctly in DB regardless of server timezone
+    const parsedDate = new Date(Date.UTC(year, month, day, hours - 7, minutes));
     if (parsedDate.getTime() < now.getTime() - 24 * 3600 * 1000) {
-      parsedDate.setFullYear(year + 1);
+      parsedDate.setUTCFullYear(year + 1);
     }
     return parsedDate;
   } else if (noAccentStr.includes('mai') || noAccentStr.includes('mot') || noAccentStr.includes('ngay kia') || noAccentStr.includes('hom nay')) {
-    const parsedDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hours, minutes);
+    // Also apply UTC+7 offset for relative dates
+    const parsedDate = new Date(Date.UTC(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hours - 7, minutes));
     return parsedDate;
   }
 
