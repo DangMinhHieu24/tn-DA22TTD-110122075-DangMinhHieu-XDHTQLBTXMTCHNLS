@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:auth/auth.dart';
 import 'package:core/core.dart';
 import '../../../domain/entities/work_item.dart';
@@ -20,6 +21,7 @@ class _TechStatsPageState extends State<TechStatsPage> {
 
   static const _kGreen = Color(0xFF006E2F);
   static const _kBg = Color(0xFFF8FAFB);
+  static final _fmt = NumberFormat('#,###', 'vi');
 
   @override
   void initState() {
@@ -140,6 +142,8 @@ class _TechStatsPageState extends State<TechStatsPage> {
           i.services.fold<double>(0, (s, sv) => s + (sv.price ?? 0));
     });
 
+    final rate = total > 0 ? (completed / total * 100) : 0.0;
+
     final recentItems = items
         .where((i) => i.status == WorkStatus.completed)
         .toList()
@@ -150,9 +154,9 @@ class _TechStatsPageState extends State<TechStatsPage> {
       children: [
         _buildHeader(),
         const SizedBox(height: 20),
-        _buildStatRow(total, completed, inProgress, cancelled, pending),
+        _buildRateAndMoney(rate, revenue),
         const SizedBox(height: 20),
-        _buildRevenueCard(revenue),
+        _buildStatRow(total, completed, inProgress, cancelled, pending),
         const SizedBox(height: 20),
         if (recentItems.isNotEmpty) ...[
           _buildSectionTitle('Phiếu đã hoàn thành gần đây'),
@@ -214,13 +218,25 @@ class _TechStatsPageState extends State<TechStatsPage> {
       int cancelled, int pending) {
     return Row(
       children: [
-        _buildStatCard('Tổng việc', '$total', _kGreen, Icons.work_history),
+        _buildStatCard('Tổng việc', _fmt.format(total), _kGreen, Icons.work_history),
         const SizedBox(width: 10),
-        _buildStatCard('Hoàn tất', '$completed', const Color(0xFF16A34A),
+        _buildStatCard('Hoàn tất', _fmt.format(completed), const Color(0xFF16A34A),
             Icons.check_circle_outline),
         const SizedBox(width: 10),
         _buildStatCard(
-            'Đang làm', '$inProgress', const Color(0xFF0058BE), Icons.build),
+            'Đang làm', _fmt.format(inProgress), const Color(0xFF0058BE), Icons.build),
+      ],
+    );
+  }
+
+  Widget _buildRateAndMoney(double rate, double revenue) {
+    return Row(
+      children: [
+        _buildStatCard('Tỉ lệ hoàn thành', '${rate.toStringAsFixed(0)}%',
+            const Color(0xFF16A34A), Icons.assignment_turned_in),
+        const SizedBox(width: 10),
+        _buildStatCard('Số tiền', '${_fmt.format(revenue)}đ',
+            const Color(0xFF0058BE), Icons.monetization_on_rounded),
       ],
     );
   }
@@ -299,7 +315,7 @@ class _TechStatsPageState extends State<TechStatsPage> {
                       fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
               Text(
-                '${revenue.toStringAsFixed(0)}đ',
+                '${_fmt.format(revenue)}đ',
                 style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
