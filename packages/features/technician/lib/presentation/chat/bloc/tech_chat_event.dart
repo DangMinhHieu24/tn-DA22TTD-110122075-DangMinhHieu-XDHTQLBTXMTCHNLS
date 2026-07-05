@@ -18,3 +18,11 @@ class TechChatSendMessage extends TechChatEvent {
 }
 
 class TechChatClearHistory extends TechChatEvent {}
+
+class TechChatUpdateUnreadCount extends TechChatEvent {
+  final int count;
+  const TechChatUpdateUnreadCount(this.count);
+
+  @override
+  List<Object?> get props => [count];
+}

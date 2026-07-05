@@ -14,6 +14,7 @@ class TechChatBloc extends Bloc<TechChatEvent, TechChatState> {
     on<TechChatLoadHistory>(_onLoadHistory);
     on<TechChatSendMessage>(_onSendMessage);
     on<TechChatClearHistory>(_onClearHistory);
+    on<TechChatUpdateUnreadCount>(_onUpdateUnreadCount);
     add(TechChatLoadHistory());
   }
 
@@ -79,5 +80,15 @@ class TechChatBloc extends Bloc<TechChatEvent, TechChatState> {
   ) async {
     await _repository.clearHistory();
     emit(const TechChatLoaded(messages: []));
+  }
+
+  void _onUpdateUnreadCount(
+    TechChatUpdateUnreadCount event,
+    Emitter<TechChatState> emit,
+  ) {
+    final current = state;
+    if (current is TechChatLoaded) {
+      emit(current.copyWith(unreadCount: event.count));
+    }
   }
 }

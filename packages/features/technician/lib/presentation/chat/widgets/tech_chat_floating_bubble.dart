@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
+import '../bloc/tech_chat_event.dart';
 import 'package:design_system/design_system.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../work_detail/widgets/tech_customer_chat_sheet.dart';
@@ -45,6 +46,7 @@ class _TechChatFloatingBubbleState extends State<TechChatFloatingBubble>
   late AnimationController _animationController;
   Animation<Offset>? _animation;
   static const String _positionKey = 'tech_chat_bubble_position';
+  Timer? _unreadTimer;
 
   static const _bubbleGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -68,6 +70,8 @@ class _TechChatFloatingBubbleState extends State<TechChatFloatingBubble>
         _positionNotifier.value = _animation!.value;
       }
     });
+
+    _startUnreadPolling();
   }
 
   Future<void> _loadSavedPosition() async {
@@ -89,8 +93,22 @@ class _TechChatFloatingBubbleState extends State<TechChatFloatingBubble>
     } catch (_) {}
   }
 
+  void _startUnreadPolling() {
+    _unreadTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      try {
+        final dio = GetIt.instance<Dio>();
+        final res = await dio.get('/chat/direct/unread-count');
+        final count = res.data['data']?['unreadCount'] as int? ?? 0;
+        if (mounted) {
+          GetIt.instance<TechChatBloc>().add(TechChatUpdateUnreadCount(count));
+        }
+      } catch (_) {}
+    });
+  }
+
   @override
   void dispose() {
+    _unreadTimer?.cancel();
     _animationController.dispose();
     _positionNotifier.dispose();
     super.dispose();
@@ -137,7 +155,10 @@ class _TechChatFloatingBubbleState extends State<TechChatFloatingBubble>
           setState(() => _isDragging = false);
           _snapToEdge(screenSize);
         },
-        onTap: _isDragging ? null : () => showTechChatPanel(context),
+        onTap: _isDragging ? null : () {
+          GetIt.instance<TechChatBloc>().add(const TechChatUpdateUnreadCount(0));
+          showTechChatPanel(context);
+        },
         child: BlocBuilder<TechChatBloc, TechChatState>(
           bloc: chatBloc,
           builder: (context, state) {

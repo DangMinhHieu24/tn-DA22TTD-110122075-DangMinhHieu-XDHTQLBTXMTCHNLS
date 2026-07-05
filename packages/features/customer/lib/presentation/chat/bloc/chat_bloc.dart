@@ -51,6 +51,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatLoadHistory>(_onLoadHistory);
     on<ChatSendMessage>(_onSendMessage);
     on<ChatClearHistory>(_onClearHistory);
+    on<ChatUpdateUnreadCount>(_onUpdateUnreadCount);
     add(ChatLoadHistory());
   }
 
@@ -116,6 +117,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     await _repository.clearHistory();
     emit(const ChatLoaded(messages: []));
+  }
+
+  void _onUpdateUnreadCount(
+    ChatUpdateUnreadCount event,
+    Emitter<ChatState> emit,
+  ) {
+    final current = state;
+    if (current is ChatLoaded) {
+      emit(current.copyWith(unreadCount: event.count));
+    }
   }
 }
 

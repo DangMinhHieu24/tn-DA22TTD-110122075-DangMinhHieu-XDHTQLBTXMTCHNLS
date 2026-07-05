@@ -304,3 +304,51 @@ export const getDirectHistory = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: 'Lỗi lấy lịch sử tin nhắn trực tiếp' });
   }
 };
+
+export const getUnreadDirectCount = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any).user;
+    let unreadCount = 0;
+
+    if (authUser.role === 'CUSTOMER') {
+      const conversations = await prisma.chatConversation.findMany({
+        where: { userId: authUser.userId },
+        include: {
+          messages: {
+            where: { role: 'technician' },
+            select: { id: true },
+          },
+        },
+      });
+      unreadCount = conversations.reduce((sum, c) => sum + c.messages.length, 0);
+    } else if (authUser.role === 'TECHNICIAN') {
+      const workOrders = await prisma.workOrder.findMany({
+        where: {
+          technicianId: authUser.userId,
+          status: { in: ['PENDING', 'IN_PROGRESS', 'INSPECTION', 'COMPLETED'] },
+        },
+        select: { vehicle: { select: { ownerId: true } } },
+      });
+      const customerIds = [...new Set(workOrders.map(wo => wo.vehicle.ownerId))];
+
+      const conversations = await prisma.chatConversation.findMany({
+        where: {
+          userId: { in: customerIds },
+          messages: { some: { role: 'customer' } },
+        },
+        include: {
+          messages: {
+            where: { role: 'customer' },
+            select: { id: true },
+          },
+        },
+      });
+      unreadCount = conversations.reduce((sum, c) => sum + c.messages.length, 0);
+    }
+
+    res.json({ success: true, data: { unreadCount } });
+  } catch (error) {
+    console.error('Unread count error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi lấy số tin nhắn chưa đọc' });
+  }
+};

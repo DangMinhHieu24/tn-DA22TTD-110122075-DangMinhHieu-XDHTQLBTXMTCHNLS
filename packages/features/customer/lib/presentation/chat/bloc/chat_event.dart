@@ -20,3 +20,11 @@ class ChatSendMessage extends ChatEvent {
 class ChatClearHistory extends ChatEvent {}
 
 class ChatTypingStopped extends ChatEvent {}
+
+class ChatUpdateUnreadCount extends ChatEvent {
+  final int count;
+  const ChatUpdateUnreadCount(this.count);
+
+  @override
+  List<Object?> get props => [count];
+}
