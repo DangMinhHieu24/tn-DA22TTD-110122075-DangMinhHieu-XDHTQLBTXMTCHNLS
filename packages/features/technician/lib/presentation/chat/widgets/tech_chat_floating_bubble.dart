@@ -96,8 +96,12 @@ class _TechChatFloatingBubbleState extends State<TechChatFloatingBubble>
   void _startUnreadPolling() {
     _unreadTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
       try {
+        final prefs = await SharedPreferences.getInstance();
+        final since = prefs.getString('tech_chat_last_read') ?? '';
         final dio = GetIt.instance<Dio>();
-        final res = await dio.get('/chat/direct/unread-count');
+        final res = await dio.get('/chat/direct/unread-count', queryParameters: {
+          if (since.isNotEmpty) 'since': since,
+        });
         final count = res.data['data']?['unreadCount'] as int? ?? 0;
         if (mounted) {
           GetIt.instance<TechChatBloc>().add(TechChatUpdateUnreadCount(count));
@@ -155,7 +159,9 @@ class _TechChatFloatingBubbleState extends State<TechChatFloatingBubble>
           setState(() => _isDragging = false);
           _snapToEdge(screenSize);
         },
-        onTap: _isDragging ? null : () {
+        onTap: _isDragging ? null : () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('tech_chat_last_read', DateTime.now().toIso8601String());
           GetIt.instance<TechChatBloc>().add(const TechChatUpdateUnreadCount(0));
           showTechChatPanel(context);
         },

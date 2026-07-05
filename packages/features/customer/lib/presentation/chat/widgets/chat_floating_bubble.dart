@@ -103,8 +103,12 @@ class _ChatFloatingBubbleState extends State<ChatFloatingBubble> with SingleTick
   void _startUnreadPolling() {
     _unreadTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
       try {
+        final prefs = await SharedPreferences.getInstance();
+        final since = prefs.getString('chat_last_read') ?? '';
         final dio = GetIt.instance<Dio>();
-        final res = await dio.get('/chat/direct/unread-count');
+        final res = await dio.get('/chat/direct/unread-count', queryParameters: {
+          if (since.isNotEmpty) 'since': since,
+        });
         final count = res.data['data']?['unreadCount'] as int? ?? 0;
         if (mounted) {
           GetIt.instance<ChatBloc>().add(ChatUpdateUnreadCount(count));
@@ -175,7 +179,9 @@ class _ChatFloatingBubbleState extends State<ChatFloatingBubble> with SingleTick
           setState(() => _isDragging = false);
           _snapToEdge(screenSize);
         },
-        onTap: _isDragging ? null : () {
+        onTap: _isDragging ? null : () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('chat_last_read', DateTime.now().toIso8601String());
           GetIt.instance<ChatBloc>().add(const ChatUpdateUnreadCount(0));
           showChatPanel(context);
         },

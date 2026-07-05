@@ -308,6 +308,7 @@ export const getDirectHistory = async (req: Request, res: Response) => {
 export const getUnreadDirectCount = async (req: Request, res: Response) => {
   try {
     const authUser = (req as any).user;
+    const since = req.query.since ? new Date(req.query.since as string) : new Date(0);
     let unreadCount = 0;
 
     if (authUser.role === 'CUSTOMER') {
@@ -315,7 +316,7 @@ export const getUnreadDirectCount = async (req: Request, res: Response) => {
         where: { userId: authUser.userId },
         include: {
           messages: {
-            where: { role: 'technician' },
+            where: { role: 'technician', createdAt: { gt: since } },
             select: { id: true },
           },
         },
@@ -338,7 +339,7 @@ export const getUnreadDirectCount = async (req: Request, res: Response) => {
         },
         include: {
           messages: {
-            where: { role: 'customer' },
+            where: { role: 'customer', createdAt: { gt: since } },
             select: { id: true },
           },
         },
