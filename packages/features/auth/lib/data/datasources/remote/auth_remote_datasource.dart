@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../models/auth_response_model.dart';
+import '../../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthResponseModel> login({
@@ -15,6 +16,8 @@ abstract class AuthRemoteDataSource {
   });
   
   Future<void> logout();
+
+  Future<UserModel> getCurrentUser();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -119,5 +122,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       // Logout locally even if API call fails
     }
+  }
+
+  @override
+  Future<UserModel> getCurrentUser() async {
+    final response = await dio.get('$baseUrl/auth/me');
+    return UserModel.fromJson(response.data);
   }
 }

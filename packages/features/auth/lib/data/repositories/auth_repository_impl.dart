@@ -79,13 +79,19 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
-      final user = await localDataSource.getUser();
-      if (user == null) {
-        return const Left(CacheFailure('Chưa đăng nhập'));
-      }
+      final user = await remoteDataSource.getCurrentUser();
+      await localDataSource.saveUser(user);
       return Right(user);
     } catch (e) {
-      return Left(CacheFailure(e.toString()));
+      try {
+        final cached = await localDataSource.getUser();
+        if (cached == null) {
+          return const Left(CacheFailure('Chưa đăng nhập'));
+        }
+        return Right(cached);
+      } catch (e2) {
+        return Left(CacheFailure(e2.toString()));
+      }
     }
   }
 }
